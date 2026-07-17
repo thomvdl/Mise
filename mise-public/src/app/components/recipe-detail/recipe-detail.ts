@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, input, signal, computed } from '@angular/core';
+import { Component, DestroyRef, ElementRef, effect, inject, input, signal, computed, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -35,6 +35,9 @@ const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 })
 export class RecipeDetail {
   private readonly destroyRef = inject(DestroyRef);
+
+  private readonly dialEl = viewChild<ElementRef<HTMLDivElement>>('dialEl');
+  private dragging = false;
 
   fiche = input<FicheTechnique | null>(null);
 
@@ -133,6 +136,36 @@ export class RecipeDetail {
 
   adjustServings(delta: number) {
     this.servings.update((value) => Math.min(100, Math.max(1, value + delta)));
+  }
+
+  onDialPointerDown(event: PointerEvent) {
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    this.dragging = true;
+    this.setServingsFromPointer(event);
+  }
+
+  onDialPointerMove(event: PointerEvent) {
+    if (this.dragging) this.setServingsFromPointer(event);
+  }
+
+  onDialPointerUp(event: PointerEvent) {
+    this.dragging = false;
+    (event.target as HTMLElement).releasePointerCapture(event.pointerId);
+  }
+
+  /** Angle depuis le centre du dial, en partant du haut (12h) et dans le sens horaire — le
+   * ring visuel est tourné de -90deg en CSS, donc 12h = 0% et on fait un tour complet pour 100%. */
+  private setServingsFromPointer(event: PointerEvent) {
+    const rect = this.dialEl()?.nativeElement.getBoundingClientRect();
+    if (!rect) return;
+
+    const dx = event.clientX - (rect.left + rect.width / 2);
+    const dy = event.clientY - (rect.top + rect.height / 2);
+    let angleFromTop = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+    if (angleFromTop < 0) angleFromTop += 360;
+
+    const value = Math.round((angleFromTop / 360) * 100);
+    this.servings.set(Math.min(100, Math.max(1, value)));
   }
 
   toggleStep(stepId: number) {

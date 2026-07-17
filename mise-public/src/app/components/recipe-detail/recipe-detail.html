@@ -26,7 +26,13 @@
 
     <div class="dial-wrap">
       <button type="button" class="dial-btn" (click)="adjustServings(-1)" aria-label="Moins de portions">−</button>
-      <div class="dial">
+      <div
+        class="dial"
+        #dialEl
+        (pointerdown)="onDialPointerDown($event)"
+        (pointermove)="onDialPointerMove($event)"
+        (pointerup)="onDialPointerUp($event)"
+        (pointercancel)="onDialPointerUp($event)">
         <svg viewBox="0 0 104 104">
           <circle class="dial-track" cx="52" cy="52" r="46" />
           <circle
