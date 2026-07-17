@@ -5,6 +5,12 @@ en cuisine et celui de sa brigade — fiches techniques, traçabilité HACCP, me
 Ce n'est pas un produit commercial : les choix techniques restent volontairement simples et
 motivés par des besoins concrets de service, pas de la sur-ingénierie.
 
+## Aperçu
+
+| Dashboard (back-office) | Public (brigade) |
+|---|---|
+| ![Accueil du dashboard](./Mise-dashboard.png) | ![Accueil de l'app publique](./Mise-public.png) |
+
 ## Architecture
 
 Le projet est composé de trois applications indépendantes (pas d'outillage monorepo, pas de
