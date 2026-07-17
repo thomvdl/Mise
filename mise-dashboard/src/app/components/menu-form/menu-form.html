@@ -1,0 +1,144 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEdit() ? 'Modifier' : 'Nouveau' }} menu</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="section">
+    <div class="section-title">Général</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label" for="name">Nom</label>
+        <input
+          id="name"
+          class="form-input"
+          type="text"
+          formControlName="name"
+          [class.has-error]="form.controls.name.invalid && form.controls.name.touched" />
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <span class="form-error">Le nom est requis.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="slug">Slug</label>
+        <input
+          id="slug"
+          class="form-input"
+          type="text"
+          formControlName="slug"
+          (input)="onSlugInput()"
+          [class.has-error]="form.controls.slug.invalid && form.controls.slug.touched" />
+        @if (form.controls.slug.invalid && form.controls.slug.touched) {
+          <span class="form-error">Le slug est requis.</span>
+        }
+      </div>
+
+      <div class="form-field span-2">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" class="form-textarea" formControlName="description"></textarea>
+      </div>
+
+      <div class="form-field span-2">
+        <label class="checkbox-chip" [class.checked]="oneShot()">
+          <input type="checkbox" [checked]="oneShot()" (change)="toggleOneShot()" />
+          Menu ponctuel (une seule date)
+        </label>
+      </div>
+
+      @if (oneShot()) {
+        <div class="form-field">
+          <label class="form-label" for="starts_at">Date</label>
+          <input id="starts_at" class="form-input" type="date" formControlName="starts_at" />
+        </div>
+      } @else {
+        <div class="form-field">
+          <label class="form-label" for="starts_at">Date de début</label>
+          <input id="starts_at" class="form-input" type="date" formControlName="starts_at" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="ends_at">Date de fin</label>
+          <input id="ends_at" class="form-input" type="date" formControlName="ends_at" />
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Sections & plats</div>
+    <div class="menu-sections">
+      @for (section of sections.controls; track $index; let sectionIndex = $index) {
+        <div class="menu-section-card">
+          <div class="menu-section-header">
+            <input
+              class="form-input"
+              type="text"
+              [formControl]="section.controls.name"
+              placeholder="Nom de la section (ex. Entrées, Plats, Desserts)"
+              [class.has-error]="section.controls.name.invalid && section.controls.name.touched" />
+            @if (sections.length > 1) {
+              <button
+                type="button"
+                class="row-remove"
+                (click)="removeSection(sectionIndex)"
+                aria-label="Supprimer cette section">×</button>
+            }
+          </div>
+
+          <div class="plats">
+            @for (plat of section.controls.plats.controls; track $index; let platIndex = $index) {
+              <div class="plat-card">
+                <div class="plat-header">
+                  <div class="form-field">
+                    <input
+                      class="form-input"
+                      type="text"
+                      [formControl]="plat.controls.name"
+                      placeholder="Nom du plat"
+                      [class.has-error]="plat.controls.name.invalid && plat.controls.name.touched" />
+                  </div>
+                  <button
+                    type="button"
+                    class="row-remove"
+                    (click)="removePlat(sectionIndex, platIndex)"
+                    aria-label="Supprimer ce plat">×</button>
+                </div>
+
+                <div class="form-field">
+                  <textarea
+                    class="form-textarea"
+                    [formControl]="plat.controls.description"
+                    placeholder="Description du plat (optionnel)"></textarea>
+                </div>
+
+                @if (ficheTechniques().length) {
+                  <div class="form-field">
+                    <span class="form-label">Fiches techniques liées (optionnel)</span>
+                    <app-fiche-technique-picker
+                      [items]="ficheTechniques()"
+                      [selectedIds]="plat.controls.fiche_technique_ids.value"
+                      (toggle)="toggleFicheTechnique(sectionIndex, platIndex, $event)">
+                    </app-fiche-technique-picker>
+                  </div>
+                }
+              </div>
+            }
+            <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addPlat(sectionIndex)">+ Ajouter un plat</button>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addSection()">+ Ajouter une section</button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Annuler</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

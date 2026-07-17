@@ -1,0 +1,42 @@
+<div class="login-wrap">
+  <form class="form-card login-card" (ngSubmit)="submit()">
+    <div class="login-brand">MISE<span>.</span></div>
+    <p class="login-sub">Connexion dashboard — réservé aux administrateurs.</p>
+
+    <div class="form-grid cols-1">
+      <div class="form-field">
+        <label class="form-label" for="name">Nom</label>
+        <input
+          id="name"
+          class="form-input"
+          type="text"
+          autocomplete="username"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+          name="name" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="password">Mot de passe</label>
+        <input
+          id="password"
+          class="form-input"
+          type="password"
+          autocomplete="current-password"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+          name="password" />
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <div class="form-actions login-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Connexion…' : 'Se connecter' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,5 @@
+.sortable{ cursor:pointer; user-select:none; }
+.sortable:hover{ color:var(--text-dim); }
+.sort-arrow{ margin-left:4px; font-size:9px; }
+
+.cat-filter{ width:auto; min-width:190px; }

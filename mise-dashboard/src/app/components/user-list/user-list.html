@@ -1,0 +1,45 @@
+<div class="page-header">
+  <h1 class="page-title">Utilisateurs</h1>
+  <div class="page-actions">
+    <a class="btn btn-primary" routerLink="nouveau">+ Nouveau</a>
+  </div>
+</div>
+
+@if (errorMessage()) {
+  <p class="form-error">{{ errorMessage() }}</p>
+}
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Rôle</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr>
+          <td>{{ item.name }}{{ item.id === currentUserId() ? ' (vous)' : '' }}</td>
+          <td>{{ item.role === 'admin' ? 'Administrateur' : 'Utilisateur' }}</td>
+          <td class="col-actions">
+            <a class="btn btn-ghost btn-sm" [routerLink]="[item.id]">Modifier</a>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="3">Aucun utilisateur.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="deleteMessage()"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

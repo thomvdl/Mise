@@ -1,0 +1,96 @@
+<div class="page-header">
+  <h1 class="page-title">Importer des menus</h1>
+</div>
+
+<p class="form-hint import-tip">
+  Collez un ou plusieurs menus à la suite dans le même texte — chacun commence simplement par son propre titre
+  « # Nom du menu », pas besoin de séparateur particulier. Les fiches techniques référencées via « Fiches: »
+  doivent déjà exister — sinon elles sont ignorées pour ce plat.
+</p>
+
+<div class="import-layout">
+  <div class="form-card">
+    <div class="section-title">Texte markdown</div>
+    <textarea
+      class="form-textarea import-textarea"
+      [value]="markdownText()"
+      (input)="onTextInput($event)"
+      spellcheck="false"></textarea>
+  </div>
+
+  <div class="form-card">
+    <div class="section-title">
+      Aperçu — {{ validCount() }} menu(s) valide(s)
+      @if (errorCount() > 0) {
+        , {{ errorCount() }} en erreur
+      }
+    </div>
+
+    <div class="import-preview-list">
+      @for (r of resolved(); track $index) {
+        <div class="import-block" [class.has-error]="r.block.error">
+          @if (r.block.error) {
+            <span class="form-label">Menu {{ $index + 1 }}</span>
+            <p class="form-error">{{ r.block.error }}</p>
+          } @else if (r.block.value; as menu) {
+            <p class="import-name">{{ menu.name }}</p>
+
+            <div class="form-grid cols-3">
+              <div class="form-field span-2">
+                <span class="form-label">Description</span>
+                <span class="form-hint">{{ menu.description ?? '—' }}</span>
+              </div>
+
+              <div class="form-field">
+                <span class="form-label">Dates</span>
+                <span>{{ dateLabel(menu) }}</span>
+              </div>
+            </div>
+
+            @for (rs of r.sections; track $index) {
+              <div class="import-section">
+                <span class="form-label">{{ rs.section.name }}</span>
+
+                @for (rp of rs.plats; track $index) {
+                  <div class="import-plat">
+                    <strong>{{ rp.plat.name }}</strong>
+                    @if (rp.plat.description) {
+                      <span class="form-hint">{{ rp.plat.description }}</span>
+                    }
+                    @if (rp.fiches.length) {
+                      <div class="chip-list">
+                        @for (f of rp.fiches; track f.name) {
+                          @if (f.matched) {
+                            <span class="allergen-chip">{{ f.name }}</span>
+                          } @else {
+                            <span class="form-error">« {{ f.name }} » introuvable — ignorée</span>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      } @empty {
+        <p class="form-hint">Rien à prévisualiser pour le moment.</p>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" [disabled]="saving() || validCount() === 0" (click)="save()">
+        @if (saving()) {
+          Création…
+        } @else {
+          Créer {{ validCount() }} menu(s)
+        }
+      </button>
+    </div>
+  </div>
+</div>

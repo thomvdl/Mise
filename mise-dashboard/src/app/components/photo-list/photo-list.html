@@ -1,0 +1,57 @@
+<div class="page-header">
+  <h1 class="page-title">Photos</h1>
+  <div class="page-actions">
+    <input
+      #fileInput
+      type="file"
+      accept="image/*"
+      multiple
+      hidden
+      (change)="onFilesSelected($event)" />
+    <button type="button" class="btn btn-primary" [disabled]="uploading()" (click)="triggerUpload()">
+      @if (uploading()) {
+        Import…
+      } @else {
+        + Importer des photos
+      }
+    </button>
+  </div>
+</div>
+
+<p class="form-hint">
+  Importez une ou plusieurs photos, puis choisissez la fiche technique à laquelle chacune est liée. Une photo peut
+  aussi rester non liée.
+</p>
+
+@if (errorMessage()) {
+  <p class="form-error">{{ errorMessage() }}</p>
+}
+
+<div class="photo-grid">
+  @for (picture of pictures(); track picture.id) {
+    <div class="photo-card">
+      <img class="photo-thumb" [src]="picture.url" [alt]="picture.fiche_technique?.name ?? 'Photo'" loading="lazy" />
+
+      <div class="form-field">
+        <span class="form-label">Fiche technique liée</span>
+        <select class="form-select" (change)="onLinkChange(picture, $event)">
+          <option value="" [selected]="!picture.fiche_technique">— Non liée —</option>
+          @for (fiche of ficheTechniques(); track fiche.id) {
+            <option [value]="fiche.id" [selected]="picture.fiche_technique?.id === fiche.id">{{ fiche.name }}</option>
+          }
+        </select>
+      </div>
+
+      <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(picture)">Supprimer</button>
+    </div>
+  } @empty {
+    <p class="form-hint">Aucune photo importée pour le moment.</p>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="deleteMessage()"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

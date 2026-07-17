@@ -1,0 +1,84 @@
+<div class="page-header">
+  <h1 class="page-title">Ingrédients</h1>
+  <div class="page-actions">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher…" [value]="search()" (input)="search.set($any($event.target).value)">
+    </div>
+    <select class="form-select cat-filter" (change)="onCategoryChange($event)">
+      <option value="" [selected]="selectedCategoryId() === null">Toutes les catégories</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id" [selected]="selectedCategoryId() === category.id">{{ category.name }}</option>
+      }
+    </select>
+    <a class="btn btn-primary" routerLink="/categories-ingredients">Catégories d'ingrédients</a>
+    <a class="btn btn-primary" routerLink="nouveau">+ Nouveau</a>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="sortable" (click)="setSort('name')">
+          Nom
+          @if (sortKey() === 'name') {
+            <span class="sort-arrow">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+          }
+        </th>
+        <th class="sortable" (click)="setSort('category')">
+          Catégorie
+          @if (sortKey() === 'category') {
+            <span class="sort-arrow">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+          }
+        </th>
+        <th>Unité</th>
+        <th>Prix</th>
+        <th>Allergènes</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of filtered(); track item.id) {
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>
+            @if (item.category) {
+              <span class="badge" [style.--card-color]="item.category.color">{{ item.category.name }}</span>
+            }
+          </td>
+          <td>{{ item.unit }}</td>
+          <td>
+            @if (item.price !== null) {
+              {{ item.price }} €
+            }
+          </td>
+          <td>
+            @if (item.allergens?.length) {
+              <div class="chip-list">
+                @for (allergen of item.allergens; track allergen.id) {
+                  <span class="allergen-chip">{{ allergen.code }}</span>
+                }
+              </div>
+            }
+          </td>
+          <td class="col-actions">
+            <a class="btn btn-ghost btn-sm" [routerLink]="[item.id]">Modifier</a>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="6">Aucun ingrédient.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="deleteMessage()"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

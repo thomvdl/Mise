@@ -1,0 +1,115 @@
+<div class="page-header">
+  <h1 class="page-title">Calendrier des événements</h1>
+  <div class="page-actions">
+    <button type="button" class="btn btn-ghost" (click)="goToday()">Aujourd'hui</button>
+    <button type="button" class="btn btn-primary" (click)="openNewEventDefault()">+ Nouvel événement</button>
+  </div>
+</div>
+
+<div class="calendar-nav">
+  <button type="button" class="btn btn-ghost btn-sm" (click)="prevMonth()">‹ Précédent</button>
+  <span class="month-label">{{ monthLabel() }}</span>
+  <button type="button" class="btn btn-ghost btn-sm" (click)="nextMonth()">Suivant ›</button>
+</div>
+
+<div class="calendar-grid">
+  @for (label of weekdayLabels; track label) {
+    <div class="weekday">{{ label }}</div>
+  }
+  @for (cell of grid(); track cell.iso) {
+    <div
+      class="day-cell"
+      [class.other-month]="!cell.inCurrentMonth"
+      [class.today]="cell.isToday"
+      (click)="openNewEventForm(cell.iso)">
+      <span class="day-number">{{ cell.date.getDate() }}</span>
+      @for (event of eventsOn(cell.iso); track event.id) {
+        <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openEditEventForm(event, $event)">
+          <span class="event-chip-name">{{ event.name }}</span>
+          @if (event.couverts) {
+            <span class="event-chip-covers">{{ event.couverts }}</span>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>
+
+@if (showForm()) {
+  <div class="modal-backdrop" (click)="closeForm()">
+    <div class="modal event-modal" (click)="$event.stopPropagation()">
+      <h2 class="modal-title">{{ editingEvent() ? "Modifier l'événement" : 'Nouvel événement' }}</h2>
+
+      <div class="form-field">
+        <label class="form-label">Nom</label>
+        <input class="form-input" type="text" [(ngModel)]="formName" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Détail</label>
+        <textarea class="form-textarea" rows="3" [(ngModel)]="formDetail"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Horaire</label>
+        <textarea class="form-textarea" rows="3" [(ngModel)]="formHoraire"></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label">Date de début</label>
+          <input class="form-input" type="date" [(ngModel)]="formStartDate" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Date de fin</label>
+          <input class="form-input" type="date" [(ngModel)]="formEndDate" />
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label">Nombre de couverts (optionnel)</label>
+          <input class="form-input" type="number" min="0" [(ngModel)]="formCouverts" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Type d'événement (optionnel)</label>
+          <select class="form-select" [ngModel]="formType()" (ngModelChange)="formType.set($event)">
+            <option [ngValue]="null">— Aucun —</option>
+            @for (type of eventTypes; track type.key) {
+              <option [ngValue]="type.key">{{ type.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Menu lié (optionnel)</label>
+        <select class="form-select" [ngModel]="formMenuId()" (ngModelChange)="formMenuId.set($event)">
+          <option [ngValue]="null">— Aucun —</option>
+          @for (menu of menus(); track menu.id) {
+            <option [ngValue]="menu.id">{{ menu.name }}</option>
+          }
+        </select>
+      </div>
+
+      @if (formError()) {
+        <p class="form-error">{{ formError() }}</p>
+      }
+
+      <div class="modal-actions">
+        @if (editingEvent()) {
+          <button type="button" class="btn btn-danger" (click)="confirmDeleteFromForm()">Supprimer</button>
+        }
+        <button type="button" class="btn btn-ghost" (click)="closeForm()">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveEvent()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+}
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="'Supprimer l\'événement « ' + (pendingDelete()?.name ?? '') + ' » ?'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

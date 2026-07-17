@@ -1,0 +1,114 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Températures</h1>
+  <div class="page-actions">
+    <button type="button" class="btn btn-primary" [disabled]="!selectedAppareil()" (click)="print()">
+      Imprimer le rapport
+    </button>
+  </div>
+</div>
+
+<div class="report-filters no-print">
+  <div class="form-field">
+    <label class="form-label" for="appareil">Appareil</label>
+    <select id="appareil" class="form-select" (change)="onAppareilChange($event)">
+      @for (appareil of appareils(); track appareil.id) {
+        <option [value]="appareil.id" [selected]="appareil.id === selectedAppareilId()">
+          {{ appareil.name }} ({{ appareil.abbreviation }})
+        </option>
+      }
+    </select>
+  </div>
+
+  <div class="period-toggle">
+    @for (p of periods; track p.key) {
+      <button type="button" class="btn btn-sm" [class.btn-primary]="period() === p.key" [class.btn-ghost]="period() !== p.key" (click)="setPeriod(p.key)">
+        {{ p.label }}
+      </button>
+    }
+  </div>
+
+  @if (period() === 'mois') {
+    <div class="form-field">
+      <label class="form-label" for="month">Mois</label>
+      <input id="month" class="form-input" type="month" [value]="selectedMonth()" [max]="maxMonth" (change)="onMonthChange($event)" />
+    </div>
+  }
+
+  @if (period() === 'annee' && availableYears().length > 1) {
+    <div class="form-field">
+      <label class="form-label" for="year">Année</label>
+      <select id="year" class="form-select" (change)="onYearChange($event)">
+        @for (year of availableYears(); track year) {
+          <option [value]="year" [selected]="year === selectedYear()">{{ year }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>
+
+@if (!selectedAppareil()) {
+  <p class="report-empty no-print">Aucun appareil enregistré. Ajoutez-en un depuis la page Appareils.</p>
+} @else {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Rapport de température</h1>
+    <p class="report-print-subtitle">{{ selectedAppareil()!.name }} ({{ selectedAppareil()!.abbreviation }}) — {{ selectedAppareil()!.fonction }}</p>
+    <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">{{ selectedAppareil()!.name }} — {{ periodLabel() }}</h2>
+      <div class="report-stats">
+        @if (selectedAppareil()!.temperature_min !== null || selectedAppareil()!.temperature_max !== null) {
+          <span>Plage normale <strong>{{ selectedAppareil()!.temperature_min ?? '…' }}°C – {{ selectedAppareil()!.temperature_max ?? '…' }}°C</strong></span>
+        }
+        @if (stats(); as s) {
+          <span>Min <strong>{{ s.min.toFixed(1) }}°C</strong></span>
+          <span>Max <strong>{{ s.max.toFixed(1) }}°C</strong></span>
+          <span>Moyenne <strong>{{ s.avg.toFixed(1) }}°C</strong></span>
+        }
+        @if (outOfRangeCount() > 0) {
+          <span class="report-warning">{{ outOfRangeCount() }} relevé(s) hors plage</span>
+        }
+      </div>
+    </div>
+
+    <app-temperature-chart
+      [points]="chartPoints()"
+      [formatDate]="formatDate()"
+      [temperatureMin]="selectedAppareil()!.temperature_min"
+      [temperatureMax]="selectedAppareil()!.temperature_max">
+    </app-temperature-chart>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Température</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (releve of releves(); track releve.id) {
+          <tr>
+            <td>{{ formatDateTime(releve.recorded_at) }}</td>
+            <td [class.report-warning]="isOutOfRange(releve.temperature)">
+              {{ releve.temperature.toFixed(1) }}°C
+              @if (isOutOfRange(releve.temperature)) {
+                <span class="report-warning-label">Hors plage</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="2">Aucun relevé sur cette période.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+}

@@ -1,0 +1,50 @@
+.menu-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.menu-section-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--surface-2);
+}
+
+.menu-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.menu-section-header .form-input {
+  flex: 1;
+  font-weight: 600;
+}
+
+.plats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plat-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plat-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.plat-header .form-field {
+  flex: 1;
+}

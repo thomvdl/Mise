@@ -1,0 +1,55 @@
+.qty-field {
+  flex: 0 0 140px;
+  max-width: 140px;
+}
+
+.step-order {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.step-order .btn {
+  padding: 4px 10px;
+}
+
+.ingredient-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ingredient-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--surface-2);
+}
+
+.ingredient-group-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ingredient-group-header .form-input {
+  flex: 1;
+  font-weight: 600;
+}
+
+.linked-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.linked-photo-thumb {
+  width: 90px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}

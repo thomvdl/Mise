@@ -1,0 +1,59 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEdit() ? 'Modifier' : 'Nouveau' }} — {{ config().label }}</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-grid">
+    <div class="form-field">
+      <label class="form-label" for="name">Nom</label>
+      <input
+        id="name"
+        class="form-input"
+        type="text"
+        formControlName="name"
+        [class.has-error]="form.controls.name.invalid && form.controls.name.touched" />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <span class="form-error">Le nom est requis.</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="slug">Slug</label>
+      <input
+        id="slug"
+        class="form-input"
+        type="text"
+        formControlName="slug"
+        (input)="onSlugInput()"
+        [class.has-error]="form.controls.slug.invalid && form.controls.slug.touched" />
+      @if (form.controls.slug.invalid && form.controls.slug.touched) {
+        <span class="form-error">Le slug est requis.</span>
+      }
+    </div>
+
+    @if (hasField('code')) {
+      <div class="form-field">
+        <label class="form-label" for="code">Code</label>
+        <input id="code" class="form-input" type="text" formControlName="code" />
+      </div>
+    }
+
+    @if (hasField('color')) {
+      <div class="form-field">
+        <label class="form-label">Couleur</label>
+        <app-color-picker formControlName="color"></app-color-picker>
+      </div>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Annuler</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,139 @@
+.report-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.period-toggle {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.report-empty {
+  color: var(--text-faint);
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.report-card-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.report-stats {
+  display: flex;
+  gap: 1.25rem;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.report-stats strong {
+  color: var(--text);
+}
+
+.report-warning {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
+td.report-warning {
+  color: var(--accent-red);
+  font-weight: inherit;
+}
+
+.report-warning-label {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.only-print {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block;
+  }
+
+  .report-print-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--text);
+    padding-bottom: 0.75rem;
+  }
+
+  .report-print-brand {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .report-print-header h1 {
+    font-size: 1.3rem;
+    margin: 0 0 0.35rem;
+    color: var(--text);
+  }
+
+  .report-print-subtitle {
+    margin: 0 0 0.25rem;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+
+  .report-print-meta {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  .report-card {
+    border: none;
+    padding: 0;
+    break-inside: avoid;
+  }
+
+  .report-card-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .table-wrap {
+    break-inside: auto;
+  }
+
+  .data-table tr {
+    break-inside: avoid;
+  }
+
+  .report-print-footer {
+    margin-top: 1.5rem;
+    color: var(--text-faint);
+    font-size: 0.75rem;
+    text-align: right;
+  }
+}

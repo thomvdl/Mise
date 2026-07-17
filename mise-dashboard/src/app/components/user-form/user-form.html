@@ -1,0 +1,55 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEdit() ? 'Modifier' : 'Nouveau' }} — Utilisateur</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-grid">
+    <div class="form-field">
+      <label class="form-label" for="name">Nom</label>
+      <input
+        id="name"
+        class="form-input"
+        type="text"
+        formControlName="name"
+        placeholder="Ex. Thomas"
+        [class.has-error]="form.controls.name.invalid && form.controls.name.touched" />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <span class="form-error">Le nom est requis.</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="role">Rôle</label>
+      <select id="role" class="form-select" formControlName="role">
+        <option value="user">Utilisateur (lecture + saisie des températures)</option>
+        <option value="admin">Administrateur (tous droits + dashboard)</option>
+      </select>
+    </div>
+
+    <div class="form-field span-2">
+      <label class="form-label" for="password">Mot de passe{{ isEdit() ? ' (laisser vide pour ne pas changer)' : '' }}</label>
+      <input
+        id="password"
+        class="form-input"
+        type="text"
+        formControlName="password"
+        placeholder="Ex. 1234abcd"
+        [class.has-error]="form.controls.password.invalid && form.controls.password.touched" />
+      <span class="form-hint">Un mot de passe simple suffit (ex. 4 chiffres + 4 lettres).</span>
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <span class="form-error">Le mot de passe est requis.</span>
+      }
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Annuler</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

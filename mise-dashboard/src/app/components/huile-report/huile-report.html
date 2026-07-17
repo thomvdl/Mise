@@ -1,0 +1,95 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Changements d'huile</h1>
+  <div class="page-actions">
+    <button type="button" class="btn btn-primary" [disabled]="!selectedFriteuse()" (click)="print()">
+      Imprimer le rapport
+    </button>
+  </div>
+</div>
+
+<div class="report-filters no-print">
+  <div class="form-field">
+    <label class="form-label" for="friteuse">Friteuse</label>
+    <select id="friteuse" class="form-select" (change)="onFriteuseChange($event)">
+      @for (friteuse of friteuses(); track friteuse.id) {
+        <option [value]="friteuse.id" [selected]="friteuse.id === selectedFriteuseId()">
+          {{ friteuse.name }}
+        </option>
+      }
+    </select>
+  </div>
+
+  <div class="period-toggle">
+    @for (p of periods; track p.key) {
+      <button type="button" class="btn btn-sm" [class.btn-primary]="period() === p.key" [class.btn-ghost]="period() !== p.key" (click)="setPeriod(p.key)">
+        {{ p.label }}
+      </button>
+    }
+  </div>
+
+  @if (period() === 'mois') {
+    <div class="form-field">
+      <label class="form-label" for="month">Mois</label>
+      <input id="month" class="form-input" type="month" [value]="selectedMonth()" [max]="maxMonth" (change)="onMonthChange($event)" />
+    </div>
+  }
+
+  @if (period() === 'annee' && availableYears().length > 1) {
+    <div class="form-field">
+      <label class="form-label" for="year">Année</label>
+      <select id="year" class="form-select" (change)="onYearChange($event)">
+        @for (year of availableYears(); track year) {
+          <option [value]="year" [selected]="year === selectedYear()">{{ year }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>
+
+@if (!selectedFriteuse()) {
+  <p class="report-empty no-print">Aucune friteuse enregistrée. Ajoutez-en une depuis la page Friteuses.</p>
+} @else {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Rapport de changement d'huile</h1>
+    <p class="report-print-subtitle">{{ selectedFriteuse()!.name }} — huile changée tous les {{ selectedFriteuse()!.duree_vie_jours }} jours</p>
+    <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">{{ selectedFriteuse()!.name }} — {{ periodLabel() }}</h2>
+      <div class="report-stats">
+        <span>Durée de vie <strong>{{ selectedFriteuse()!.duree_vie_jours }} jours</strong></span>
+        @if (nextChange(); as next) {
+          <span>Prochain changement conseillé <strong>{{ next | date: 'dd/MM/yyyy' }}</strong></span>
+        } @else {
+          <span>Aucun changement enregistré</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date de changement</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (changement of changements(); track changement.id) {
+          <tr>
+            <td>{{ formatDate(changement.date_changement) }}</td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td>Aucun changement sur cette période.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+}

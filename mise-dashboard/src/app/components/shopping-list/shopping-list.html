@@ -1,0 +1,73 @@
+<div class="page-header">
+  <h1 class="page-title">Liste de courses</h1>
+  @if (isAdmin) {
+    <div class="page-actions">
+      <button type="button" class="btn btn-ghost" (click)="toggleSort()">
+        {{ sortByStatus() ? 'Trier par ajout' : 'Trier par statut' }}
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmClearAll()">Vider la liste</button>
+    </div>
+  }
+</div>
+
+<div class="add-item-row">
+  <input
+    class="form-input"
+    type="text"
+    placeholder="Ajouter un article…"
+    [(ngModel)]="newItemName"
+    (keydown.enter)="addItem()" />
+  <button type="button" class="btn btn-primary" (click)="addItem()">Ajouter</button>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Article</th>
+        <th>Ajouté par</th>
+        <th>Statut</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of sortedItems(); track item.id) {
+        <tr [class.done]="item.status === 'done'">
+          <td>{{ item.name }}</td>
+          <td>{{ item.user.name }}</td>
+          <td>
+            <span class="status-badge" [class.done]="item.status === 'done'">
+              {{ item.status === 'done' ? 'Fait' : 'À faire' }}
+            </span>
+          </td>
+          <td class="col-actions">
+            @if (isAdmin) {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="toggleStatus(item)">
+                {{ item.status === 'done' ? 'Marquer à faire' : 'Marquer fait' }}
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="4">Aucun article dans la liste.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="'Supprimer « ' + (pendingDelete()?.name ?? '') + ' » de la liste ?'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [open]="pendingClearAll()"
+  message="Vider toute la liste de courses ? Tous les articles seront supprimés."
+  (confirm)="clearAllConfirmed()"
+  (cancel)="cancelClearAll()">
+</app-confirm-dialog>

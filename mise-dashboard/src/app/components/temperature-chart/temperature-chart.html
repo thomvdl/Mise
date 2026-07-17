@@ -1,0 +1,70 @@
+@if (points().length === 0) {
+  <p class="chart-empty">Aucun relevé sur cette période.</p>
+} @else {
+  <svg
+    #svgEl
+    class="chart-svg"
+    [attr.viewBox]="'0 0 ' + width + ' ' + height"
+    (mousemove)="onMove($event, $any(svgEl))"
+    (mouseleave)="onLeave()">
+    <!-- Gridlines + y-axis labels -->
+    @for (tick of yTicks(); track tick.value) {
+      <line class="chart-grid" [attr.x1]="plotLeft" [attr.x2]="plotRight" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+      <text class="chart-axis-label" [attr.x]="plotLeft - 6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+        {{ formatTemp(tick.value) }}
+      </text>
+    }
+
+    <!-- x-axis labels -->
+    @for (tick of xTicks(); track tick.point.date.getTime()) {
+      <text class="chart-axis-label" [attr.x]="tick.x" [attr.y]="plotBottom + 18" text-anchor="middle">
+        {{ formatDate()(tick.point.date) }}
+      </text>
+    }
+
+    <!-- Series line -->
+    <path class="chart-line" [attr.d]="linePath()" fill="none" />
+
+    <!-- Plage normale : repères min/max -->
+    @for (line of thresholdLines(); track line.value) {
+      <line class="chart-threshold" [attr.x1]="plotLeft" [attr.x2]="plotRight" [attr.y1]="line.y" [attr.y2]="line.y" />
+    }
+
+    <!-- Relevés hors plage -->
+    @for (p of scaled(); track p.point.date.getTime()) {
+      @if (p.outOfRange) {
+        <circle class="chart-out-of-range-marker" [attr.cx]="p.x" [attr.cy]="p.y" r="4" />
+      }
+    }
+
+    <!-- End marker -->
+    @if (scaled().length > 0) {
+      <circle
+        [class]="'chart-end-marker' + (scaled()[scaled().length - 1].outOfRange ? ' out-of-range' : '')"
+        [attr.cx]="scaled()[scaled().length - 1].x"
+        [attr.cy]="scaled()[scaled().length - 1].y"
+        r="4" />
+    }
+
+    <!-- Hover crosshair + marker -->
+    @if (hovered(); as hover) {
+      <line
+        class="chart-crosshair"
+        [attr.x1]="hover.x"
+        [attr.x2]="hover.x"
+        [attr.y1]="plotTop"
+        [attr.y2]="plotBottom" />
+      <circle [class]="'chart-hover-marker' + (hover.outOfRange ? ' out-of-range' : '')" [attr.cx]="hover.x" [attr.cy]="hover.y" r="4" />
+    }
+  </svg>
+
+  @if (hovered(); as hover) {
+    <div class="chart-tooltip">
+      <strong [class.out-of-range]="hover.outOfRange">{{ formatTemp(hover.point.temperature) }}</strong>
+      <span>{{ formatDate()(hover.point.date) }}</span>
+      @if (hover.outOfRange) {
+        <span class="out-of-range">Hors plage normale</span>
+      }
+    </div>
+  }
+}

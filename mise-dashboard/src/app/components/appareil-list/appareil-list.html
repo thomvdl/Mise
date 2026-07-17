@@ -1,0 +1,55 @@
+<div class="page-header">
+  <h1 class="page-title">Appareils</h1>
+  <div class="page-actions">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher…" [value]="search()" (input)="search.set($any($event.target).value)">
+    </div>
+    <a class="btn btn-primary" routerLink="nouveau">+ Nouveau</a>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Abréviation</th>
+        <th>Fonction</th>
+        <th>Plage normale</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of filtered(); track item.id) {
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>{{ item.abbreviation }}</td>
+          <td>{{ item.fonction }}</td>
+          <td>
+            @if (item.temperature_min !== null || item.temperature_max !== null) {
+              {{ item.temperature_min ?? '…' }}°C – {{ item.temperature_max ?? '…' }}°C
+            } @else {
+              —
+            }
+          </td>
+          <td class="col-actions">
+            <a class="btn btn-ghost btn-sm" [routerLink]="[item.id]">Modifier</a>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="5">Aucun appareil.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="deleteMessage()"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

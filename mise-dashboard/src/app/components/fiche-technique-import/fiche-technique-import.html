@@ -1,0 +1,163 @@
+<div class="page-header">
+  <h1 class="page-title">Importer des fiches techniques</h1>
+</div>
+
+<p class="form-hint import-tip">
+  Collez une ou plusieurs fiches à la suite dans le même texte — chacune commence simplement par son propre titre
+  « # Nom de la fiche », pas besoin de séparateur particulier.
+</p>
+
+<div class="import-layout">
+  <div class="form-card">
+    <div class="section-title">Texte markdown</div>
+    <textarea
+      class="form-textarea import-textarea"
+      [value]="markdownText()"
+      (input)="onTextInput($event)"
+      spellcheck="false"></textarea>
+  </div>
+
+  <div class="form-card">
+    <div class="section-title">
+      Aperçu — {{ validCount() }} fiche(s) valide(s)
+      @if (errorCount() > 0) {
+        , {{ errorCount() }} en erreur
+      }
+    </div>
+
+    <div class="import-preview-list">
+      @for (r of resolved(); track $index) {
+        <div class="import-block" [class.has-error]="r.block.error">
+          @if (r.block.error) {
+            <span class="form-label">Fiche {{ $index + 1 }}</span>
+            <p class="form-error">{{ r.block.error }}</p>
+          } @else if (r.block.value; as fiche) {
+            <p class="import-name">{{ fiche.name }}</p>
+
+            <div class="form-grid cols-3">
+              <div class="form-field">
+                <span class="form-label">Station</span>
+                @if (fiche.station) {
+                  @if (r.matchedStation; as station) {
+                    <span class="badge" [style.--card-color]="station.color">{{ station.name }}</span>
+                  } @else {
+                    <span class="form-error">« {{ fiche.station }} » introuvable — ignorée</span>
+                  }
+                } @else {
+                  <span class="form-hint">—</span>
+                }
+              </div>
+
+              <div class="form-field">
+                <span class="form-label">Catégorie</span>
+                @if (fiche.category) {
+                  @if (r.matchedCategory; as category) {
+                    <span class="badge" [style.--card-color]="category.color">{{ category.name }}</span>
+                  } @else {
+                    <span class="form-error">« {{ fiche.category }} » introuvable — ignorée</span>
+                  }
+                } @else {
+                  <span class="form-hint">—</span>
+                }
+              </div>
+
+              <div class="form-field">
+                <span class="form-label">Portions / Difficulté</span>
+                <span>{{ fiche.servings ?? 10 }} pers. — {{ fiche.difficulty ?? 1 }}/3</span>
+              </div>
+            </div>
+
+            @if (fiche.description) {
+              <p class="form-hint">{{ fiche.description }}</p>
+            }
+
+            @if (fiche.equipment.length) {
+              <div class="chip-list">
+                @for (item of fiche.equipment; track item) {
+                  <span class="allergen-chip">{{ item }}</span>
+                }
+              </div>
+            }
+
+            @if (fiche.ingredients.length) {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Groupe</th>
+                      <th>Ingrédient</th>
+                      <th>Quantité</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (match of r.ingredientMatches; track match.line.name) {
+                      <tr>
+                        <td>
+                          @if (match.line.group) {
+                            <span class="form-hint">{{ match.line.group }}</span>
+                          }
+                        </td>
+                        <td>{{ match.line.name }}</td>
+                        <td>
+                          @if (match.line.quantity !== null) {
+                            {{ match.line.quantity }} {{ match.line.unit }}
+                          } @else {
+                            <span class="form-error">manquante</span>
+                          }
+                        </td>
+                        <td>
+                          @if (match.existing) {
+                            <span class="form-hint">Existant</span>
+                          } @else {
+                            <span class="badge badge-new">Sera créé</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (fiche.steps.length) {
+              <ol class="import-steps">
+                @for (step of fiche.steps; track $index) {
+                  <li>
+                    {{ step.instruction }}
+                    @if (step.timerMinutes) {
+                      <span class="form-hint">({{ step.timerMinutes }} min)</span>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          }
+        </div>
+      } @empty {
+        <p class="form-hint">Rien à prévisualiser pour le moment.</p>
+      }
+    </div>
+
+    @if (newIngredients().length > 0) {
+      <p class="form-hint">
+        {{ newIngredients().length }} ingrédient(s) seront créés automatiquement au total (sans catégorie ni
+        allergène — à compléter ensuite dans la fiche Ingrédients).
+      </p>
+    }
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" [disabled]="saving() || validCount() === 0" (click)="save()">
+        @if (saving()) {
+          Création…
+        } @else {
+          Créer {{ validCount() }} fiche(s) technique(s)
+        }
+      </button>
+    </div>
+  </div>
+</div>

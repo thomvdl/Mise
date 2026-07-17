@@ -1,0 +1,12 @@
+<div class="page-header">
+  <h1 class="page-title">Paramètres</h1>
+</div>
+
+<div class="settings-grid">
+  @for (link of links; track link.path) {
+    <a class="settings-card" [routerLink]="link.path">
+      <span class="settings-label">{{ link.label }}</span>
+      <span class="settings-desc">{{ link.description }}</span>
+    </a>
+  }
+</div>

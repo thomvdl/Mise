@@ -1,0 +1,236 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEdit() ? 'Modifier' : 'Nouvelle' }} fiche technique</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="section">
+    <div class="section-title">Général</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label" for="name">Nom</label>
+        <input
+          id="name"
+          class="form-input"
+          type="text"
+          formControlName="name"
+          [class.has-error]="form.controls.name.invalid && form.controls.name.touched" />
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <span class="form-error">Le nom est requis.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="slug">Slug</label>
+        <input
+          id="slug"
+          class="form-input"
+          type="text"
+          formControlName="slug"
+          (input)="onSlugInput()"
+          [class.has-error]="form.controls.slug.invalid && form.controls.slug.touched" />
+        @if (form.controls.slug.invalid && form.controls.slug.touched) {
+          <span class="form-error">Le slug est requis.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="category">Catégorie</label>
+        <select id="category" class="form-select" formControlName="category_id">
+          <option [ngValue]="null">— Aucune —</option>
+          @for (category of categories(); track category.id) {
+            <option [ngValue]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="station">Station</label>
+        <select id="station" class="form-select" formControlName="station_id">
+          <option [ngValue]="null">— Aucune —</option>
+          @for (station of stations(); track station.id) {
+            <option [ngValue]="station.id">{{ station.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="servings">Portions</label>
+        <input id="servings" class="form-input" type="number" min="1" formControlName="servings" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="difficulty">Difficulté</label>
+        <select id="difficulty" class="form-select" formControlName="difficulty">
+          @for (option of difficultyOptions; track option.value) {
+            <option [ngValue]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field span-2">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" class="form-textarea" formControlName="description"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Matériel nécessaire</div>
+    <div class="editable-list">
+      @for (control of equipment.controls; track $index) {
+        <div class="editable-row">
+          <div class="form-field">
+            <input class="form-input" type="text" [formControl]="control" placeholder="Ex. Fouet" />
+          </div>
+          <button type="button" class="row-remove" (click)="removeEquipment($index)" aria-label="Retirer">×</button>
+        </div>
+      }
+      <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addEquipment()">+ Ajouter un élément</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Mise en place</div>
+    <textarea class="form-textarea" formControlName="mise_en_place"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dressage</div>
+    <textarea class="form-textarea" formControlName="plating"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Conseil du chef</div>
+    <textarea class="form-textarea" formControlName="chef_tip"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">HACCP</div>
+    <textarea class="form-textarea" formControlName="haccp"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Conservation</div>
+    <textarea class="form-textarea" formControlName="conservation"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Ingrédients</div>
+    <p class="form-hint">
+      Regroupez les ingrédients par sous-recette (ex. « Pâte », « Sauce », « Divers ») en nommant chaque groupe, ou
+      laissez le nom vide pour une simple liste.
+    </p>
+    <div class="ingredient-groups">
+      @for (group of ingredientGroups.controls; track $index; let groupIndex = $index) {
+        <div class="ingredient-group">
+          <div class="ingredient-group-header">
+            <input
+              class="form-input"
+              type="text"
+              [formControl]="group.controls.label"
+              placeholder="Nom du groupe (optionnel)" />
+            @if (ingredientGroups.length > 1) {
+              <button
+                type="button"
+                class="row-remove"
+                (click)="removeIngredientGroup(groupIndex)"
+                aria-label="Supprimer ce groupe">×</button>
+            }
+          </div>
+
+          <div class="editable-list">
+            @for (row of group.controls.rows.controls; track $index) {
+              <div class="editable-row">
+                <div class="form-field">
+                  <select
+                    class="form-select"
+                    [formControl]="row.controls.ingredient_id"
+                    [class.has-error]="row.controls.ingredient_id.invalid && row.controls.ingredient_id.touched">
+                    <option [ngValue]="null">— Choisir un ingrédient —</option>
+                    @for (ingredient of ingredients(); track ingredient.id) {
+                      <option [ngValue]="ingredient.id">{{ ingredient.name }} ({{ ingredient.unit }})</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-field qty-field">
+                  <input
+                    class="form-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    [formControl]="row.controls.quantity"
+                    placeholder="Quantité"
+                    [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
+                </div>
+                <button type="button" class="row-remove" (click)="removeIngredientRow(groupIndex, $index)" aria-label="Retirer">×</button>
+              </div>
+            }
+            <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addIngredientRow(groupIndex)">+ Ajouter un ingrédient</button>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addIngredientGroup()">+ Ajouter un groupe</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Étapes</div>
+    <div class="editable-list">
+      @for (row of stepRows.controls; track $index) {
+        <div class="editable-row">
+          <div class="form-field">
+            <textarea
+              class="form-textarea"
+              [formControl]="row.controls.instruction"
+              placeholder="Instruction de l'étape"
+              [class.has-error]="row.controls.instruction.invalid && row.controls.instruction.touched"></textarea>
+          </div>
+          <div class="form-field qty-field">
+            <input class="form-input" type="number" min="0" [formControl]="row.controls.timer_minutes" placeholder="Minuteur (min)" />
+          </div>
+          <div class="step-order">
+            <button type="button" class="btn btn-ghost btn-sm" (click)="moveStep($index, -1)" [disabled]="$index === 0" aria-label="Monter">↑</button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              (click)="moveStep($index, 1)"
+              [disabled]="$index === stepRows.controls.length - 1"
+              aria-label="Descendre">↓</button>
+          </div>
+          <button type="button" class="row-remove" (click)="removeStepRow($index)" aria-label="Retirer">×</button>
+        </div>
+      }
+      <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addStepRow()">+ Ajouter une étape</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Photos</div>
+    @if (linkedPictures().length) {
+      <div class="linked-photos">
+        @for (picture of linkedPictures(); track picture.id) {
+          <img class="linked-photo-thumb" [src]="picture.url" alt="" />
+        }
+      </div>
+    } @else {
+      <p class="form-hint">Aucune photo liée pour le moment.</p>
+    }
+    <p class="form-hint">
+      La liaison des photos se gère depuis la <a routerLink="/photos">photothèque</a>
+      @if (isEdit()) {
+        , en choisissant « {{ form.controls.name.value }} » dans le menu déroulant de chaque photo.
+      }
+    </p>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Annuler</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

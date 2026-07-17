@@ -1,0 +1,21 @@
+<div class="color-picker" [class.disabled]="disabled()">
+  <div class="color-swatches">
+    @for (color of palette; track color) {
+      <button
+        type="button"
+        class="color-swatch"
+        [class.selected]="value().toLowerCase() === color.toLowerCase()"
+        [style.--swatch-color]="color"
+        [disabled]="disabled()"
+        [attr.title]="color"
+        [attr.aria-label]="color"
+        (click)="select(color)">
+      </button>
+    }
+    <label class="color-swatch color-swatch-custom" [class.selected]="isCustom()" title="Couleur personnalisée">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <input type="color" [value]="value()" [disabled]="disabled()" (input)="onCustomColor($event)" />
+    </label>
+  </div>
+  <span class="color-picker-hint">{{ value() }}</span>
+</div>

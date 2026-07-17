@@ -1,0 +1,38 @@
+<div class="ft-picker">
+  <div class="ft-picker-control" (click)="toggleOpen()">
+    @if (selected().length) {
+      <div class="ft-picker-chips">
+        @for (item of selected(); track item.id) {
+          <span class="checkbox-chip checked">
+            {{ item.name }}
+            <button type="button" class="ft-picker-remove" (click)="remove(item.id, $event)" aria-label="Retirer">×</button>
+          </span>
+        }
+      </div>
+    } @else {
+      <span class="form-hint">Aucune fiche liée — cliquer pour ajouter</span>
+    }
+  </div>
+
+  @if (open()) {
+    <div class="ft-picker-panel" (click)="$event.stopPropagation()">
+      <input
+        class="form-input"
+        type="text"
+        placeholder="Rechercher une fiche technique…"
+        [value]="search()"
+        (input)="onSearchInput($event)" />
+
+      <div class="ft-picker-options">
+        @for (item of filtered(); track item.id) {
+          <label class="ft-picker-option" [class.checked]="isSelected(item.id)">
+            <input type="checkbox" [checked]="isSelected(item.id)" (change)="select(item.id)" />
+            {{ item.name }}
+          </label>
+        } @empty {
+          <p class="form-hint">Aucun résultat.</p>
+        }
+      </div>
+    </div>
+  }
+</div>
