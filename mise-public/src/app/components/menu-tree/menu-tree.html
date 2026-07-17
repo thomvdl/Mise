@@ -1,0 +1,42 @@
+@if (menu(); as m) {
+  <div class="detail-header">
+    <div class="dh-left">
+      @if (dateLabel(m); as label) {
+        <div class="dh-station">{{ label }}</div>
+      }
+      <h1 class="dh-title">{{ m.name }}</h1>
+      @if (m.description) {
+        <p class="dh-sub">{{ m.description }}</p>
+      }
+    </div>
+  </div>
+
+  @for (section of m.sections ?? []; track section.id) {
+    <div class="section">
+      <div class="section-title">{{ section.name }}</div>
+      <div class="menu-tree">
+        @for (plat of section.plats ?? []; track plat.id) {
+          <div class="menu-plat">
+            <div class="menu-plat-name">{{ plat.name }}</div>
+            @if (plat.description) {
+              <p class="menu-plat-desc">{{ plat.description }}</p>
+            }
+            @if (plat.fiche_techniques?.length) {
+              <div class="rc-allergens">
+                @for (fiche of plat.fiche_techniques; track fiche.id) {
+                  <a class="allergen-chip fiche-link" routerLink="/fiches" [queryParams]="{ id: fiche.id }">{{ fiche.name }}</a>
+                }
+              </div>
+            }
+          </div>
+        } @empty {
+          <p class="list-heading">Aucun plat dans cette section.</p>
+        }
+      </div>
+    </div>
+  } @empty {
+    <p class="list-heading">Aucune section dans ce menu.</p>
+  }
+} @else {
+  <p class="list-heading">Sélectionnez un menu dans la liste.</p>
+}

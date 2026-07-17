@@ -1,0 +1,25 @@
+<div class="filter-bar">
+  <nav class="stations">
+    <button
+      type="button"
+      class="station-tab"
+      [class.active]="activeStationSlug() === null"
+      (click)="selectStation(null)">
+      Toutes
+    </button>
+    @for (station of stations(); track station.id) {
+      <button
+        type="button"
+        class="station-tab"
+        [style.--card-color]="station.color"
+        [class.active]="activeStationSlug() === station.slug"
+        (click)="selectStation(station.slug)">
+        {{ station.name }}
+      </button>
+    }
+  </nav>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Rechercher une fiche…" (input)="onSearchInput($event)">
+  </div>
+</div>

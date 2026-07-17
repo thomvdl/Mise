@@ -1,0 +1,57 @@
+<div class="filter-bar ing-filter-bar">
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Rechercher un ingrédient…" (input)="onSearchInput($event)">
+  </div>
+
+  <select class="category-select" (change)="onCategoryChange($event)">
+    <option value="" [selected]="selectedCategoryId() === null">Toutes les catégories</option>
+    @for (category of categories(); track category.id) {
+      <option [value]="category.id" [selected]="selectedCategoryId() === category.id">{{ category.name }}</option>
+    }
+  </select>
+</div>
+
+<div class="detail">
+  <div class="section">
+    <div class="section-title">Ingrédients ({{ sortedIngredients().length }})</div>
+    <table class="ing-table">
+      <thead>
+        <tr>
+          <th>Ingrédient</th>
+          <th>Catégorie</th>
+          <th>Unité</th>
+          <th>Prix</th>
+          <th>Allergènes</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (ingredient of sortedIngredients(); track ingredient.id) {
+          <tr>
+            <td class="ing-name">{{ ingredient.name }}</td>
+            <td>
+              @if (ingredient.category) {
+                <span class="rc-station" [style.--card-color]="ingredient.category.color">{{ ingredient.category.name }}</span>
+              }
+            </td>
+            <td class="ing-qty">{{ ingredient.unit }}</td>
+            <td class="ing-cost">
+              @if (ingredient.price !== null) {
+                {{ ingredient.price | number: '1.2-2' }} €
+              }
+            </td>
+            <td>
+              @if (ingredient.allergens?.length) {
+                <div class="rc-allergens">
+                  @for (allergen of ingredient.allergens; track allergen.id) {
+                    <span class="allergen-chip">{{ allergen.code }}</span>
+                  }
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

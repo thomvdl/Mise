@@ -1,0 +1,327 @@
+:host {
+  display: contents;
+}
+
+/* ---------- ON-SCREEN LAYOUT ---------- */
+/* Form is full width (touch target); the label preview is taken out of flow and pinned as a
+   compact thumbnail in the panel's top-right corner, so it doesn't cost the form any width. */
+.page {
+  padding: 28px 36px 28px;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px 32px;
+}
+
+/* Reserves room so the title/subtitle wrap before running under the absolutely positioned
+   preview, rather than text and thumbnail overlapping. */
+.intro { padding-right: 240px; }
+.page-title {
+  font-family: var(--font-display); font-weight: 900; font-size: 26px;
+  letter-spacing: -.5px; margin: 0 0 8px;
+}
+.page-sub { color: var(--text-dim); font-size: 13.5px; line-height: 1.5; margin: 0; }
+
+.form-block { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
+.form-hint { font-size: 11.5px; color: var(--text-faint); margin: 0; }
+
+.form-label-row { display: flex; align-items: center; justify-content: space-between; }
+.char-counter { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+
+.type-choices { display: flex; flex-wrap: wrap; gap: 12px; }
+.type-chip {
+  --chip-accent: var(--accent-blue);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+  padding: 14px 20px; border-radius: 999px; font-size: 14.5px; font-weight: 700;
+  min-height: 48px;
+  transition: all .15s ease;
+}
+.type-chip[data-type="congele"] { --chip-accent: #5AAEDB; }
+.type-chip[data-type="decongele"] { --chip-accent: #D14B3D; }
+.type-chip[data-type="ouvert"] { --chip-accent: #C6763B; }
+.type-chip[data-type="produit"] { --chip-accent: #7FA872; }
+.type-chip[data-type="jeter"] { --chip-accent: #3A3F44; }
+.type-chip:hover { border-color: var(--chip-accent); color: var(--text); }
+.type-chip.active { background: var(--chip-accent); border-color: var(--chip-accent); color: #fff; }
+
+.text-input, .form-select {
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 14px 16px; border-radius: 8px; font-size: 15px; width: 100%;
+  min-height: 48px;
+}
+.date-input { max-width: 240px; }
+
+.date-input-row { display: flex; align-items: center; gap: 10px; }
+.date-clear-btn {
+  flex-shrink: 0; display: flex; align-items: center; gap: 7px;
+  height: 48px; padding: 0 16px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+  font-size: 13.5px; font-weight: 700;
+  transition: all .15s ease;
+}
+.date-clear-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.date-clear-btn:hover {
+  background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+  border-color: var(--accent-red); color: var(--accent-red);
+}
+.date-clear-btn:active { transform: scale(.96); }
+
+.date-quick-choices { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+.date-chip {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+  padding: 12px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 700;
+  min-height: 44px;
+  transition: all .15s ease;
+}
+.date-chip:hover { border-color: var(--accent-blue); color: var(--text); }
+.date-chip.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+.qty-stepper {
+  display: flex; align-items: center; gap: 14px;
+}
+.qty-btn {
+  width: 52px; height: 52px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-size: 20px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  transition: all .15s ease;
+}
+.qty-btn:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); }
+.qty-btn:disabled { opacity: .4; cursor: not-allowed; }
+.qty-value {
+  font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: var(--text);
+  min-width: 28px; text-align: center;
+}
+
+.add-btn {
+  align-self: stretch;
+  border: 1px solid var(--accent-blue); background: var(--accent-blue); color: #fff;
+  padding: 16px 22px; border-radius: 8px; font-size: 15px; font-weight: 700;
+  min-height: 52px;
+  transition: all .15s ease;
+}
+.add-btn:hover { background: var(--accent-blue-dim); border-color: var(--accent-blue-dim); }
+.add-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.form-hint.disclaimer { font-style: italic; }
+
+.preview-wrap {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.preview-label {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- QUEUE ---------- */
+.queue-panel {
+  margin: 4px 0 60px;
+  /* Matches .page's left/right padding so this card lines up with the form card above. */
+  margin-inline: 36px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.queue-header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 14px;
+}
+.queue-title { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--text-dim); font-weight: 700; }
+.queue-actions { display: flex; gap: 10px; }
+
+.btn-ghost {
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  padding: 9px 15px; border-radius: 8px; font-size: 13px; font-weight: 700;
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+.print-btn {
+  border: 1px solid var(--accent-green); background: var(--accent-green); color: #fff;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+}
+.print-btn:hover { filter: brightness(1.08); }
+.print-btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+
+.brother-ql-btn { border-color: var(--accent-copper); background: var(--accent-copper); flex-shrink: 0; }
+
+.form-error { font-size: 12px; color: var(--accent-red); margin: 0 0 14px; }
+
+.brother-ql-panel { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.brother-ql-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.form-field-inline { display: flex; flex-direction: column; gap: 6px; min-width: 170px; }
+.form-field-inline .form-label { white-space: nowrap; }
+.length-input { max-width: 110px; }
+
+.queue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.queue-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 4px; border-top: 1px solid var(--border);
+}
+.queue-row:first-child { border-top: none; }
+.queue-swatch {
+  width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  background: var(--swatch-color, var(--accent-blue));
+}
+.queue-swatch[data-type="congele"] { --swatch-color: #5AAEDB; }
+.queue-swatch[data-type="decongele"] { --swatch-color: #D14B3D; }
+.queue-swatch[data-type="ouvert"] { --swatch-color: #C6763B; }
+.queue-swatch[data-type="produit"] { --swatch-color: #7FA872; }
+.queue-swatch[data-type="jeter"] { --swatch-color: #3A3F44; }
+.queue-text { flex: 1; font-size: 13.5px; color: var(--text-dim); }
+.queue-text strong { color: var(--text); }
+.queue-dlc { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); margin-left: 4px; }
+.queue-qty {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+  border-radius: 999px; padding: 2px 8px; margin-left: 6px;
+}
+.queue-remove {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-dim); font-size: 17px; line-height: 1;
+}
+.queue-remove:hover { background: color-mix(in srgb, var(--accent-red) 12%, transparent); border-color: var(--accent-red); color: var(--accent-red); }
+
+/* ---------- THE LABEL ITSELF (always white/ink — printed on physical label stock) ---------- */
+/* 150 x 100 mm, landscape: product name on the left, colored type/date block on the right,
+   with a "Fait par : <nom>" footer pinned along the bottom of the whole label. */
+.label-page {
+  width: 150mm; height: 100mm;
+  background: #ffffff; color: #14171a;
+  border-radius: 3mm;
+  box-shadow: 0 14px 34px rgba(15, 18, 20, .28);
+  padding: 8mm;
+  display: flex; flex-direction: column; gap: 3mm;
+}
+
+.label-body {
+  flex: 1;
+  min-height: 0;
+  display: flex; flex-direction: row; align-items: stretch; gap: 7mm;
+}
+
+.label-footer {
+  flex: 0 0 auto;
+  font-family: var(--font-mono); font-size: 3.6mm; font-weight: 400;
+  color: #8B9096;
+  text-align: right;
+}
+.label-footer-name {
+  font-size: 4.4mm; font-weight: 700;
+  color: #14171a;
+}
+
+.label-name-col {
+  flex: 0 0 36%;
+  /* Flex items default to min-width:auto, i.e. "at least as wide as my longest unbreakable
+     word" — without this, a name with no spaces refuses to shrink below its own content
+     width and keeps pushing .label-type-block further right as more characters are typed. */
+  min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 4mm;
+  overflow: hidden;
+}
+.label-name {
+  font-family: var(--font-display); font-weight: 800; font-size: 9mm; line-height: 1.15;
+  text-wrap: balance;
+  /* Justified (even left/right edges) for readability on wrapped multi-word names; a single
+     line has nothing to justify, so it's centered like the rest of the label. */
+  text-align: center;
+  text-align-last: center;
+  width: 100%;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.label-type-block {
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 3mm; color: #fff;
+  background: var(--label-accent, #5AAEDB);
+}
+.label-page[data-type="congele"] { --label-accent: #5AAEDB; }
+.label-page[data-type="decongele"] { --label-accent: #D14B3D; }
+.label-page[data-type="ouvert"] { --label-accent: #C6763B; }
+.label-page[data-type="produit"] { --label-accent: #7FA872; }
+.label-page[data-type="jeter"] { --label-accent: #3A3F44; }
+
+.label-type {
+  font-family: var(--font-mono); font-weight: 600; font-size: 6mm;
+  letter-spacing: .1em; text-transform: uppercase;
+  text-align: center; 
+}
+.label-date {
+  font-family: var(--font-mono); font-weight: 700; font-size: 12mm; line-height: 1.05;
+  font-variant-numeric: tabular-nums; margin-top: 3mm;
+}
+
+
+
+/* .label-use-by-caption / .label-use-by reuse .label-type / .label-date's own sizing (the DLC
+   date is meant to read with exactly the same weight as the main date) — only the top margin
+   is overridden here, to separate the second pair from the first. */
+.label-use-by-caption { margin-top: 4mm; }
+.label-use-by { margin-top: 2mm; }
+
+/* the batch that actually gets printed — invisible on screen */
+.print-batch { display: none; }
+
+@media (max-width: 860px) {
+  .page { padding: 24px 20px 20px; }
+  .queue-panel { margin: 4px 20px 50px; }
+}
+
+/* Below this width, reserving room for the absolute preview next to the title would squeeze
+   the subtitle too hard — drop the preview back into flow, centered under the intro instead. */
+@media (max-width: 640px) {
+  .intro { padding-right: 0; }
+  .preview-wrap { position: static; margin: 0 auto; }
+}
+
+/* The label mockup is a fixed physical size (150mm) for print accuracy — shrunk down to a
+   compact corner thumbnail here via `zoom` (which scales layout + paint together, unlike a
+   narrower `width` which would just clip/overlap the mm-sized content inside). Scoped to the
+   on-screen preview only — `.print-batch` has its own separate `.label-page` copies that get
+   sent to the printer and must stay full size. */
+.preview-wrap .label-page { zoom: 0.4; }
+
+@media (max-width: 600px) {
+  .preview-wrap .label-page { zoom: 0.34; }
+}
+@media (max-width: 420px) {
+  .preview-wrap .label-page { zoom: 0.28; }
+}
+
+/* ---------- PRINT ---------- */
+@media print {
+  .no-print { display: none !important; }
+
+  .print-batch {
+    display: block;
+  }
+
+  .print-batch .label-page {
+    margin: 0;
+    border-radius: 0; box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  .print-batch .label-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  @page {
+    size: 150mm 100mm;
+    margin: 0;
+  }
+}

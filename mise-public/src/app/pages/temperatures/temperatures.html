@@ -1,0 +1,52 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Relevé des températures</h1>
+    <p class="page-sub">Saisissez la température de chaque appareil, puis enregistrez tous les relevés d'un coup.</p>
+  </div>
+
+  @if (appareils().length === 0) {
+    <p class="form-hint">Aucun appareil enregistré. Demandez au chef d'en ajouter depuis le dashboard.</p>
+  } @else {
+    <div class="appareil-grid">
+      @for (appareil of appareils(); track appareil.id) {
+        <div class="appareil-row">
+          <div class="appareil-info">
+            <span class="appareil-abbr">{{ appareil.abbreviation }}</span>
+            <div>
+              <div class="appareil-name">{{ appareil.name }}</div>
+              <div class="appareil-fonction">{{ appareil.fonction }}</div>
+              @if (rangeLabel(appareil); as label) {
+                <div class="appareil-range">{{ label }}</div>
+              }
+            </div>
+          </div>
+          <div class="appareil-input-wrap">
+            <input
+              class="text-input temp-input"
+              [class.out-of-range]="isOutOfRange(appareil)"
+              type="number"
+              step="0.1"
+              inputmode="decimal"
+              [value]="values()[appareil.id] ?? ''"
+              (input)="onValueInput(appareil.id, $event)" />
+            <span class="temp-unit">°C</span>
+            @if (isOutOfRange(appareil)) {
+              <div class="out-of-range-hint">Hors plage normale</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+    @if (successMessage()) {
+      <p class="form-success">{{ successMessage() }}</p>
+    }
+
+    <button type="button" class="save-btn" [disabled]="!canSave()" (click)="save()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer les relevés (' + filledCount() + ')' }}
+    </button>
+  }
+</div>

@@ -1,0 +1,12 @@
+<div class="layout">
+  <aside class="recipe-list">
+    <app-menu-list
+      [menus]="sortedMenus()"
+      [selectedId]="selectedId()"
+      (select)="selectedId.set($event)">
+    </app-menu-list>
+  </aside>
+  <main class="detail">
+    <app-menu-tree [menu]="selectedMenu()"></app-menu-tree>
+  </main>
+</div>

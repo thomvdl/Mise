@@ -1,0 +1,83 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Calendrier</h1>
+    <p class="page-sub">Événements et menus à venir.</p>
+  </div>
+
+  <div class="calendar-nav">
+    <button type="button" class="nav-btn" (click)="prevMonth()">‹ Précédent</button>
+    <span class="month-label">{{ monthLabel() }}</span>
+    <button type="button" class="nav-btn" (click)="nextMonth()">Suivant ›</button>
+  </div>
+  <button type="button" class="today-btn" (click)="goToday()">Aujourd'hui</button>
+
+  <div class="calendar-grid">
+    @for (label of weekdayLabels; track label) {
+      <div class="weekday">{{ label }}</div>
+    }
+    @for (cell of grid(); track cell.iso) {
+      <div class="day-cell" [class.other-month]="!cell.inCurrentMonth" [class.today]="cell.isToday">
+        <span class="day-number">{{ cell.date.getDate() }}</span>
+        @for (event of eventsOn(cell.iso); track event.id) {
+          <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openDetail(event)">
+            <span class="event-chip-name">{{ event.name }}</span>
+            @if (event.couverts) {
+              <span class="event-chip-covers">{{ event.couverts }}</span>
+            }
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@if (selectedEvent(); as event) {
+  <div class="detail-backdrop" (click)="closeDetail()">
+    <div class="detail-modal" (click)="$event.stopPropagation()">
+      <div class="detail-header" [attr.data-type]="event.type">
+        @if (event.type) {
+          <span class="detail-type-label">{{ eventTypeLabel(event.type) }}</span>
+        }
+        <h2 class="detail-title">{{ event.name }}</h2>
+        <p class="detail-dates">
+          {{ event.start_date }}@if (event.end_date !== event.start_date) { – {{ event.end_date }} }
+        </p>
+      </div>
+
+      <div class="detail-body">
+        @if (event.couverts) {
+          <div class="detail-stat">
+            <span class="detail-stat-value">{{ event.couverts }}</span>
+            <span class="detail-stat-label">Couverts</span>
+          </div>
+        }
+
+        @if (event.menu; as menu) {
+          <div class="detail-section">
+            <span class="detail-label">Menu lié</span>
+            <p class="detail-text">{{ menu.name }}</p>
+            <a class="menu-link-btn" [routerLink]="['/menus']" [queryParams]="{ menu: menu.id }" (click)="closeDetail()">
+              Voir le menu
+            </a>
+          </div>
+        }
+
+        @if (event.detail) {
+          <div class="detail-section">
+            <span class="detail-label">Détail</span>
+            <p class="detail-text">{{ event.detail }}</p>
+          </div>
+        }
+
+        @if (event.horaire) {
+          <div class="detail-section">
+            <span class="detail-label">Horaire</span>
+            <p class="detail-text">{{ event.horaire }}</p>
+          </div>
+        }
+
+        <button type="button" class="close-btn" (click)="closeDetail()">Fermer</button>
+      </div>
+    </div>
+  </div>
+}

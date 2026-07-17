@@ -1,0 +1,208 @@
+<div class="page no-print">
+  <div class="panel">
+    <div class="intro">
+      <h1 class="page-title">Impression d'étiquettes</h1>
+      <p class="page-sub">Composez une étiquette, ajoutez-la à la liste, répétez, puis imprimez tout d'un coup.</p>
+    </div>
+
+    <div class="preview-wrap">
+      <span class="preview-label">Aperçu</span>
+      <div class="label-page" [attr.data-type]="selectedType().key">
+        <div class="label-body">
+          <div class="label-name-col">
+            <div class="label-name">{{ productName() || 'Nom du produit' }}</div>
+          </div>
+          <div class="label-type-block">
+            <div class="label-type">{{ selectedType().title }}</div>
+            <div class="label-date">{{ formattedDate() || '––/––/––––' }}</div>
+            @if (useByDate()) {
+              <div class="label-type label-use-by-caption">DLC</div>
+              <div class="label-date label-use-by">{{ formattedUseByDate() }}</div>
+            }
+          </div>
+        </div>
+        <div class="label-footer">Fait par : <span class="label-footer-name">{{ currentUserName() || '—' }}</span></div>
+      </div>
+    </div>
+
+    <div class="form-block">
+      <span class="form-label">Type d'étiquette</span>
+      <div class="type-choices">
+        @for (type of labelTypes; track type.key) {
+          <button
+            type="button"
+            class="type-chip"
+            [attr.data-type]="type.key"
+            [class.active]="selectedType().key === type.key"
+            (click)="selectType(type)">
+            {{ type.title }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="form-block">
+      <div class="form-label-row">
+        <label class="form-label" for="product-name">Produit</label>
+        <span class="char-counter">{{ productName().length }}/{{ productNameMaxLength }}</span>
+      </div>
+      <input
+        id="product-name"
+        class="text-input"
+        type="text"
+        list="product-suggestions"
+        placeholder="Nom du produit…"
+        [attr.maxlength]="productNameMaxLength"
+        [value]="productName()"
+        (input)="onNameInput($event)"
+        (keydown.enter)="addToQueue()" />
+      <datalist id="product-suggestions">
+        @for (name of suggestions(); track name) {
+          <option [value]="name"></option>
+        }
+      </datalist>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label" for="use-by-date">DLC (à consommer avant le)</label>
+      <div class="date-quick-choices">
+        @for (offset of dateOffsets; track offset) {
+          <button
+            type="button"
+            class="date-chip"
+            [class.active]="isUseByDateOffsetActive(offset)"
+            (click)="setUseByDateOffset(offset)">
+            {{ offset === 0 ? "Aujourd'hui" : 'J+' + offset }}
+          </button>
+        }
+      </div>
+      <div class="date-input-row">
+        <input id="use-by-date" class="text-input date-input" type="date" [value]="useByDate()" (input)="onUseByDateInput($event)" />
+        @if (useByDate()) {
+          <button type="button" class="date-clear-btn" (click)="clearUseByDate()" aria-label="Vider la DLC">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+          </button>
+        }
+      </div>
+      @if (!useByDate()) {
+        <p class="form-hint">Laissez vide si cette étiquette n'a pas de DLC (ex. congélation).</p>
+      }
+      <p class="form-hint disclaimer">Suggestion indicative — à ajuster selon votre PMS (plan de maîtrise sanitaire).</p>
+    </div>
+
+    <div class="form-block">
+      <span class="form-label">Quantité</span>
+      <div class="qty-stepper">
+        <button type="button" class="qty-btn" [disabled]="printQuantity() <= 1" (click)="decrementQuantity()" aria-label="Diminuer la quantité">−</button>
+        <span class="qty-value">{{ printQuantity() }}</span>
+        <button type="button" class="qty-btn" [disabled]="printQuantity() >= 10" (click)="incrementQuantity()" aria-label="Augmenter la quantité">+</button>
+      </div>
+    </div>
+
+    <button type="button" class="add-btn" [disabled]="!productName().trim()" (click)="addToQueue()">
+      + Ajouter à la liste{{ printQuantity() > 1 ? ' (' + printQuantity() + ')' : '' }}
+    </button>
+    @if (!productName().trim()) {
+      <p class="form-hint">Indiquez un produit pour l'ajouter à la liste d'impression.</p>
+    }
+  </div>
+</div>
+
+@if (queue().length > 0) {
+  <div class="queue-panel no-print">
+    <div class="queue-header">
+      <span class="queue-title">Liste à imprimer ({{ totalLabelCount() }})</span>
+      <div class="queue-actions">
+        <button type="button" class="btn-ghost" (click)="clearQueue()">Vider la liste</button>
+        <button type="button" class="print-btn" (click)="printQueue()">Imprimer tout</button>
+      </div>
+    </div>
+
+    <div class="brother-ql-panel">
+      <div class="brother-ql-row">
+        <div class="form-field-inline">
+          <label class="form-label" for="label-format">Format Brother QL</label>
+          <select id="label-format" class="form-select" (change)="onFormatChange($event)">
+            @for (format of labelFormats; track format.id) {
+              <option [value]="format.id" [selected]="format.id === selectedFormatId()">{{ format.name }}</option>
+            }
+          </select>
+        </div>
+
+        @if (isContinuousFormat()) {
+          <div class="form-field-inline">
+            <label class="form-label" for="continuous-length">Longueur (mm)</label>
+            <input
+              id="continuous-length"
+              class="text-input length-input"
+              type="number"
+              min="10"
+              max="300"
+              [value]="continuousLengthMm()"
+              (input)="onContinuousLengthInput($event)" />
+          </div>
+        }
+
+        <button
+          type="button"
+          class="print-btn brother-ql-btn"
+          [disabled]="!brotherQlSupported || printingOnBrotherQl()"
+          (click)="printQueueOnBrotherQl()">
+          @if (printingOnBrotherQl()) {
+            Impression…
+          } @else {
+            Imprimer sur Brother QL
+          }
+        </button>
+      </div>
+
+      @if (!brotherQlSupported) {
+        <p class="form-hint">
+          L'impression directe nécessite Chrome ou Edge (WebUSB non disponible dans ce navigateur).
+        </p>
+      }
+      @if (brotherQlError()) {
+        <p class="form-error">{{ brotherQlError() }}</p>
+      }
+    </div>
+
+    <ul class="queue-list">
+      @for (item of queue(); track item.id) {
+        <li class="queue-row">
+          <span class="queue-swatch" [attr.data-type]="item.type.key"></span>
+          <span class="queue-text">
+            <strong>{{ item.type.title }}</strong> — {{ item.productName }} — {{ formatDate(item.date) }}
+            @if (item.useByDate) {
+              <span class="queue-dlc">· DLC {{ formatDate(item.useByDate) }}</span>
+            }
+            @if (item.quantity > 1) {
+              <span class="queue-qty">×{{ item.quantity }}</span>
+            }
+          </span>
+          <button type="button" class="queue-remove" (click)="removeFromQueue(item.id)" aria-label="Retirer de la liste">×</button>
+        </li>
+      }
+    </ul>
+  </div>
+}
+
+<div class="print-batch">
+  @for (item of printableLabels(); track $index) {
+    <div class="label-page" [attr.data-type]="item.type.key">
+      <div class="label-body">
+        <div class="label-name-col">
+          <div class="label-name">{{ item.productName }}</div>
+        </div>
+        <div class="label-type-block">
+          <div class="label-type">{{ item.type.title }}</div>
+          <div class="label-date">{{ formatDate(item.date) }}</div>
+          @if (item.useByDate) {
+            <div class="label-type label-use-by-caption">DLC</div>
+            <div class="label-date label-use-by">{{ formatDate(item.useByDate) }}</div>
+          }
+        </div>
+      </div>
+      <div class="label-footer">Fait par : <span class="label-footer-name">{{ item.madeBy || '—' }}</span></div>
+    </div>
+  }
+</div>

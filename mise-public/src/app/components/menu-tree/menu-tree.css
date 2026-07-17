@@ -1,0 +1,55 @@
+.menu-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+
+.menu-plat {
+  position: relative;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-plat:last-child {
+  border-bottom: none;
+}
+
+.menu-plat::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 20px;
+  width: 14px;
+  height: 1px;
+  background: var(--border);
+}
+
+.menu-plat-name {
+  font-weight: 600;
+}
+
+.menu-plat-desc {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+.menu-plat .rc-allergens {
+  margin-top: 8px;
+}
+
+.fiche-link {
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.fiche-link:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}

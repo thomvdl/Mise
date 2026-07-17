@@ -1,0 +1,73 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Changement d'huile</h1>
+    <p class="page-sub">Enregistrez la date de changement d'huile de chaque friteuse et consultez l'historique.</p>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+  @if (successMessage()) {
+    <p class="form-success">{{ successMessage() }}</p>
+  }
+
+  @if (friteuses().length === 0) {
+    <p class="form-hint">Aucune friteuse enregistrée. Demandez au chef d'en ajouter depuis le dashboard.</p>
+  } @else {
+    <div class="friteuse-grid">
+      @for (friteuse of friteuses(); track friteuse.id) {
+        <div class="friteuse-card">
+          <div class="friteuse-header">
+            <div class="friteuse-name">{{ friteuse.name }}</div>
+            <div class="friteuse-lifespan">Huile changée tous les {{ friteuse.duree_vie_jours }} jours</div>
+          </div>
+
+          <div class="friteuse-status">
+            <div class="status-item">
+              <span class="status-label">Dernier changement</span>
+              <span class="status-value">{{ lastChange(friteuse) ? formatDate(lastChange(friteuse)!) : '—' }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Prochain changement conseillé</span>
+              <span class="status-value" [class.overdue]="overdue(friteuse)">
+                {{ nextChange(friteuse) ? formatDate(nextChange(friteuse)!) : 'Aucun changement enregistré' }}
+                @if (overdue(friteuse)) {
+                  <span class="overdue-badge">À changer</span>
+                }
+              </span>
+            </div>
+          </div>
+
+          <div class="add-change-row">
+            <input
+              class="text-input date-input date-disabled"
+              type="date"
+              disabled
+              [value]="today" />
+            <button
+              type="button"
+              class="add-btn"
+              [disabled]="saving() === friteuse.id"
+              (click)="addChange(friteuse)">
+              {{ saving() === friteuse.id ? 'Enregistrement…' : "Marquer changée" }}
+            </button>
+          </div>
+
+          @if (history(friteuse).length > 0) {
+            <button type="button" class="history-toggle" (click)="toggleHistory(friteuse.id)">
+              {{ isExpanded(friteuse.id) ? 'Masquer' : 'Voir' }} l'historique ({{ history(friteuse).length }})
+            </button>
+
+            @if (isExpanded(friteuse.id)) {
+              <ul class="history-list">
+                @for (changement of history(friteuse); track changement.id) {
+                  <li>{{ formatDate(changement.date_changement) }}</li>
+                }
+              </ul>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

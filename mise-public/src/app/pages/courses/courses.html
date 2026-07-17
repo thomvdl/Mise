@@ -1,0 +1,36 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Liste de courses</h1>
+    <p class="page-sub">Ajoutez les ingrédients ou articles nécessaires.</p>
+  </div>
+
+  <div class="add-item-row">
+    <input
+      class="text-input"
+      type="text"
+      placeholder="Ajouter un article…"
+      [(ngModel)]="newItemName"
+      (keydown.enter)="addItem()" />
+    <button type="button" class="add-btn" (click)="addItem()">Ajouter</button>
+  </div>
+
+  @if (items().length === 0) {
+    <p class="form-hint">Aucun article dans la liste.</p>
+  } @else {
+    <div class="item-list">
+      @for (item of items(); track item.id) {
+        <div class="item-row" [class.done]="item.status === 'done'">
+          <div class="item-main">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-meta">Ajouté par {{ item.user.name }}</span>
+          </div>
+          <div class="item-actions">
+            <span class="status-badge" [class.done]="item.status === 'done'">
+              {{ item.status === 'done' ? 'Fait' : 'À faire' }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

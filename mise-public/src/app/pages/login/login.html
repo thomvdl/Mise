@@ -1,0 +1,55 @@
+<div class="login-wrap">
+  <form class="login-card" (ngSubmit)="submit()">
+    <div class="login-brand">MISE<span>.</span></div>
+    <p class="login-sub">Connexion à l'application de cuisine.</p>
+
+    @if (users().length > 0) {
+      <div class="form-block">
+        <span class="form-label">Qui êtes-vous ?</span>
+        <div class="user-choices">
+          @for (user of users(); track user.id) {
+            <button
+              type="button"
+              class="user-chip"
+              [class.active]="name() === user.name"
+              (click)="selectUser(user.name)">
+              {{ user.name }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="form-block">
+      <label class="form-label" for="name">Nom</label>
+      <input
+        id="name"
+        class="text-input"
+        type="text"
+        autocomplete="username"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        name="name" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label" for="password">Mot de passe</label>
+      <input
+        id="password"
+        class="text-input"
+        type="password"
+        autocomplete="current-password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        name="password" />
+    </div>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" class="add-btn login-submit" [disabled]="saving()">
+      {{ saving() ? 'Connexion…' : 'Se connecter' }}
+    </button>
+  </form>
+</div>

@@ -1,0 +1,67 @@
+.dh-photo {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 22px;
+}
+
+.equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.equipment-list li {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.chef-note.haccp {
+  border-left-color: var(--accent-red);
+}
+
+.chef-note.haccp strong {
+  color: var(--accent-red);
+}
+
+.print-label-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--accent-copper);
+  border: 1px solid var(--accent-copper);
+  border-radius: 999px;
+  padding: 6px 13px;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+.print-label-link:hover {
+  background: var(--accent-copper);
+  color: #fff;
+}
+
+/* .cost-footer is defined globally without wrap — the note needs its own row above the figures. */
+.cost-footer {
+  flex-wrap: wrap;
+}
+
+.cf-note {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}

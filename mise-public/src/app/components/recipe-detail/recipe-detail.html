@@ -1,0 +1,190 @@
+@if (fiche(); as fiche) {
+  @if (fiche.pictures?.length) {
+    <img class="dh-photo" [src]="fiche.pictures![0].url" [alt]="fiche.name" />
+  }
+
+  <div class="detail-header">
+    <div class="dh-left">
+      @if (fiche.station) {
+        <div class="dh-station" [style.background]="fiche.station.color">{{ fiche.station.name }}</div>
+      }
+      <h1 class="dh-title">{{ fiche.name }}</h1>
+      @if (fiche.description) {
+        <p class="dh-sub">{{ fiche.description }}</p>
+      }
+      @if (allergens().length) {
+        <div class="dh-allergens">
+          @for (allergen of allergens(); track allergen.id) {
+            <span class="allergen-chip">{{ allergen.code }}</span>
+          }
+        </div>
+      }
+      <a class="print-label-link" [routerLink]="['/etiquettes']" [queryParams]="{ produit: fiche.name }">
+        Imprimer une étiquette
+      </a>
+    </div>
+
+    <div class="dial-wrap">
+      <button type="button" class="dial-btn" (click)="adjustServings(-1)" aria-label="Moins de portions">−</button>
+      <div class="dial">
+        <svg viewBox="0 0 104 104">
+          <circle class="dial-track" cx="52" cy="52" r="46" />
+          <circle
+            class="dial-progress"
+            cx="52" cy="52" r="46"
+            [attr.stroke-dasharray]="dialCircumference"
+            [attr.stroke-dashoffset]="dialOffset()" />
+        </svg>
+        <div class="dial-center">
+          <div class="dial-num">{{ servings() }}</div>
+          <div class="dial-label">portions</div>
+        </div>
+      </div>
+      <button type="button" class="dial-btn" (click)="adjustServings(1)" aria-label="Plus de portions">+</button>
+    </div>
+  </div>
+
+  @if (fiche.equipment?.length) {
+    <div class="section">
+      <div class="section-title">Matériel nécessaire</div>
+      <ul class="equipment-list">
+        @for (item of fiche.equipment; track item) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="section">
+    <div class="section-title">Ingrédients</div>
+    <table class="ing-table">
+      <thead>
+        <tr>
+          <th>Ingrédient</th>
+          <th>Quantité</th>
+          <th>Coût</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (group of groupedIngredients(); track $index) {
+          @if (showIngredientGroupLabels()) {
+            <tr class="ing-group-row">
+              <td colspan="3">{{ group.label ?? 'Divers' }}</td>
+            </tr>
+          }
+          @for (line of group.lines; track line.ingredient.id) {
+            <tr>
+              <td class="ing-name">{{ line.ingredient.name }}</td>
+              <td class="ing-qty">{{ line.quantity | number: '1.0-2' }} {{ line.ingredient.unit }}</td>
+              <td class="ing-cost">
+                @if (line.lineCost !== null) {
+                  {{ line.lineCost | number: '1.2-2' }} €
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+    <div class="cost-footer">
+      @if (hasIncompleteCost()) {
+        <span class="cf-note">Coût incomplet — certains ingrédients n'ont pas de prix renseigné.</span>
+      }
+      <div class="cf-item">
+        <span class="cf-label">Total</span>
+        <span class="cf-value">{{ hasIncompleteCost() ? '≥ ' : '' }}{{ totalCost() | number: '1.2-2' }} €</span>
+      </div>
+      @if (costPerPortion() !== null) {
+        <div class="cf-item">
+          <span class="cf-label">Prix / portion</span>
+          <span class="cf-value">{{ hasIncompleteCost() ? '≥ ' : '' }}{{ costPerPortion() | number: '1.2-2' }} €</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (fiche.mise_en_place) {
+    <div class="section">
+      <div class="chef-note">
+        <strong>Mise en place</strong>
+        {{ fiche.mise_en_place }}
+      </div>
+    </div>
+  }
+
+  <div class="section">
+    <div class="section-title">Étapes</div>
+    <div class="steps">
+      @for (step of fiche.steps ?? []; track step.id) {
+        <div class="step" [class.done]="doneSteps().has(step.id)" (click)="toggleStep(step.id)">
+          <div class="step-num">{{ step.position }}</div>
+          <div class="step-body">
+            <div class="step-text">{{ step.instruction }}</div>
+            @if (timers().get(step.id); as timer) {
+              <div class="step-meta">
+                <div class="timer">
+                  <div class="timer-ring">
+                    <svg viewBox="0 0 30 30">
+                      <circle class="tr-track" cx="15" cy="15" r="12" />
+                      <circle
+                        class="tr-progress"
+                        cx="15" cy="15" r="12"
+                        [attr.stroke-dasharray]="timerCircumference"
+                        [attr.stroke-dashoffset]="timerOffset(timer)" />
+                    </svg>
+                  </div>
+                  <span class="timer-time">{{ formatTime(timer.remainingSec) }}</span>
+                  <button
+                    type="button"
+                    class="timer-btn"
+                    [class.running]="timer.running"
+                    (click)="toggleTimer(step.id); $event.stopPropagation()">
+                    {{ timer.running ? 'Pause' : 'Démarrer' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (fiche.plating) {
+    <div class="section">
+      <div class="chef-note">
+        <strong>Dressage</strong>
+        {{ fiche.plating }}
+      </div>
+    </div>
+  }
+
+  @if (fiche.chef_tip) {
+    <div class="section">
+      <div class="chef-note">
+        <strong>Conseil du chef</strong>
+        {{ fiche.chef_tip }}
+      </div>
+    </div>
+  }
+
+  @if (fiche.haccp) {
+    <div class="section">
+      <div class="chef-note haccp">
+        <strong>HACCP</strong>
+        {{ fiche.haccp }}
+      </div>
+    </div>
+  }
+
+  @if (fiche.conservation) {
+    <div class="section">
+      <div class="chef-note">
+        <strong>Conservation</strong>
+        {{ fiche.conservation }}
+      </div>
+    </div>
+  }
+} @else {
+  <p class="list-heading">Sélectionnez une fiche technique dans la liste.</p>
+}

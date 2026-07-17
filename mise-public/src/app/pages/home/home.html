@@ -1,0 +1,19 @@
+
+<app-recipe-filters
+  [stations]="stations()"
+  [(activeStationSlug)]="activeStationSlug"
+  (searchChange)="searchQuery.set($event)">
+</app-recipe-filters>
+
+<div class="layout">
+  <aside class="recipe-list">
+    <app-recipe-list
+      [fiches]="filteredFiches()"
+      [selectedId]="selectedId()"
+      (select)="selectedId.set($event)">
+    </app-recipe-list>
+  </aside>
+  <main class="detail">
+    <app-recipe-detail [fiche]="selectedFiche()"></app-recipe-detail>
+  </main>
+</div>

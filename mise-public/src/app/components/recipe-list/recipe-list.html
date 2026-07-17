@@ -1,0 +1,30 @@
+<div class="list-heading">Fiches techniques ({{ fiches().length }})</div>
+
+@for (fiche of fiches(); track fiche.id) {
+  <button
+    type="button"
+    class="recipe-card"
+    [class.active]="fiche.id === selectedId()"
+    [style.--card-color]="fiche.station?.color"
+    (click)="select.emit(fiche.id)">
+    <div class="rc-top">
+      <div class="rc-name">{{ fiche.name }}</div>
+      @if (fiche.station) {
+        <div class="rc-station">{{ fiche.station.name }}</div>
+      }
+    </div>
+    <div class="rc-meta">
+      <span>{{ fiche.servings }} pers.</span>
+      <span>Difficulté {{ fiche.difficulty }}/3</span>
+    </div>
+    @if (allergens(fiche).length) {
+      <div class="rc-allergens">
+        @for (allergen of allergens(fiche); track allergen.id) {
+          <span class="allergen-chip">{{ allergen.code }}</span>
+        }
+      </div>
+    }
+  </button>
+} @empty {
+  <p class="list-heading">Aucune fiche ne correspond à la recherche.</p>
+}

@@ -1,0 +1,80 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Discussion</h1>
+    <p class="page-sub">Échangez avec l'équipe sur les menus et les événements.</p>
+  </div>
+
+  @if (channels().length === 0) {
+    <p class="form-hint">Aucun chanel de discussion pour l'instant.</p>
+  } @else {
+    <div class="discussion-layout">
+      <aside class="channel-sidebar">
+        @for (channel of channels(); track channel.id) {
+          <button
+            type="button"
+            class="channel-item"
+            [class.active]="activeChannelId() === channel.id"
+            (click)="selectChannel(channel.id)">
+            <span class="channel-name">{{ channel.name }}</span>
+          </button>
+        }
+      </aside>
+
+      <div class="message-panel">
+        <div class="message-scroll" #scrollContainer>
+          @if (topLevelMessages().length === 0) {
+            <p class="form-hint">Aucun message pour l'instant. Lancez la discussion !</p>
+          }
+          @for (message of topLevelMessages(); track message.id) {
+            <div class="message">
+              <div class="message-header">
+                <span class="message-author">{{ message.user.name }}</span>
+                <span class="message-date">{{ message.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p class="message-content">{{ message.content }}</p>
+              <button type="button" class="reply-toggle" (click)="startReply(message.id)">Répondre</button>
+
+              @if (replies(message.id).length > 0) {
+                <div class="replies">
+                  @for (reply of replies(message.id); track reply.id) {
+                    <div class="message reply">
+                      <div class="message-header">
+                        <span class="message-author">{{ reply.user.name }}</span>
+                        <span class="message-date">{{ reply.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+                      </div>
+                      <p class="message-content">{{ reply.content }}</p>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (replyingTo() === message.id) {
+                <div class="reply-composer">
+                  <textarea
+                    class="text-input"
+                    rows="2"
+                    placeholder="Votre réponse…"
+                    [(ngModel)]="replyText"></textarea>
+                  <div class="reply-composer-actions">
+                    <button type="button" class="add-btn" (click)="submitReply(message.id)">Répondre</button>
+                    <button type="button" class="cancel-btn" (click)="cancelReply()">Annuler</button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="composer">
+          <input
+            class="text-input"
+            type="text"
+            placeholder="Écrire un message…"
+            [(ngModel)]="composerText"
+            (keydown.enter)="post()" />
+          <button type="button" class="add-btn" (click)="post()">Envoyer</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

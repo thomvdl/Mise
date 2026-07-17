@@ -1,0 +1,24 @@
+<div class="list-heading">Menus ({{ menus().length }})</div>
+
+@for (menu of menus(); track menu.id) {
+  <button
+    type="button"
+    class="recipe-card"
+    [class.active]="menu.id === selectedId()"
+    (click)="select.emit(menu.id)">
+    <div class="rc-top">
+      <div class="rc-name">{{ menu.name }}</div>
+    </div>
+    <div class="rc-meta">
+      <span>{{ (menu.sections ?? []).length }} section(s)</span>
+      <span>{{ platCount(menu) }} plat(s)</span>
+    </div>
+    @if (dateLabel(menu); as label) {
+      <div class="rc-meta">
+        <span>{{ label }}</span>
+      </div>
+    }
+  </button>
+} @empty {
+  <p class="list-heading">Aucun menu pour le moment.</p>
+}
