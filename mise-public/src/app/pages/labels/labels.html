@@ -120,29 +120,6 @@
 
     <div class="brother-ql-panel">
       <div class="brother-ql-row">
-        <div class="form-field-inline">
-          <label class="form-label" for="label-format">Format Brother QL</label>
-          <select id="label-format" class="form-select" (change)="onFormatChange($event)">
-            @for (format of labelFormats; track format.id) {
-              <option [value]="format.id" [selected]="format.id === selectedFormatId()">{{ format.name }}</option>
-            }
-          </select>
-        </div>
-
-        @if (isContinuousFormat()) {
-          <div class="form-field-inline">
-            <label class="form-label" for="continuous-length">Longueur (mm)</label>
-            <input
-              id="continuous-length"
-              class="text-input length-input"
-              type="number"
-              min="10"
-              max="300"
-              [value]="continuousLengthMm()"
-              (input)="onContinuousLengthInput($event)" />
-          </div>
-        }
-
         <button
           type="button"
           class="print-btn brother-ql-btn"

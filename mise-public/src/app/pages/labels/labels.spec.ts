@@ -11,7 +11,7 @@ import { QueuedLabel } from '../../core/models/label.model';
 
 class FakeBrotherQlPrinterService {
   supported = true;
-  print = vi.fn((_labels: QueuedLabel[], _formatId: number, _continuousLengthMm: number) => Promise.resolve());
+  print = vi.fn((_labels: QueuedLabel[]) => Promise.resolve());
 
   isSupported(): boolean {
     return this.supported;
@@ -150,29 +150,6 @@ describe('Labels', () => {
     it('does not expose any quick-offset affordance for the main Date field', () => {
       expect((component as unknown as Record<string, unknown>)['setDateOffset']).toBeUndefined();
       expect((component as unknown as Record<string, unknown>)['isDateOffsetActive']).toBeUndefined();
-    });
-  });
-
-  describe('label format', () => {
-    it('defaults to the first format in the list (62 × 100 mm die-cut)', () => {
-      expect(component.selectedFormat().id).toBe(component.labelFormats[0].id);
-      expect(component.isContinuousFormat()).toBe(false);
-    });
-
-    it('switches format and flags continuous rolls (no fixed height)', () => {
-      const continuousFormat = component.labelFormats.find((f) => f.heightMm === undefined)!;
-      component.selectedFormatId.set(continuousFormat.id);
-
-      expect(component.selectedFormat()).toBe(continuousFormat);
-      expect(component.isContinuousFormat()).toBe(true);
-    });
-
-    it('falls back to a sane default when an invalid length is entered', () => {
-      component.onContinuousLengthInput({ target: { value: '0' } } as unknown as Event);
-      expect(component.continuousLengthMm()).toBe(90);
-
-      component.onContinuousLengthInput({ target: { value: '120' } } as unknown as Event);
-      expect(component.continuousLengthMm()).toBe(120);
     });
   });
 
@@ -334,9 +311,7 @@ describe('Labels', () => {
       expect(fakePrinter.print).not.toHaveBeenCalled();
     });
 
-    it('sends the whole queue, the chosen format and length to the printer, and toggles the busy state', async () => {
-      component.selectedFormatId.set(259); // 62mm continuous
-      component.continuousLengthMm.set(120);
+    it('sends the whole queue to the printer, and toggles the busy state', async () => {
       component.productName.set('Beurre');
       component.addToQueue();
       component.productName.set('Lait');
@@ -347,7 +322,7 @@ describe('Labels', () => {
 
       await printPromise;
 
-      expect(fakePrinter.print).toHaveBeenCalledWith(component.queue(), 259, 120);
+      expect(fakePrinter.print).toHaveBeenCalledWith(component.queue());
       expect(component.printingOnBrotherQl()).toBe(false);
       expect(component.brotherQlError()).toBeNull();
     });

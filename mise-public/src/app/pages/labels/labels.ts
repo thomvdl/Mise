@@ -6,9 +6,8 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { BrotherQlPrinterService } from '../../core/services/brother-ql-printer.service';
 import { AuthService } from '../../core/services/auth.service';
-import { LABEL_FORMATS, LABEL_TYPES, LabelFormat, LabelType, QueuedLabel } from '../../core/models/label.model';
+import { LABEL_TYPES, LabelType, QueuedLabel } from '../../core/models/label.model';
 
-const DEFAULT_CONTINUOUS_LENGTH_MM = 90;
 const PRODUCT_NAME_MAX_LENGTH = 55;
 const MIN_PRINT_QUANTITY = 1;
 const MAX_PRINT_QUANTITY = 10;
@@ -50,7 +49,6 @@ export class Labels {
   private nextId = 0;
 
   readonly labelTypes = LABEL_TYPES;
-  readonly labelFormats = LABEL_FORMATS;
   readonly dateOffsets = [0, 1, 2, 3, 4, 5];
   readonly brotherQlSupported = this.brotherQlPrinter.isSupported();
   readonly productNameMaxLength = PRODUCT_NAME_MAX_LENGTH;
@@ -64,18 +62,10 @@ export class Labels {
   printQuantity = signal(MIN_PRINT_QUANTITY);
   queue = signal<QueuedLabel[]>([]);
 
-  selectedFormatId = signal<number>(LABEL_FORMATS[0].id);
-  continuousLengthMm = signal(DEFAULT_CONTINUOUS_LENGTH_MM);
-
   printingOnBrotherQl = signal(false);
   brotherQlError = signal<string | null>(null);
 
   currentUserName = computed(() => this.auth.user()?.name ?? '');
-
-  selectedFormat = computed<LabelFormat>(
-    () => this.labelFormats.find((format) => format.id === this.selectedFormatId()) ?? this.labelFormats[0],
-  );
-  isContinuousFormat = computed(() => this.selectedFormat().heightMm === undefined);
 
   /** Product names pulled from the catalogs, offered as suggestions — the field itself stays free text. */
   suggestions = computed(() => {
@@ -131,15 +121,6 @@ export class Labels {
     return this.useByDate() === isoDateWithOffset(daysFromToday);
   }
 
-  onFormatChange(event: Event): void {
-    this.selectedFormatId.set(Number((event.target as HTMLSelectElement).value));
-  }
-
-  onContinuousLengthInput(event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
-    this.continuousLengthMm.set(value > 0 ? value : DEFAULT_CONTINUOUS_LENGTH_MM);
-  }
-
   incrementQuantity(): void {
     this.printQuantity.update((qty) => Math.min(qty + 1, MAX_PRINT_QUANTITY));
   }
@@ -193,7 +174,7 @@ export class Labels {
     this.brotherQlError.set(null);
 
     try {
-      await this.brotherQlPrinter.print(this.printableLabels(), this.selectedFormatId(), this.continuousLengthMm());
+      await this.brotherQlPrinter.print(this.printableLabels());
     } catch (error) {
       this.brotherQlError.set(
         error instanceof Error ? error.message : "Une erreur est survenue lors de l'impression.",

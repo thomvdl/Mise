@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo Data
+    |--------------------------------------------------------------------------
+    |
+    | Quand activé, ExampleDataSeeder peuple la base avec un jeu de données de
+    | démonstration (un exemple par fonctionnalité) au démarrage.
+    |
+    */
+
+    'demo' => (bool) env('DEMO', false),
+
 ];

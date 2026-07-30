@@ -69,11 +69,15 @@ créé au premier démarrage via `ADMIN_NAME`/`ADMIN_PASSWORD` (`.env`).
 
 ### En local, sans Docker
 
+Ce dépôt n'a pas son propre `.env` : il lit celui de la racine du projet MISE (un niveau
+au-dessus), aussi utilisé par Docker — voir `bootstrap/app.php`.
+
 ```bash
 composer install
-cp .env.example .env
-php artisan key:generate
-# configurer DB_* dans .env, puis :
+# à la racine du projet (pas dans ce dépôt), si pas déjà fait :
+cd .. && cp .env.example .env && cd mise-api
+# démarre juste MySQL (exposé sur 127.0.0.1:3306, DB_HOST du .env) sans les frontends/l'API :
+docker compose -f ../docker-compose.yml up -d db
 php artisan migrate
 php artisan db:seed
 php artisan serve

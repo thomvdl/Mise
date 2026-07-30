@@ -9,6 +9,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - mise_db_data:/var/lib/mysql
+    ports:
+      # Publié pour que du code lancé nativement sur l'hôte (hors Docker, ex. artisan/tests)
+      # puisse se connecter à la même base que le conteneur api (DB_HOST=127.0.0.1 dans .env),
+      # avec les mêmes identifiants — plus besoin d'un MySQL local séparé.
+      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
       interval: 5s
@@ -23,15 +28,10 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      # Wiring fixed by this compose file — not meant to be edited in .env.
-      DB_CONNECTION: mysql
+      # Seule différence réelle entre le conteneur et une exécution native : le nom d'hôte de
+      # la base (réseau interne du compose vs 127.0.0.1). Tout le reste vient de .env, partagé
+      # avec une exécution native de mise-api (voir mise-api/bootstrap/app.php).
       DB_HOST: db
-      DB_PORT: 3306
-      SESSION_DRIVER: database
-      CACHE_STORE: database
-      QUEUE_CONNECTION: database
-      LOG_CHANNEL: stack
-      FILESYSTEM_DISK: local
     volumes:
       - mise_api_storage:/var/www/html/storage/app/public
     ports:

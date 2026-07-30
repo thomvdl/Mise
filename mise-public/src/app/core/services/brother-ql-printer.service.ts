@@ -10,7 +10,7 @@ export class BrotherQlPrinterService {
     return isBrotherQlUsbSupported();
   }
 
-  print(labels: QueuedLabel[], formatId: number, continuousLengthMm: number): Promise<void> {
-    return printLabelsOnBrotherQl(labels, formatId, continuousLengthMm);
+  print(labels: QueuedLabel[]): Promise<void> {
+    return printLabelsOnBrotherQl(labels);
   }
 }

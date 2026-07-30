@@ -52,7 +52,7 @@
 .type-chip:hover { border-color: var(--chip-accent); color: var(--text); }
 .type-chip.active { background: var(--chip-accent); border-color: var(--chip-accent); color: #fff; }
 
-.text-input, .form-select {
+.text-input {
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
   padding: 14px 16px; border-radius: 8px; font-size: 15px; width: 100%;
   min-height: 48px;
@@ -157,9 +157,6 @@
 
 .brother-ql-panel { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .brother-ql-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
-.form-field-inline { display: flex; flex-direction: column; gap: 6px; min-width: 170px; }
-.form-field-inline .form-label { white-space: nowrap; }
-.length-input { max-width: 110px; }
 
 .queue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .queue-row {

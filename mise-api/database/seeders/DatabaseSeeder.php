@@ -22,7 +22,10 @@ class DatabaseSeeder extends Seeder
             IngredientCategorySeeder::class,
             IngredientSeeder::class,
             ChannelSeeder::class,
-            ExampleDataSeeder::class,
         ]);
+
+        if (config('app.demo')) {
+            $this->call(ExampleDataSeeder::class);
+        }
     }
 }

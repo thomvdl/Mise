@@ -1,16 +1,18 @@
-import type { MediaDescriptor, RawImageData } from '@thermal-label/brother-ql-core';
+import type { BrotherQLPrintOptions, MediaDescriptor, RawImageData } from '@thermal-label/brother-ql-core';
 
 import type { QueuedLabel } from '../models/label.model';
 
 const DOTS_PER_MM = 300 / 25.4;
 
-const ACCENT_BY_TYPE: Record<string, string> = {
-  congele: '#5AAEDB',
-  decongele: '#D14B3D',
-  ouvert: '#C6763B',
-  produit: '#7FA872',
-  jeter: '#3A3F44',
-};
+/**
+ * The QL-700 (and every other QL model this app targets) is monochrome — no red ribbon,
+ * no ink. The on-screen/browser-print path has its own per-type accent colours (see
+ * labels.css), but feeding those same light/mid-tone hex colours through this canvas would
+ * get dithered by the printer driver into a sparse dot pattern that reads as nearly blank,
+ * and the white text drawn on top becomes illegible against it. Solid black dithers to
+ * solid black with no such loss, so the thermal render always uses it regardless of type.
+ */
+const THERMAL_ACCENT = '#000000';
 
 export function isBrotherQlUsbSupported(): boolean {
   return typeof navigator !== 'undefined' && 'usb' in navigator;
@@ -84,25 +86,34 @@ export function drawJustifiedLines(
 /**
  * Die-cut labels tagged `defaultOrientation: 'horizontal'` expect content authored landscape
  * (long axis horizontal) — the driver auto-rotates it 90° to feed correctly. Everything else
- * ('vertical', or `undefined` for continuous rolls) passes through as authored, so the canvas
- * must already match the media's physical axes: width = the fixed across-web dot count
- * (`printableDots`), height = the feed-direction length.
+ * ('vertical', or `undefined`) passes through as authored, so the canvas must already match
+ * the media's physical axes: width = the fixed across-web dot count (`printableDots`),
+ * height = the feed-direction length.
  *
- * `continuousLengthMm` only matters when `media.heightMm` is undefined (continuous roll —
- * there's no fixed length to fall back on otherwise).
+ * `printableDots` (the fixed across-web axis, set by the tape width) is usually the
+ * *shorter* side of a 'horizontal' die-cut — DK-11201 (29mm tape, 90mm cut) is the typical
+ * shape. The DK-11209 this app prints on inverts that: its tape is wider than the label is
+ * long (62mm tape, 29mm cut), so `printableDots` (696) is actually bigger than the
+ * feed-length axis (271). The canvas must still be authored genuinely landscape
+ * (width > height) for the content layout to read correctly either way — only the rotation
+ * needed to map that onto the print head's fixed-width raster differs: rotate only when the
+ * feed-length axis is the longer one (the "normal" case); when the across-web axis is
+ * already the longer one, as here, the authored canvas already matches the raster's axis
+ * order, so no rotation.
  */
 function canvasSizeFor(
   media: MediaDescriptor & { printableDots: number; dieCutMaskedAreaDots?: number },
-  continuousLengthMm: number,
-): { width: number; height: number; landscape: boolean } {
-  const shortDots = media.printableDots;
-  const longDots = media.heightMm
-    ? (media.dieCutMaskedAreaDots ?? Math.round(media.heightMm * DOTS_PER_MM))
-    : Math.round(continuousLengthMm * DOTS_PER_MM);
+): { width: number; height: number; landscape: boolean; rotate: 0 | 90 } {
+  const acrossWebDots = media.printableDots;
+  const feedDots = media.dieCutMaskedAreaDots ?? Math.round((media.heightMm ?? 0) * DOTS_PER_MM);
 
-  return media.defaultOrientation === 'horizontal'
-    ? { width: longDots, height: shortDots, landscape: true }
-    : { width: shortDots, height: longDots, landscape: false };
+  if (media.defaultOrientation !== 'horizontal') {
+    return { width: acrossWebDots, height: feedDots, landscape: false, rotate: 0 };
+  }
+
+  return acrossWebDots >= feedDots
+    ? { width: acrossWebDots, height: feedDots, landscape: true, rotate: 0 }
+    : { width: feedDots, height: acrossWebDots, landscape: true, rotate: 90 };
 }
 
 function drawLandscapeLabel(ctx: CanvasRenderingContext2D, item: QueuedLabel, width: number, height: number): void {
@@ -113,7 +124,7 @@ function drawLandscapeLabel(ctx: CanvasRenderingContext2D, item: QueuedLabel, wi
   const blockY = pad;
   const blockHeight = height - pad * 2;
 
-  ctx.fillStyle = ACCENT_BY_TYPE[item.type.key] ?? '#5AAEDB';
+  ctx.fillStyle = THERMAL_ACCENT;
   ctx.beginPath();
   ctx.roundRect(blockX, blockY, blockWidth, blockHeight, Math.min(18, blockHeight * 0.15));
   ctx.fill();
@@ -161,7 +172,7 @@ function drawPortraitLabel(ctx: CanvasRenderingContext2D, item: QueuedLabel, wid
   const blockY = nameRowHeight + pad / 2;
   const blockHeight = height - blockY - pad;
 
-  ctx.fillStyle = ACCENT_BY_TYPE[item.type.key] ?? '#5AAEDB';
+  ctx.fillStyle = THERMAL_ACCENT;
   ctx.beginPath();
   ctx.roundRect(blockX, blockY, blockWidth, blockHeight, Math.min(14, blockWidth * 0.1));
   ctx.fill();
@@ -201,10 +212,9 @@ function drawPortraitLabel(ctx: CanvasRenderingContext2D, item: QueuedLabel, wid
   }
 }
 
-function renderLabelImageData(item: QueuedLabel, media: MediaDescriptor, continuousLengthMm: number): RawImageData {
-  const { width, height, landscape } = canvasSizeFor(
+function renderLabelImageData(item: QueuedLabel, media: MediaDescriptor): { image: RawImageData; rotate: 0 | 90 } {
+  const { width, height, landscape, rotate } = canvasSizeFor(
     media as MediaDescriptor & { printableDots: number; dieCutMaskedAreaDots?: number },
-    continuousLengthMm,
   );
 
   const canvas = document.createElement('canvas');
@@ -225,11 +235,18 @@ function renderLabelImageData(item: QueuedLabel, media: MediaDescriptor, continu
   const imageData = ctx.getImageData(0, 0, width, height);
   // RawImageData wants a Uint8Array; ImageData.data is a Uint8ClampedArray — same bytes, different view.
   return {
-    width: imageData.width,
-    height: imageData.height,
-    data: new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.byteLength),
+    image: {
+      width: imageData.width,
+      height: imageData.height,
+      data: new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.byteLength),
+    },
+    rotate,
   };
 }
+
+/** Registry id (in `@thermal-label/brother-ql-core`'s media list) for the DK-11209 — the
+ *  only label stock this app prints on. */
+const BROTHER_QL_LABEL_FORMAT_ID = 274;
 
 /**
  * Prints every queued label directly on a Brother QL label printer over WebUSB, one at a time.
@@ -237,11 +254,7 @@ function renderLabelImageData(item: QueuedLabel, media: MediaDescriptor, continu
  * device picker only lists the ones actually plugged in. Requires a Chromium-based browser and
  * must be called from a user gesture (the device picker won't open otherwise).
  */
-export async function printLabelsOnBrotherQl(
-  labels: QueuedLabel[],
-  formatId: number,
-  continuousLengthMm: number,
-): Promise<void> {
+export async function printLabelsOnBrotherQl(labels: QueuedLabel[]): Promise<void> {
   if (!isBrotherQlUsbSupported()) {
     throw new Error("L'impression directe nécessite Chrome ou Edge (WebUSB non disponible dans ce navigateur).");
   }
@@ -250,7 +263,7 @@ export async function printLabelsOnBrotherQl(
   const { requestPrinters } = await import('@thermal-label/brother-ql-web');
   const { findMedia } = await import('@thermal-label/brother-ql-core');
 
-  const media = findMedia(formatId);
+  const media = findMedia(BROTHER_QL_LABEL_FORMAT_ID);
   if (!media) throw new Error("Ce format d'étiquette est introuvable dans le pilote.");
 
   const printers = await requestPrinters({ transport: 'usb' });
@@ -259,9 +272,16 @@ export async function printLabelsOnBrotherQl(
 
   try {
     for (const label of labels) {
-      const imageData = renderLabelImageData(label, media, continuousLengthMm);
-      // No explicit `rotate` — the driver defers to the media's `defaultOrientation` heuristic.
-      await printer.print(imageData, media);
+      // Explicit rotate, not 'auto': the library's heuristic only rotates when the
+      // authored canvas already looks landscape (width > height). That's true for most
+      // 'horizontal' die-cuts (e.g. DK-11201: 29mm tape, 90mm cut) but false for "wide but
+      // short" ones like the DK-11209 (62mm tape, 29mm cut — shorter than the tape is
+      // wide), where `canvasSizeFor` already decided no rotation is needed. Trusting its
+      // decision here instead of re-deriving from `media.defaultOrientation` keeps both
+      // cases correct.
+      const { image, rotate } = renderLabelImageData(label, media);
+      const printOptions: BrotherQLPrintOptions = { rotate };
+      await printer.print(image, media, printOptions);
     }
   } finally {
     await printer.close();
