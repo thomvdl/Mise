@@ -37,18 +37,16 @@ services:
     ports:
       - "8000:80"
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+  adminer:
+    image: adminer:latest
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      PMA_HOST: db
-      PMA_USER: root
-      PMA_PASSWORD: ${DB_ROOT_PASSWORD}
+      ADMINER_DEFAULT_SERVER: db
     ports:
-      - "8083:80"
+      - "8083:8080"
 
   dashboard:
     build: ./mise-dashboard
