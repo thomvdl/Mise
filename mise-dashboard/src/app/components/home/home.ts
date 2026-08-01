@@ -73,6 +73,12 @@ export class Home {
       icon: 'report',
     },
     {
+      label: 'Étiquettes',
+      description: "Historique d'impression des étiquettes (traçabilité HACCP).",
+      path: '/etiquettes',
+      icon: 'report',
+    },
+    {
       label: 'Discussion',
       description: 'Échanger avec la brigade.',
       path: '/discussion',
