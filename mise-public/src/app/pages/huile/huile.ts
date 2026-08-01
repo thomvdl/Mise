@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
+import { ConfirmDialog } from '../../components/confirm-dialog/confirm-dialog';
 import { Friteuse } from '../../core/models/friteuse.model';
 import { FriteuseService } from '../../core/services/friteuse.service';
 import { ChangementHuileService } from '../../core/services/changement-huile.service';
@@ -13,7 +14,7 @@ function toIsoDate(date: Date): string {
 
 @Component({
   selector: 'app-huile',
-  imports: [],
+  imports: [ConfirmDialog],
   templateUrl: './huile.html',
   styleUrl: './huile.css',
 })
@@ -30,6 +31,14 @@ export class Huile implements OnInit {
   saving = signal<number | null>(null);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
+
+  /** Friteuse en attente de confirmation (voir requestAddChange) — null = pas de modale ouverte. */
+  pendingFriteuse = signal<Friteuse | null>(null);
+
+  confirmMessage = computed(() => {
+    const friteuse = this.pendingFriteuse();
+    return friteuse ? `Marquer l'huile de « ${friteuse.name} » comme changée aujourd'hui (${this.formatDate(this.today)}) ?` : '';
+  });
 
   ngOnInit(): void {
     this.reload();
@@ -80,7 +89,20 @@ export class Huile implements OnInit {
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  addChange(friteuse: Friteuse): void {
+  /** Ouvre la confirmation plutôt que d'enregistrer directement — un tap accidentel sur "Marquer changée" ne doit pas valider tout seul un changement d'huile. */
+  requestAddChange(friteuse: Friteuse): void {
+    this.pendingFriteuse.set(friteuse);
+  }
+
+  cancelAddChange(): void {
+    this.pendingFriteuse.set(null);
+  }
+
+  confirmAddChange(): void {
+    const friteuse = this.pendingFriteuse();
+    if (!friteuse) return;
+    this.pendingFriteuse.set(null);
+
     this.saving.set(friteuse.id);
     this.errorMessage.set(null);
     this.successMessage.set(null);

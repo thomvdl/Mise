@@ -45,8 +45,17 @@
       <p class="form-success">{{ successMessage() }}</p>
     }
 
-    <button type="button" class="save-btn" [disabled]="!canSave()" (click)="save()">
+    <button type="button" class="save-btn" [disabled]="!canSave()" (click)="requestSave()">
       {{ saving() ? 'Enregistrement…' : 'Enregistrer les relevés (' + filledCount() + ')' }}
     </button>
   }
+
+  <app-confirm-dialog
+    [open]="confirmOpen()"
+    title="Confirmer les relevés"
+    [message]="confirmMessage()"
+    confirmLabel="Enregistrer"
+    (confirm)="confirmSave()"
+    (cancel)="cancelSave()">
+  </app-confirm-dialog>
 </div>

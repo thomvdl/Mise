@@ -2,13 +2,14 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 
+import { ConfirmDialog } from '../../components/confirm-dialog/confirm-dialog';
 import { Appareil } from '../../core/models/appareil.model';
 import { AppareilService } from '../../core/services/appareil.service';
 import { TemperatureReleveService } from '../../core/services/temperature-releve.service';
 
 @Component({
   selector: 'app-temperatures',
-  imports: [],
+  imports: [ConfirmDialog],
   templateUrl: './temperatures.html',
   styleUrl: './temperatures.css',
 })
@@ -24,9 +25,32 @@ export class Temperatures {
   saving = signal(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
+  confirmOpen = signal(false);
 
   filledCount = computed(() => Object.values(this.values()).filter((v) => (v ?? '').trim() !== '').length);
   canSave = computed(() => this.filledCount() > 0 && !this.saving());
+
+  /** Relevés saisis et valides, résolus vers leur appareil — base commune pour l'enregistrement réel et le récapitulatif de confirmation. */
+  pendingEntries = computed(() => {
+    const appareils = this.appareils();
+    return Object.entries(this.values())
+      .map(([id, value]) => {
+        const appareil = appareils.find((a) => a.id === Number(id));
+        const temperature = parseFloat(value ?? '');
+        return appareil && !Number.isNaN(temperature) ? { appareil, temperature, outOfRange: this.isOutOfRange(appareil) } : null;
+      })
+      .filter((entry): entry is { appareil: Appareil; temperature: number; outOfRange: boolean } => entry !== null);
+  });
+
+  /** Récapitulatif affiché dans la modale de confirmation — une ligne par relevé saisi, avec un rappel visuel des valeurs hors plage avant validation. */
+  confirmMessage = computed(() => {
+    return this.pendingEntries()
+      .map((entry) => {
+        const suffix = entry.outOfRange ? ' — hors plage normale' : '';
+        return `${entry.appareil.name} : ${entry.temperature}°C${suffix}`;
+      })
+      .join('\n');
+  });
 
   onValueInput(appareilId: number, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -52,11 +76,20 @@ export class Temperatures {
     );
   }
 
-  save(): void {
-    const entries = Object.entries(this.values())
-      .map(([id, value]) => ({ appareilId: Number(id), temperature: parseFloat(value ?? '') }))
-      .filter((entry) => !Number.isNaN(entry.temperature));
+  /** Ouvre la confirmation plutôt que d'enregistrer directement — évite un relevé validé par erreur (mauvais appareil, faute de frappe sur la température) avant de l'envoyer au serveur. */
+  requestSave(): void {
+    if (!this.canSave()) return;
+    this.confirmOpen.set(true);
+  }
 
+  cancelSave(): void {
+    this.confirmOpen.set(false);
+  }
+
+  confirmSave(): void {
+    this.confirmOpen.set(false);
+
+    const entries = this.pendingEntries();
     if (entries.length === 0) return;
 
     this.saving.set(true);
@@ -65,7 +98,7 @@ export class Temperatures {
 
     forkJoin(
       entries.map((entry) =>
-        this.temperatureReleveService.create({ appareil_id: entry.appareilId, temperature: entry.temperature }),
+        this.temperatureReleveService.create({ appareil_id: entry.appareil.id, temperature: entry.temperature }),
       ),
     ).subscribe({
       next: () => {

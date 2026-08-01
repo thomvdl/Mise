@@ -48,7 +48,7 @@
               type="button"
               class="add-btn"
               [disabled]="saving() === friteuse.id"
-              (click)="addChange(friteuse)">
+              (click)="requestAddChange(friteuse)">
               {{ saving() === friteuse.id ? 'Enregistrement…' : "Marquer changée" }}
             </button>
           </div>
@@ -70,4 +70,13 @@
       }
     </div>
   }
+
+  <app-confirm-dialog
+    [open]="pendingFriteuse() !== null"
+    title="Confirmer le changement d'huile"
+    [message]="confirmMessage()"
+    confirmLabel="Marquer changée"
+    (confirm)="confirmAddChange()"
+    (cancel)="cancelAddChange()">
+  </app-confirm-dialog>
 </div>
