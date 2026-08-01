@@ -18,4 +18,18 @@ export class MenuTree {
     if (!menu.ends_at) return `À partir du ${menu.starts_at}`;
     return `Du ${menu.starts_at} au ${menu.ends_at}`;
   }
+
+  print(): void {
+    window.print();
+  }
+
+  generatedAt(): string {
+    return new Date().toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 }

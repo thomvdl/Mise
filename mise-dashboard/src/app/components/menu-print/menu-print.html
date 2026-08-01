@@ -1,0 +1,60 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Menu</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/menus">Retour</a>
+    <button type="button" class="btn btn-primary" [disabled]="!menu()" (click)="print()">Imprimer</button>
+  </div>
+</div>
+
+@if (menu(); as menu) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <p class="report-print-meta">Menu — imprimé le {{ generatedAt() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="mp-header">
+      @if (dateLabel(); as label) {
+        <div class="mp-dates">{{ label }}</div>
+      }
+      <h2 class="mp-title">{{ menu.name }}</h2>
+      @if (menu.description) {
+        <p class="mp-sub">{{ menu.description }}</p>
+      }
+    </div>
+
+    @for (section of menu.sections ?? []; track section.id) {
+      <div class="section">
+        <div class="section-title">{{ section.name }}</div>
+        <div class="mp-plats">
+          @for (plat of section.plats ?? []; track plat.id) {
+            <div class="mp-plat">
+              <div class="mp-plat-name">{{ plat.name }}</div>
+              @if (plat.description) {
+                <p class="mp-plat-desc">{{ plat.description }}</p>
+              }
+              @if (plat.fiche_techniques?.length) {
+                <div class="chip-list">
+                  @for (fiche of plat.fiche_techniques; track fiche.id) {
+                    <a class="allergen-chip no-print" [routerLink]="['/fiche-techniques', fiche.id, 'imprimer']">
+                      {{ fiche.name }}
+                    </a>
+                    <span class="allergen-chip only-print">{{ fiche.name }}</span>
+                  }
+                </div>
+              }
+            </div>
+          } @empty {
+            <p class="report-empty">Aucun plat dans cette section.</p>
+          }
+        </div>
+      </div>
+    } @empty {
+      <p class="report-empty">Aucune section dans ce menu.</p>
+    }
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else {
+  <p class="report-empty no-print">Chargement…</p>
+}

@@ -1,4 +1,9 @@
 @if (fiche(); as fiche) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <p class="report-print-meta">Fiche technique — pour {{ servings() }} portions — imprimée le {{ generatedAt() }}</p>
+  </div>
+
   @if (fiche.pictures?.length) {
     <img class="dh-photo" [src]="fiche.pictures![0].url" [alt]="fiche.name" />
   }
@@ -19,12 +24,15 @@
           }
         </div>
       }
-      <a class="print-label-link" [routerLink]="['/etiquettes']" [queryParams]="{ produit: fiche.name }">
-        Imprimer une étiquette
-      </a>
+      <div class="dh-actions no-print">
+        <a class="print-label-link" [routerLink]="['/etiquettes']" [queryParams]="{ produit: fiche.name }">
+          Imprimer une étiquette
+        </a>
+        <button type="button" class="print-label-link" (click)="print()">Imprimer la fiche</button>
+      </div>
     </div>
 
-    <div class="dial-wrap">
+    <div class="dial-wrap no-print">
       <button type="button" class="dial-btn" (click)="adjustServings(-1)" aria-label="Moins de portions">−</button>
       <div
         class="dial"
@@ -129,7 +137,7 @@
             @if (timers().get(step.id); as timer) {
               <div class="step-meta">
                 <div class="timer">
-                  <div class="timer-ring">
+                  <div class="timer-ring no-print">
                     <svg viewBox="0 0 30 30">
                       <circle class="tr-track" cx="15" cy="15" r="12" />
                       <circle
@@ -142,7 +150,7 @@
                   <span class="timer-time">{{ formatTime(timer.remainingSec) }}</span>
                   <button
                     type="button"
-                    class="timer-btn"
+                    class="timer-btn no-print"
                     [class.running]="timer.running"
                     (click)="toggleTimer(step.id); $event.stopPropagation()">
                     {{ timer.running ? 'Pause' : 'Démarrer' }}
@@ -191,6 +199,8 @@
       </div>
     </div>
   }
+
+  <p class="report-print-footer only-print">MISE.</p>
 } @else {
   <p class="list-heading">Sélectionnez une fiche technique dans la liste.</p>
 }

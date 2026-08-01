@@ -1,0 +1,186 @@
+.report-empty {
+  color: var(--text-faint);
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.mp-header {
+  margin-bottom: 10px;
+}
+
+.mp-dates {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.mp-title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  color: var(--text);
+}
+
+.mp-sub {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  max-width: 70ch;
+}
+
+.mp-plats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mp-plat {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mp-plat:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.mp-plat-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mp-plat-desc {
+  margin: 4px 0 8px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  max-width: 70ch;
+}
+
+a.allergen-chip {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.allergen-chip:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.only-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  /* Impression en noir et blanc uniquement — toute couleur de texte devient illisible ou
+     imprévisible selon l'imprimante, donc on force du noir pur partout dans cette page. */
+  * {
+    color: #000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block;
+  }
+
+  span.allergen-chip.only-print {
+    display: inline-block;
+  }
+
+  .allergen-chip {
+    background: none !important;
+    border: 1px solid #000;
+  }
+
+  .report-print-header {
+    margin-bottom: 0.6rem;
+    border-bottom: 1.5px solid #000;
+    padding-bottom: 0.3rem;
+  }
+
+  .report-print-brand {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.15rem;
+  }
+
+  .report-print-meta {
+    margin: 0;
+    font-size: 0.7rem;
+  }
+
+  .report-print-footer {
+    margin-top: 0.5rem;
+    font-size: 0.65rem;
+    text-align: right;
+  }
+
+  .report-card {
+    border: none;
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  /* Resserre le tout pour tenir sur une page — tailles et marges réduites. */
+  .mp-dates {
+    font-size: 0.65rem;
+    margin-bottom: 3px;
+  }
+
+  .mp-title {
+    font-size: 1rem;
+    margin-bottom: 3px;
+  }
+
+  .mp-sub {
+    font-size: 0.72rem;
+  }
+
+  .section {
+    margin-top: 10px;
+  }
+
+  .section-title {
+    font-size: 0.6rem;
+    margin-bottom: 6px;
+  }
+
+  .mp-plats {
+    gap: 6px;
+  }
+
+  .mp-plat {
+    padding-bottom: 6px;
+  }
+
+  .mp-plat-name {
+    font-size: 0.78rem;
+  }
+
+  .mp-plat-desc {
+    font-size: 0.68rem;
+    margin: 2px 0 4px;
+  }
+
+  .allergen-chip {
+    font-size: 0.62rem;
+  }
+
+  .mp-plat {
+    break-inside: avoid;
+  }
+}

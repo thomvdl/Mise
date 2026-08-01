@@ -32,6 +32,7 @@ export class Topbar {
     { label: 'Calendrier', path: '/calendrier' },
     { label: 'Températures', path: '/temperatures' },
     { label: 'Huile', path: '/huile' },
+    { label: 'Étiquettes', path: '/etiquettes' },
     { label: 'Utilisateurs', path: '/utilisateurs' },
   ];
 

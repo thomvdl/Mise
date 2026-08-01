@@ -54,6 +54,11 @@ export const routes: Routes = [
               import('./components/fiche-technique-form/fiche-technique-form').then((m) => m.FicheTechniqueForm),
           },
           {
+            path: ':id/imprimer',
+            loadComponent: () =>
+              import('./components/fiche-technique-print/fiche-technique-print').then((m) => m.FicheTechniquePrint),
+          },
+          {
             path: ':id',
             loadComponent: () =>
               import('./components/fiche-technique-form/fiche-technique-form').then((m) => m.FicheTechniqueForm),
@@ -81,6 +86,10 @@ export const routes: Routes = [
           {
             path: 'import',
             loadComponent: () => import('./components/menu-import/menu-import').then((m) => m.MenuImport),
+          },
+          {
+            path: ':id/imprimer',
+            loadComponent: () => import('./components/menu-print/menu-print').then((m) => m.MenuPrint),
           },
           {
             path: ':id',
@@ -162,6 +171,12 @@ export const routes: Routes = [
       {
         path: 'huile',
         loadComponent: () => import('./components/huile-report/huile-report').then((m) => m.HuileReport),
+      },
+
+      {
+        path: 'etiquettes',
+        loadComponent: () =>
+          import('./components/printed-label-report/printed-label-report').then((m) => m.PrintedLabelReport),
       },
 
       {

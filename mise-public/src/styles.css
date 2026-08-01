@@ -311,9 +311,14 @@
   ::-webkit-scrollbar-thumb{ background:var(--surface-3); border-radius:6px; }
   ::-webkit-scrollbar-track{ background:transparent; }
 
-  /* the label-printer page hides everything but its own label at print time */
+  /* the label-printer page hides everything but its own label at print time; the recipe/menu
+     detail pages (recipe-detail / menu-tree) hide the list+filters pane so only the selected
+     recipe/menu prints, full width. */
   @media print{
     .topbar{ display:none; }
+    app-recipe-filters{ display:none; }
+    .recipe-list{ display:none; }
+    .layout{ display:block; }
   }
 
   @media (max-width: 880px){

@@ -1,0 +1,221 @@
+.report-empty {
+  color: var(--text-faint);
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.fp-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fp-title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  color: var(--text);
+}
+
+.fp-sub {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  max-width: 70ch;
+}
+
+.fp-meta {
+  display: flex;
+  gap: 1.25rem;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.fp-allergens {
+  margin-bottom: 4px;
+}
+
+.fp-equipment {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.fp-group-label {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+.fp-note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 80ch;
+}
+
+.fp-note-warning {
+  color: var(--accent-red);
+}
+
+.fp-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fp-steps li {
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.fp-step-timer {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.only-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  /* Impression en noir et blanc uniquement — toute couleur de texte devient illisible ou
+     imprévisible selon l'imprimante, donc on force du noir pur partout dans cette page. */
+  * {
+    color: #000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block;
+  }
+
+  .badge {
+    background: none !important;
+    border: 1px solid #000;
+  }
+
+  .allergen-chip {
+    background: none !important;
+    border: 1px solid #000;
+  }
+
+  .report-print-header {
+    margin-bottom: 0.6rem;
+    border-bottom: 1.5px solid #000;
+    padding-bottom: 0.3rem;
+  }
+
+  .report-print-brand {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.15rem;
+  }
+
+  .report-print-meta {
+    margin: 0;
+    font-size: 0.7rem;
+  }
+
+  .report-print-footer {
+    margin-top: 0.5rem;
+    font-size: 0.65rem;
+    text-align: right;
+  }
+
+  .report-card {
+    border: none;
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  /* Resserre le tout pour tenir sur une page — tailles et marges réduites. */
+  .fp-badges {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .fp-title {
+    font-size: 1rem;
+    margin-bottom: 3px;
+  }
+
+  .fp-sub {
+    font-size: 0.72rem;
+    margin-bottom: 6px;
+  }
+
+  .fp-meta {
+    font-size: 0.65rem;
+    gap: 0.75rem;
+    margin-bottom: 6px;
+  }
+
+  .fp-allergens .allergen-chip {
+    font-size: 0.6rem;
+  }
+
+  .section {
+    margin-top: 10px;
+  }
+
+  .section-title {
+    font-size: 0.6rem;
+    margin-bottom: 6px;
+  }
+
+  .fp-equipment {
+    font-size: 0.72rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+  }
+
+  .fp-note {
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .fp-note-warning {
+    font-weight: 700;
+  }
+
+  .fp-steps {
+    gap: 4px;
+  }
+
+  .fp-steps li {
+    font-size: 0.72rem;
+    line-height: 1.3;
+    break-inside: avoid;
+  }
+
+  .fp-step-timer {
+    font-size: 0.65rem;
+  }
+}

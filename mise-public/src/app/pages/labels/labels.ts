@@ -6,6 +6,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { BrotherQlPrinterService } from '../../core/services/brother-ql-printer.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PrintedLabelService } from '../../core/services/printed-label.service';
 import { LABEL_TYPES, LabelType, QueuedLabel } from '../../core/models/label.model';
 
 const PRODUCT_NAME_MAX_LENGTH = 55;
@@ -42,6 +43,7 @@ export class Labels {
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly brotherQlPrinter = inject(BrotherQlPrinterService);
   private readonly auth = inject(AuthService);
+  private readonly printedLabelService = inject(PrintedLabelService);
 
   private readonly ingredients = toSignal(this.ingredientService.list(), { initialValue: [] });
   private readonly ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
@@ -164,6 +166,9 @@ export class Labels {
 
   printQueue(): void {
     if (this.queue().length === 0) return;
+    // window.print() est fire-and-forget (impossible de savoir si l'impression a réellement
+    // abouti côté navigateur), donc on trace l'intention au moment du clic plutôt qu'après coup.
+    this.recordPrint('browser');
     window.print();
   }
 
@@ -175,12 +180,35 @@ export class Labels {
 
     try {
       await this.brotherQlPrinter.print(this.printableLabels());
+      // Ici, contrairement à window.print(), on sait que l'impression a réellement abouti —
+      // on n'enregistre donc qu'en cas de succès.
+      this.recordPrint('brother_ql');
     } catch (error) {
       this.brotherQlError.set(
         error instanceof Error ? error.message : "Une erreur est survenue lors de l'impression.",
       );
     } finally {
       this.printingOnBrotherQl.set(false);
+    }
+  }
+
+  /**
+   * Journalise chaque étiquette de la file pour la traçabilité HACCP (une ligne par entrée de
+   * file, avec sa quantité). Fire-and-forget et erreurs ignorées volontairement : l'impression
+   * réelle des étiquettes ne doit jamais être bloquée ou retardée par un souci d'historique.
+   */
+  private recordPrint(via: 'browser' | 'brother_ql'): void {
+    for (const item of this.queue()) {
+      this.printedLabelService
+        .create({
+          type_key: item.type.key,
+          product_name: item.productName,
+          date: item.date,
+          use_by_date: item.useByDate,
+          quantity: item.quantity,
+          printed_via: via,
+        })
+        .subscribe({ error: () => {} });
     }
   }
 }

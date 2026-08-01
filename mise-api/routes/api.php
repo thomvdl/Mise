@@ -14,6 +14,7 @@ use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PictureController;
+use App\Http\Controllers\PrintedLabelController;
 use App\Http\Controllers\ShoppingItemController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\TemperatureReleveController;
@@ -50,6 +51,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('temperature-releves', TemperatureReleveController::class)
         ->parameters(['temperature-releves' => 'temperature_releve']);
     Route::apiResource('changements-huile', ChangementHuileController::class);
+
+    // Historique des étiquettes imprimées (traçabilité HACCP) — écriture ouverte au rôle user
+    // (chaque impression côté public s'enregistre elle-même), append-only (only index/store,
+    // voir PrintedLabelController).
+    Route::apiResource('printed-labels', PrintedLabelController::class)->only(['index', 'store']);
 
     // Chanel de discussion — lecture et écriture de messages ouvertes à tout utilisateur
     // connecté (user ou admin), seule la création/suppression de chanels et la suppression

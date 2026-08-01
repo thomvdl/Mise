@@ -1,0 +1,137 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Fiche technique</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/fiche-techniques">Retour</a>
+    <button type="button" class="btn btn-primary" [disabled]="!fiche()" (click)="print()">Imprimer</button>
+  </div>
+</div>
+
+@if (fiche(); as fiche) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <p class="report-print-meta">Fiche technique — imprimée le {{ generatedAt() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="fp-header">
+      <div class="fp-badges">
+        @if (fiche.station) {
+          <span class="badge" [style.--card-color]="fiche.station.color">{{ fiche.station.name }}</span>
+        }
+        @if (fiche.category) {
+          <span class="badge" [style.--card-color]="fiche.category.color">{{ fiche.category.name }}</span>
+        }
+      </div>
+      <h2 class="fp-title">{{ fiche.name }}</h2>
+      @if (fiche.description) {
+        <p class="fp-sub">{{ fiche.description }}</p>
+      }
+      <div class="fp-meta">
+        <span>{{ fiche.servings }} portions</span>
+        <span>Difficulté {{ fiche.difficulty }}/3</span>
+      </div>
+      @if (allergens().length) {
+        <div class="chip-list fp-allergens">
+          @for (allergen of allergens(); track allergen.id) {
+            <span class="allergen-chip">{{ allergen.code }} — {{ allergen.name }}</span>
+          }
+        </div>
+      }
+    </div>
+
+    @if (fiche.equipment?.length) {
+      <div class="section">
+        <div class="section-title">Matériel nécessaire</div>
+        <ul class="fp-equipment">
+          @for (item of fiche.equipment; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="section">
+      <div class="section-title">Ingrédients</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ingrédient</th>
+            <th>Quantité</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ingredient of fiche.ingredients ?? []; track ingredient.id) {
+            <tr>
+              <td>
+                {{ ingredient.name }}
+                @if (ingredient.pivot.group_label) {
+                  <span class="fp-group-label">({{ ingredient.pivot.group_label }})</span>
+                }
+              </td>
+              <td>{{ ingredient.pivot.quantity }} {{ ingredient.unit }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="2">Aucun ingrédient.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (fiche.mise_en_place) {
+      <div class="section">
+        <div class="section-title">Mise en place</div>
+        <p class="fp-note">{{ fiche.mise_en_place }}</p>
+      </div>
+    }
+
+    <div class="section">
+      <div class="section-title">Étapes</div>
+      <ol class="fp-steps">
+        @for (step of fiche.steps ?? []; track step.id) {
+          <li>
+            <span class="fp-step-text">{{ step.instruction }}</span>
+            @if (step.timer_minutes) {
+              <span class="fp-step-timer">{{ step.timer_minutes }} min</span>
+            }
+          </li>
+        } @empty {
+          <li class="fp-note">Aucune étape.</li>
+        }
+      </ol>
+    </div>
+
+    @if (fiche.plating) {
+      <div class="section">
+        <div class="section-title">Dressage</div>
+        <p class="fp-note">{{ fiche.plating }}</p>
+      </div>
+    }
+
+    @if (fiche.chef_tip) {
+      <div class="section">
+        <div class="section-title">Conseil du chef</div>
+        <p class="fp-note">{{ fiche.chef_tip }}</p>
+      </div>
+    }
+
+    @if (fiche.haccp) {
+      <div class="section">
+        <div class="section-title">HACCP</div>
+        <p class="fp-note fp-note-warning">{{ fiche.haccp }}</p>
+      </div>
+    }
+
+    @if (fiche.conservation) {
+      <div class="section">
+        <div class="section-title">Conservation</div>
+        <p class="fp-note">{{ fiche.conservation }}</p>
+      </div>
+    }
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else {
+  <p class="report-empty no-print">Chargement…</p>
+}

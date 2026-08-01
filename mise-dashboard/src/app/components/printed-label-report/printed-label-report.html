@@ -1,0 +1,97 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Étiquettes imprimées</h1>
+  <div class="page-actions">
+    <button type="button" class="btn btn-primary" (click)="print()">Imprimer le rapport</button>
+  </div>
+</div>
+
+<div class="report-filters no-print">
+  <div class="form-field">
+    <label class="form-label" for="type">Type</label>
+    <select id="type" class="form-select" (change)="onTypeChange($event)">
+      <option value="" [selected]="selectedTypeKey() === ''">Tous</option>
+      @for (key of labelTypeKeys; track key) {
+        <option [value]="key" [selected]="key === selectedTypeKey()">{{ typeTitle(key) }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="period-toggle">
+    @for (p of periods; track p.key) {
+      <button type="button" class="btn btn-sm" [class.btn-primary]="period() === p.key" [class.btn-ghost]="period() !== p.key" (click)="setPeriod(p.key)">
+        {{ p.label }}
+      </button>
+    }
+  </div>
+
+  @if (period() === 'mois') {
+    <div class="form-field">
+      <label class="form-label" for="month">Mois</label>
+      <input id="month" class="form-input" type="month" [value]="selectedMonth()" [max]="maxMonth" (change)="onMonthChange($event)" />
+    </div>
+  }
+
+  @if (period() === 'annee' && availableYears().length > 1) {
+    <div class="form-field">
+      <label class="form-label" for="year">Année</label>
+      <select id="year" class="form-select" (change)="onYearChange($event)">
+        @for (year of availableYears(); track year) {
+          <option [value]="year" [selected]="year === selectedYear()">{{ year }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>
+
+<div class="report-print-header only-print">
+  <div class="report-print-brand">MISE.</div>
+  <h1>Historique des étiquettes imprimées</h1>
+  <p class="report-print-subtitle">Traçabilité HACCP</p>
+  <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+</div>
+
+<div class="report-card">
+  <div class="report-card-header">
+    <h2 class="no-print">{{ periodLabel() }}</h2>
+    <div class="report-stats">
+      <span>Étiquettes <strong>{{ totalCount() }}</strong></span>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Imprimée le</th>
+          <th>Type</th>
+          <th>Produit</th>
+          <th>Date</th>
+          <th>DLC</th>
+          <th>Qté</th>
+          <th>Par</th>
+          <th>Via</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (label of labels(); track label.id) {
+          <tr>
+            <td>{{ formatDateTime(label.created_at) }}</td>
+            <td>{{ typeTitle(label.type_key) }}</td>
+            <td>{{ label.product_name }}</td>
+            <td>{{ formatDate(label.date) }}</td>
+            <td>{{ label.use_by_date ? formatDate(label.use_by_date) : '—' }}</td>
+            <td>{{ label.quantity }}</td>
+            <td>{{ label.user_name }}</td>
+            <td>{{ printedViaLabel(label.printed_via) }}</td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="8">Aucune étiquette imprimée sur cette période.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+</div>

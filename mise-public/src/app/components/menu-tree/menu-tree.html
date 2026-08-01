@@ -1,4 +1,9 @@
 @if (menu(); as m) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <p class="report-print-meta">Menu — imprimé le {{ generatedAt() }}</p>
+  </div>
+
   <div class="detail-header">
     <div class="dh-left">
       @if (dateLabel(m); as label) {
@@ -8,6 +13,9 @@
       @if (m.description) {
         <p class="dh-sub">{{ m.description }}</p>
       }
+      <div class="dh-actions no-print">
+        <button type="button" class="print-label-link" (click)="print()">Imprimer le menu</button>
+      </div>
     </div>
   </div>
 
@@ -37,6 +45,8 @@
   } @empty {
     <p class="list-heading">Aucune section dans ce menu.</p>
   }
+
+  <p class="report-print-footer only-print">MISE.</p>
 } @else {
   <p class="list-heading">Sélectionnez un menu dans la liste.</p>
 }

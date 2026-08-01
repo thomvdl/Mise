@@ -202,6 +202,20 @@ export class RecipeDetail {
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
+  print(): void {
+    window.print();
+  }
+
+  generatedAt(): string {
+    return new Date().toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   private tickTimers() {
     this.timers.update((timers) => {
       let changed = false;
