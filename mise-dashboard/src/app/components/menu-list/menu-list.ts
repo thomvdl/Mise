@@ -19,11 +19,18 @@ export class MenuList implements OnInit {
   items = signal<Menu[]>([]);
   search = signal('');
   pendingDelete = signal<Menu | null>(null);
+  selected = signal<Set<number>>(new Set());
 
   filtered = computed(() => {
     const query = this.search().trim().toLowerCase();
     if (!query) return this.items();
     return this.items().filter((item) => item.name.toLowerCase().includes(query));
+  });
+
+  /** Coché seulement si toutes les lignes actuellement visibles (filtrées par la recherche) le sont. */
+  allSelected = computed(() => {
+    const visible = this.filtered();
+    return visible.length > 0 && visible.every((item) => this.selected().has(item.id));
   });
 
   deleteMessage = computed(() => {
@@ -68,6 +75,12 @@ export class MenuList implements OnInit {
 
     this.menuService.delete(item.id).subscribe(() => {
       this.items.update((items) => items.filter((i) => i.id !== item.id));
+      this.selected.update((set) => {
+        if (!set.has(item.id)) return set;
+        const next = new Set(set);
+        next.delete(item.id);
+        return next;
+      });
       this.pendingDelete.set(null);
     });
   }
@@ -76,8 +89,32 @@ export class MenuList implements OnInit {
     downloadTextFile(`${item.slug}.md`, menuToMarkdown(item));
   }
 
-  exportAll(): void {
-    if (this.items().length === 0) return;
-    downloadTextFile('menus.md', menusToMarkdown(this.items()));
+  isSelected(id: number): boolean {
+    return this.selected().has(id);
+  }
+
+  toggleSelected(id: number): void {
+    this.selected.update((set) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  toggleSelectAll(): void {
+    const visibleIds = this.filtered().map((item) => item.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => this.selected().has(id));
+
+    this.selected.update((set) => {
+      const next = new Set(set);
+      visibleIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  }
+
+  exportSelection(): void {
+    const selectedItems = this.items().filter((item) => this.selected().has(item.id));
+    if (selectedItems.length === 0) return;
+    downloadTextFile('menus.md', menusToMarkdown(selectedItems));
   }
 }

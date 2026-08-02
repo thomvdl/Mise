@@ -5,7 +5,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Rechercher…" [value]="search()" (input)="search.set($any($event.target).value)">
     </div>
-    <button type="button" class="btn btn-ghost" [disabled]="items().length === 0" (click)="exportAll()">Exporter tout</button>
+    <button type="button" class="btn btn-ghost" [disabled]="selected().size === 0" (click)="exportSelection()">
+      Exporter la sélection{{ selected().size ? ' (' + selected().size + ')' : '' }}
+    </button>
     <a class="btn btn-primary" routerLink="/import">Importer</a>
     <a class="btn btn-primary" routerLink="nouveau">+ Nouvelle</a>
   </div>
@@ -15,6 +17,9 @@
   <table class="data-table">
     <thead>
       <tr>
+        <th class="col-check">
+          <input type="checkbox" [checked]="allSelected()" (change)="toggleSelectAll()" aria-label="Tout sélectionner" />
+        </th>
         <th>Nom</th>
         <th>Station</th>
         <th>Catégorie</th>
@@ -26,6 +31,9 @@
     <tbody>
       @for (item of filtered(); track item.id) {
         <tr>
+          <td class="col-check">
+            <input type="checkbox" [checked]="isSelected(item.id)" (change)="toggleSelected(item.id)" [attr.aria-label]="'Sélectionner ' + item.name" />
+          </td>
           <td>{{ item.name }}</td>
           <td>
             @if (item.station) {
@@ -48,7 +56,7 @@
         </tr>
       } @empty {
         <tr class="empty-row">
-          <td colspan="6">Aucune fiche technique.</td>
+          <td colspan="7">Aucune fiche technique.</td>
         </tr>
       }
     </tbody>

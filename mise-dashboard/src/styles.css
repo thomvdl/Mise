@@ -180,6 +180,8 @@ html[data-theme="light"] .theme-toggle .knob{ left:31px; background:var(--accent
 .data-table tbody tr{ transition:background .12s ease; }
 .data-table tbody tr:hover{ background:var(--surface-2); }
 .data-table .col-actions{ text-align:right; white-space:nowrap; width:1%; }
+.data-table .col-check{ width:1%; padding-right:0; }
+.data-table .col-check input{ width:15px; height:15px; cursor:pointer; display:block; }
 .data-table .empty-row td{ text-align:center; color:var(--text-faint); padding:32px 16px; }
 
 /* generic colored badge (station/category/etc.) */
