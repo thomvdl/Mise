@@ -1,6 +1,7 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
@@ -8,6 +9,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { enrichFicheTechnique, uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
+import { useReportTitle } from '../../core/utils/report-title';
 
 @Component({
   selector: 'app-fiche-technique-print',
@@ -19,6 +21,7 @@ export class FicheTechniquePrint {
   private readonly route = inject(ActivatedRoute);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   private readonly ficheId = toSignal(
     this.route.paramMap.pipe(map((params) => Number(params.get('id')))),
@@ -50,6 +53,11 @@ export class FicheTechniquePrint {
       const id = this.ficheId();
       if (!id || Number.isNaN(id)) return;
       this.ficheTechniqueService.get(id).subscribe((fiche) => this.rawFiche.set(fiche));
+    });
+
+    effect(() => {
+      const fiche = this.fiche();
+      this.setReportTitle(fiche ? `Fiche technique — ${fiche.name}` : 'Fiche technique');
     });
   }
 

@@ -1,11 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
 
 import { FriteuseService } from '../../core/services/friteuse.service';
 import { ChangementHuile } from '../../core/models/changement-huile.model';
 import { ChangementHuileService } from '../../core/services/changement-huile.service';
 import { nextChangeDate } from '../../core/utils/friteuse-schedule';
+import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
 
 type Period = 'semaine' | 'mois' | 'annee';
 
@@ -51,6 +53,7 @@ function rangeStart(period: 'semaine'): Date {
 export class HuileReport {
   private readonly friteuseService = inject(FriteuseService);
   private readonly changementHuileService = inject(ChangementHuileService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly periods: { key: Period; label: string }[] = [
     { key: 'semaine', label: 'Semaine' },
@@ -89,6 +92,13 @@ export class HuileReport {
   });
 
   constructor() {
+    effect(() => {
+      const friteuse = this.selectedFriteuse();
+      this.setReportTitle(
+        friteuse ? `Rapport huile — ${friteuse.name} — ${todayDDMMYYYY()}` : 'Rapport huile',
+      );
+    });
+
     effect(() => {
       const list = this.friteuses();
       if (list.length > 0 && this.selectedFriteuseId() === null) {

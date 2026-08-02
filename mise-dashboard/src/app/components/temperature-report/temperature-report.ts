@@ -1,10 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
 
 import { AppareilService } from '../../core/services/appareil.service';
 import { TemperatureReleve } from '../../core/models/temperature-releve.model';
 import { TemperatureReleveService } from '../../core/services/temperature-releve.service';
 import { TemperatureChart, TemperaturePoint } from '../temperature-chart/temperature-chart';
+import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
 
 type Period = 'semaine' | 'mois' | 'annee';
 
@@ -52,6 +54,7 @@ function rangeStart(period: 'semaine'): Date {
 export class TemperatureReport {
   private readonly appareilService = inject(AppareilService);
   private readonly temperatureReleveService = inject(TemperatureReleveService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly periods: { key: Period; label: string }[] = [
     { key: 'semaine', label: 'Semaine' },
@@ -118,6 +121,13 @@ export class TemperatureReport {
   }
 
   constructor() {
+    effect(() => {
+      const appareil = this.selectedAppareil();
+      this.setReportTitle(
+        appareil ? `Rapport température — ${appareil.name} — ${todayDDMMYYYY()}` : 'Rapport température',
+      );
+    });
+
     effect(() => {
       const list = this.appareils();
       if (list.length > 0 && this.selectedAppareilId() === null) {

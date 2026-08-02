@@ -1,10 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 
 import { MenuService } from '../../core/services/menu.service';
 import { Menu } from '../../core/models/menu.model';
+import { useReportTitle } from '../../core/utils/report-title';
 
 @Component({
   selector: 'app-menu-print',
@@ -15,6 +17,7 @@ import { Menu } from '../../core/models/menu.model';
 export class MenuPrint {
   private readonly route = inject(ActivatedRoute);
   private readonly menuService = inject(MenuService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   private readonly menuId = toSignal(
     this.route.paramMap.pipe(map((params) => Number(params.get('id')))),
@@ -36,6 +39,11 @@ export class MenuPrint {
       const id = this.menuId();
       if (!id || Number.isNaN(id)) return;
       this.menuService.get(id).subscribe((menu) => this.menu.set(menu));
+    });
+
+    effect(() => {
+      const menu = this.menu();
+      this.setReportTitle(menu ? `Menu — ${menu.name}` : 'Menu');
     });
   }
 

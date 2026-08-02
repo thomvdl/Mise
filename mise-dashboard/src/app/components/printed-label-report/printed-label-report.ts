@@ -1,7 +1,9 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 
 import { LABEL_TYPE_TITLES, PrintedLabel } from '../../core/models/printed-label.model';
 import { PrintedLabelService } from '../../core/services/printed-label.service';
+import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
 
 type Period = 'semaine' | 'mois' | 'annee';
 
@@ -48,6 +50,7 @@ function rangeStart(period: 'semaine'): Date {
 })
 export class PrintedLabelReport {
   private readonly printedLabelService = inject(PrintedLabelService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly periods: { key: Period; label: string }[] = [
     { key: 'semaine', label: 'Semaine' },
@@ -83,6 +86,12 @@ export class PrintedLabelReport {
   totalCount = computed(() => this.labels().reduce((sum, l) => sum + l.quantity, 0));
 
   constructor() {
+    effect(() => {
+      const typeKey = this.selectedTypeKey();
+      const label = typeKey ? `Historique étiquettes — ${this.typeTitle(typeKey)}` : 'Historique étiquettes';
+      this.setReportTitle(`${label} — ${todayDDMMYYYY()}`);
+    });
+
     // Récupère tout l'historique (sans filtre de date) juste pour savoir quelles années ont des
     // données, pour que le sélecteur d'année ne propose que des années qui existent réellement —
     // séparé du fetch filtré par période plus bas, qui alimente le tableau affiché.
