@@ -1,0 +1,67 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Liste de courses</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/menus">Retour</a>
+    <button type="button" class="btn btn-primary" [disabled]="!menu()" (click)="print()">Imprimer</button>
+  </div>
+</div>
+
+<div class="report-filters no-print">
+  <div class="form-field">
+    <label class="form-label" for="covers">Couverts</label>
+    <input
+      id="covers"
+      class="form-input"
+      type="number"
+      min="1"
+      [value]="covers()"
+      (change)="onCoversInput($event)" />
+  </div>
+</div>
+
+@if (menu(); as menu) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Liste de courses</h1>
+    <p class="report-print-subtitle">{{ menu.name }}</p>
+    <p class="report-print-meta">{{ covers() }} couverts</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">{{ menu.name }} — {{ covers() }} couverts</h2>
+    </div>
+
+    @if (isEmpty()) {
+      <p class="report-empty">Aucune fiche technique liée aux plats de ce menu.</p>
+    } @else {
+      @for (group of groups(); track group.categoryName) {
+        <div class="section">
+          <div class="section-title">{{ group.categoryName }}</div>
+          <table class="data-table">
+            <tbody>
+              @for (line of group.lines; track line.ingredientId) {
+                <tr>
+                  <td class="msl-check no-print">
+                    <input
+                      type="checkbox"
+                      [checked]="isChecked(line.ingredientId)"
+                      (change)="toggleChecked(line.ingredientId)" />
+                  </td>
+                  <td [class.msl-done]="isChecked(line.ingredientId)">{{ line.name }}</td>
+                  <td class="msl-qty" [class.msl-done]="isChecked(line.ingredientId)">
+                    {{ formatQuantity(line.quantity) }} {{ line.unit }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else {
+  <p class="report-empty no-print">Chargement…</p>
+}

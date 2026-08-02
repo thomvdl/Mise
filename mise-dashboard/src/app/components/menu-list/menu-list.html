@@ -32,6 +32,7 @@
           <td class="col-actions">
             <button type="button" class="btn btn-ghost btn-sm" (click)="exportOne(item)">Exporter</button>
             <a class="btn btn-ghost btn-sm" [routerLink]="[item.id, 'imprimer']">Imprimer</a>
+            <a class="btn btn-ghost btn-sm" [routerLink]="[item.id, 'liste-courses']">Liste de courses</a>
             <a class="btn btn-ghost btn-sm" [routerLink]="[item.id]">Modifier</a>
             <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
           </td>

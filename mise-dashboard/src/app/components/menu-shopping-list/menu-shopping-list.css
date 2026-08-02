@@ -1,0 +1,63 @@
+.report-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-input {
+  width: 100px;
+}
+
+.report-empty {
+  color: var(--text-faint);
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-card-header {
+  margin-bottom: 1rem;
+}
+
+.report-card-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.data-table {
+  margin-bottom: 0;
+}
+
+.msl-check {
+  width: 32px;
+  text-align: center;
+}
+
+.msl-check input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.msl-qty {
+  text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.msl-done {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.only-print {
+  display: none;
+}

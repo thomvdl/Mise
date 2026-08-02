@@ -92,6 +92,11 @@ export const routes: Routes = [
             loadComponent: () => import('./components/menu-print/menu-print').then((m) => m.MenuPrint),
           },
           {
+            path: ':id/liste-courses',
+            loadComponent: () =>
+              import('./components/menu-shopping-list/menu-shopping-list').then((m) => m.MenuShoppingList),
+          },
+          {
             path: ':id',
             loadComponent: () => import('./components/menu-form/menu-form').then((m) => m.MenuForm),
           },
