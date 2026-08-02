@@ -71,69 +71,17 @@ td.report-warning {
   display: none;
 }
 
+/* La mise en page d'impression commune (en-tête/pied de page, report-card, tableau, noir et
+   blanc, tenue sur une page A4…) vit dans src/styles/print-report.css — ne reste ici que ce qui
+   est propre à cette page : le repère "hors plage" ne peut plus compter sur la couleur rouge en
+   N&B, donc gras + souligné à la place. */
 @media print {
-  .no-print {
-    display: none !important;
+  .report-warning {
+    font-weight: 700;
+    text-decoration: underline;
   }
 
-  .only-print {
-    display: block;
-  }
-
-  .report-print-header {
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--text);
-    padding-bottom: 0.75rem;
-  }
-
-  .report-print-brand {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
-  }
-
-  .report-print-header h1 {
-    font-size: 1.3rem;
-    margin: 0 0 0.35rem;
-    color: var(--text);
-  }
-
-  .report-print-subtitle {
-    margin: 0 0 0.25rem;
-    color: var(--text);
-    font-size: 0.95rem;
-  }
-
-  .report-print-meta {
-    margin: 0;
-    color: var(--text-dim);
-    font-size: 0.85rem;
-  }
-
-  .report-card {
-    border: none;
-    padding: 0;
-    break-inside: avoid;
-  }
-
-  .report-card-header {
-    margin-bottom: 0.75rem;
-  }
-
-  .table-wrap {
-    break-inside: auto;
-  }
-
-  .data-table tr {
-    break-inside: avoid;
-  }
-
-  .report-print-footer {
-    margin-top: 1.5rem;
-    color: var(--text-faint);
-    font-size: 0.75rem;
-    text-align: right;
+  td.report-warning {
+    font-weight: 700;
   }
 }

@@ -76,87 +76,14 @@ a.allergen-chip:hover {
   display: none;
 }
 
+/* La mise en page d'impression commune (en-tête/pied de page, report-card, section, badges,
+   noir et blanc, tenue sur une page A4…) vit dans src/styles/print-report.css — ne reste ici
+   que ce qui est propre à cette page. */
 @media print {
-  @page {
-    margin: 10mm;
-  }
-
-  /* Impression en noir et blanc uniquement — toute couleur de texte devient illisible ou
-     imprévisible selon l'imprimante, donc on force du noir pur partout dans cette page. */
-  * {
-    color: #000 !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .only-print {
-    display: block;
-  }
-
+  /* .only-print{display:block} de la feuille commune casserait l'alignement en ligne des puces
+     de fiches techniques dans .chip-list — elles doivent rester inline-block. */
   span.allergen-chip.only-print {
     display: inline-block;
-  }
-
-  .allergen-chip {
-    background: none !important;
-    border: 1px solid #000;
-  }
-
-  .report-print-header {
-    margin-bottom: 0.6rem;
-    border-bottom: 1.5px solid #000;
-    padding-bottom: 0.3rem;
-  }
-
-  .report-print-brand {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.15rem;
-  }
-
-  .report-print-meta {
-    margin: 0;
-    font-size: 0.7rem;
-  }
-
-  .report-print-footer {
-    margin-top: 0.5rem;
-    font-size: 0.65rem;
-    text-align: right;
-  }
-
-  .report-card {
-    border: none;
-    padding: 0;
-    margin-bottom: 0;
-  }
-
-  /* Resserre le tout pour tenir sur une page — tailles et marges réduites. */
-  .mp-dates {
-    font-size: 0.65rem;
-    margin-bottom: 3px;
-  }
-
-  .mp-title {
-    font-size: 1rem;
-    margin-bottom: 3px;
-  }
-
-  .mp-sub {
-    font-size: 0.72rem;
-  }
-
-  .section {
-    margin-top: 10px;
-  }
-
-  .section-title {
-    font-size: 0.6rem;
-    margin-bottom: 6px;
   }
 
   .mp-plats {
@@ -165,22 +92,6 @@ a.allergen-chip:hover {
 
   .mp-plat {
     padding-bottom: 6px;
-  }
-
-  .mp-plat-name {
-    font-size: 0.78rem;
-  }
-
-  .mp-plat-desc {
-    font-size: 0.68rem;
-    margin: 2px 0 4px;
-  }
-
-  .allergen-chip {
-    font-size: 0.62rem;
-  }
-
-  .mp-plat {
     break-inside: avoid;
   }
 }

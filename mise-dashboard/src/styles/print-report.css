@@ -1,0 +1,241 @@
+/* ============================================================
+   RAPPORTS IMPRIMÉS — feuille de style dédiée à l'impression
+   ============================================================
+   Concerne toutes les pages de rapport du dashboard (températures,
+   huile, étiquettes, fiches techniques, menus) : elles partagent
+   toutes la même structure (report-print-header/report-print-footer,
+   no-print/only-print, report-card, section/section-title,
+   data-table, badge/allergen-chip). Centralisé ici — une seule
+   feuille de style plutôt que dupliquée dans chaque composant —
+   pour que chaque rapport ressorte comme la même famille de
+   document "papier à en-tête", pas cinq mises en page proches
+   mais légèrement différentes.
+
+   Chargée après src/styles.css (voir angular.json) : à spécificité
+   CSS égale, ce fichier gagne sur les règles globales de
+   styles.css. Face aux styles propres à un composant Angular
+   (spécificité renforcée par l'attribut _ngcontent), les `!important`
+   ci-dessous sont nécessaires et volontaires — see notes inline. */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  /* Noir pur uniquement, aucune ombre — une imprimante de bureau n'est pas supposée être
+     couleur, et les teintes du thème sombre restent souvent illisibles une fois imprimées.
+     `!important` nécessaire : la plupart des couleurs de texte sont déclarées directement sur
+     l'élément (ex. .fp-sub{color:var(--text-dim)}) dans les styles propres à chaque composant
+     de rapport, qui l'emportent sinon sur ce fichier par spécificité (attribut _ngcontent). */
+  * {
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 8pt;
+    line-height: 1.3;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block;
+  }
+
+  /* ---------- EN-TÊTE (façon papier à en-tête) ---------- */
+  .report-print-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1pt;
+    margin-bottom: 6pt !important;
+    padding-bottom: 3pt !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .report-print-brand {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 6.5pt !important;
+    letter-spacing: 1.2px !important;
+    text-transform: uppercase;
+    margin: 0 !important;
+  }
+
+  .report-print-header h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 12.5pt;
+    margin: 1pt 0 0;
+    letter-spacing: -0.2px;
+  }
+
+  .report-print-subtitle {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 7pt !important;
+    margin: 1pt 0 0 !important;
+  }
+
+  .report-print-meta {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    margin: 1pt 0 0 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  /* ---------- CORPS DU RAPPORT ---------- */
+  .report-card {
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    margin-bottom: 4pt !important;
+  }
+
+  .report-card-header {
+    margin-bottom: 3pt !important;
+  }
+
+  .report-stats {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    gap: 8pt !important;
+  }
+
+  /* Titres/sous-titres/méta propres aux pages fiche technique (fp-*) et menu (mp-*) — mêmes
+     rôles que report-print-subtitle/meta ci-dessus mais rendus par des classes différentes
+     puisque ces pages n'utilisent pas de sélecteur d'appareil/friteuse en tête de rapport. */
+  .fp-title,
+  .mp-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  .fp-sub,
+  .mp-sub,
+  .mp-dates {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6.5pt !important;
+  }
+
+  .fp-meta {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    gap: 8pt !important;
+  }
+
+  .fp-badges {
+    gap: 3pt !important;
+    margin-bottom: 3pt !important;
+  }
+
+  .section {
+    margin-top: 5pt !important;
+    break-inside: avoid;
+  }
+
+  .section-title {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.9px !important;
+    margin-bottom: 2.5pt !important;
+  }
+
+  .section-title::after {
+    background: #000 !important;
+  }
+
+  .fp-equipment,
+  .fp-note,
+  .fp-steps li {
+    font-size: 6.8pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .fp-step-timer {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+  }
+
+  .mp-plat-name {
+    font-size: 7.5pt !important;
+  }
+
+  .mp-plat-desc {
+    font-size: 6pt !important;
+  }
+
+  /* ---------- TABLEAUX — rendu "rapport financier" sobre ---------- */
+  .table-wrap {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table thead th {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.4px;
+    padding: 2pt 4pt !important;
+    background: none !important;
+    border-top: 1pt solid #000 !important;
+    border-bottom: 1pt solid #000 !important;
+    position: static !important;
+  }
+
+  .data-table td {
+    font-size: 6.8pt !important;
+    padding: 2pt 4pt !important;
+    border-bottom: 0.5pt solid #999 !important;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .data-table tbody tr {
+    break-inside: avoid;
+  }
+
+  .empty-row td {
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ---------- BADGES / CHIPS — contour plutôt que fond coloré ---------- */
+  .badge,
+  .allergen-chip {
+    background: none !important;
+    border: 0.5pt solid #000 !important;
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+  }
+
+  /* ---------- PIED DE PAGE ---------- */
+  .report-print-footer {
+    margin-top: 5pt !important;
+    padding-top: 2pt !important;
+    border-top: 0.5pt solid #000 !important;
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.2px;
+    text-align: right;
+  }
+}
