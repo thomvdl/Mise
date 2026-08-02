@@ -79,43 +79,5 @@
   display: none;
 }
 
-@media print {
-  .no-print {
-    display: none !important;
-  }
-
-  .only-print {
-    display: block;
-  }
-
-  .report-print-header {
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--text);
-    padding-bottom: 0.75rem;
-  }
-
-  .report-print-brand {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
-  }
-
-  .report-print-meta {
-    margin: 0;
-    color: var(--text-dim);
-    font-size: 0.85rem;
-  }
-
-  .report-print-footer {
-    margin-top: 1.5rem;
-    color: var(--text-faint);
-    font-size: 0.75rem;
-    text-align: right;
-  }
-
-  .step {
-    break-inside: avoid;
-  }
-}
+/* La mise en page d'impression commune (en-tête/pied de page, tableau d'ingrédients, étapes,
+   noir et blanc, tenue sur une page A4…) vit dans src/styles/print-report.css. */

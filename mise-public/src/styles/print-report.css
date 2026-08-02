@@ -1,0 +1,254 @@
+/* ============================================================
+   IMPRESSION — feuille de style dédiée (fiche technique / menu)
+   ============================================================
+   Miroir de mise-dashboard/src/styles/print-report.css : même
+   convention (report-print-header/report-print-footer,
+   no-print/only-print), même rendu "papier à en-tête" A4 en noir
+   et blanc — pour que les deux apps produisent des documents de
+   la même famille visuelle. Adapté aux classes propres à
+   mise-public (dh-title, ing-table, step, chef-note, menu-plat…)
+   plutôt qu'aux classes de rapport du dashboard (fp-, mp-,
+   data-table), qui n'existent pas ici.
+
+   Chargée après src/styles.css (voir angular.json) : à
+   spécificité CSS égale, ce fichier gagne. Comme pour le
+   dashboard, les `!important` ci-dessous visent les propriétés
+   déjà déclarées ailleurs (styles.css, recipe-detail.css,
+   menu-tree.css) qui gagneraient sinon par ordre/spécificité. */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm 16mm;
+  }
+
+  /* mise-public n'a pas (contrairement au dashboard) de bascule globale vers des couleurs
+     claires à l'impression — en thème sombre, les fonds (--surface, --surface-2…) resteraient
+     sombres sur la page imprimée. On force ici les mêmes valeurs que le thème clair. */
+  :root {
+    --bg: #f1f2ef;
+    --surface: #ffffff;
+    --surface-2: #e9eae6;
+    --surface-3: #dedfda;
+    --border: #d2d4ce;
+    --text: #1b1d1f;
+    --text-dim: #585f65;
+    --text-faint: #8b9096;
+    --accent-blue: #1f6e99;
+    --accent-blue-dim: #bfe0f2;
+    --accent-copper: #9c5a28;
+    --accent-red: #a5382c;
+    --accent-green: #48693f;
+    --shadow: none;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  /* Noir pur uniquement, aucune ombre — une imprimante de bureau n'est pas supposée être
+     couleur, et les teintes du thème sombre restent souvent illisibles une fois imprimées. */
+  * {
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 8pt;
+    line-height: 1.3;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block;
+  }
+
+  /* ---------- EN-TÊTE (façon papier à en-tête) ---------- */
+  .report-print-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1pt;
+    margin-bottom: 9pt !important;
+    padding-bottom: 5pt !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .report-print-brand {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 6.5pt !important;
+    letter-spacing: 1.2px !important;
+    text-transform: uppercase;
+    margin: 0 !important;
+  }
+
+  .report-print-meta {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    margin: 1pt 0 0 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .report-print-footer {
+    margin-top: 7pt !important;
+    padding-top: 3pt !important;
+    border-top: 0.5pt solid #000 !important;
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.2px;
+    text-align: right;
+  }
+
+  /* ---------- FICHE TECHNIQUE (recipe-detail) ---------- */
+  .dh-photo {
+    max-height: 38mm;
+    margin-bottom: 6pt !important;
+  }
+
+  .dh-station {
+    background: none !important;
+    border: 0.75pt solid #000 !important;
+    font-size: 6pt !important;
+    padding: 1.5pt 5pt !important;
+    margin-bottom: 4pt !important;
+  }
+
+  .dh-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 14pt !important;
+    margin: 0 0 3pt !important;
+  }
+
+  .dh-sub {
+    font-size: 7pt !important;
+  }
+
+  .dh-allergens {
+    margin-top: 4pt !important;
+  }
+
+  /* ---------- SECTIONS / TABLEAU D'INGRÉDIENTS ---------- */
+  .section {
+    margin-top: 7pt !important;
+    break-inside: avoid;
+  }
+
+  .section-title {
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 5.5pt !important;
+    letter-spacing: 0.9px !important;
+    margin-bottom: 2.5pt !important;
+  }
+
+  .section-title::after {
+    background: #000 !important;
+  }
+
+  .equipment-list li {
+    font-size: 6.5pt !important;
+    padding: 1.5pt 5pt !important;
+    background: none !important;
+    border: 0.5pt solid #000 !important;
+  }
+
+  .ing-table th {
+    font-size: 5.5pt !important;
+    padding: 1.5pt 4pt !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .ing-table td {
+    font-size: 6.8pt !important;
+    padding: 1.5pt 4pt !important;
+    border-bottom: 0.5pt solid #999 !important;
+  }
+
+  .ing-group-row td {
+    font-size: 5.5pt !important;
+    padding: 4pt 4pt 1.5pt !important;
+  }
+
+  .cost-footer {
+    font-size: 6.5pt !important;
+    padding-top: 4pt !important;
+    gap: 14pt !important;
+  }
+
+  .cost-footer .cf-value {
+    font-size: 8pt !important;
+  }
+
+  /* ---------- ÉTAPES / NOTES DU CHEF ---------- */
+  .step {
+    padding: 4pt 2pt !important;
+    break-inside: avoid;
+  }
+
+  .step-num {
+    width: 14pt !important;
+    height: 14pt !important;
+    font-size: 6.5pt !important;
+    border: 0.75pt solid #000 !important;
+    background: none !important;
+  }
+
+  .step-text {
+    font-size: 6.8pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .step-temp {
+    background: none !important;
+    border: 0.5pt solid #000 !important;
+    font-size: 5.5pt !important;
+    font-weight: 700;
+  }
+
+  .timer-time {
+    font-size: 5.5pt !important;
+  }
+
+  .chef-note {
+    background: none !important;
+    border: 0.75pt solid #000 !important;
+    padding: 5pt 6pt !important;
+    font-size: 6.5pt !important;
+  }
+
+  .chef-note strong {
+    font-size: 5.5pt !important;
+  }
+
+  /* ---------- BADGES / CHIPS — contour plutôt que fond coloré ---------- */
+  .allergen-chip {
+    background: none !important;
+    border: 0.5pt solid #000 !important;
+    font-size: 5.5pt !important;
+  }
+
+  /* ---------- MENU (menu-tree) ---------- */
+  .menu-tree {
+    margin-left: 3pt !important;
+    padding-left: 8pt !important;
+  }
+
+  .menu-plat {
+    padding: 4pt 0 !important;
+    break-inside: avoid;
+  }
+
+  .menu-plat-name {
+    font-size: 7.5pt !important;
+  }
+
+  .menu-plat-desc {
+    font-size: 6pt !important;
+  }
+}
