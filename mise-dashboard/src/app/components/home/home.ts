@@ -37,12 +37,6 @@ export class Home {
       icon: 'book',
     },
     {
-      label: 'Importer des fiches',
-      description: 'Coller un texte structuré pour créer plusieurs fiches d\'un coup.',
-      path: '/import',
-      icon: 'upload',
-    },
-    {
       label: 'Menus',
       description: 'Composer les menus à partir des fiches techniques.',
       path: '/menus',
