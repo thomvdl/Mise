@@ -252,7 +252,7 @@
   .ing-table td{ padding:9px 10px; border-bottom:1px solid var(--border); font-size:13.5px; }
   .ing-table tr:last-child td{ border-bottom:none; }
   .ing-group-row td{
-    padding:14px 10px 6px; border-bottom:none; font-family:var(--font-mono); font-size:10.5px;
+    padding:14px 10px 6px; border-bottom:none; font-family:var(--font-mono); font-size:17px;
     letter-spacing:.5px; text-transform:uppercase; color:var(--text-faint);
   }
   .ing-group-row:first-child td{ padding-top:0; }

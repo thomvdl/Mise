@@ -1,10 +1,11 @@
 <div class="page no-print">
-  <div class="panel">
-    <div class="intro">
-      <h1 class="page-title">Impression d'étiquettes</h1>
-      <p class="page-sub">Composez une étiquette, ajoutez-la à la liste, répétez, puis imprimez tout d'un coup.</p>
-    </div>
+  <div class="intro">
+    <h1 class="page-title">Impression d'étiquettes</h1>
+    <p class="page-sub">Composez une étiquette, ajoutez-la à la liste, répétez, puis imprimez tout d'un coup.</p>
+  </div>
 
+  <div class="labels-layout">
+  <div class="panel">
     <div class="preview-wrap">
       <span class="preview-label">Aperçu</span>
       <div class="label-page" [attr.data-type]="selectedType().key">
@@ -106,10 +107,9 @@
       <p class="form-hint">Indiquez un produit pour l'ajouter à la liste d'impression.</p>
     }
   </div>
-</div>
 
-@if (queue().length > 0) {
-  <div class="queue-panel no-print">
+  <div class="queue-panel">
+    @if (queue().length > 0) {
     <div class="queue-header">
       <span class="queue-title">Liste à imprimer ({{ totalLabelCount() }})</span>
       <div class="queue-actions">
@@ -160,8 +160,12 @@
         </li>
       }
     </ul>
+    } @else {
+      <p class="queue-empty">Aucune étiquette dans la liste pour l'instant.</p>
+    }
   </div>
-}
+  </div>
+</div>
 
 <div class="print-batch">
   @for (item of printableLabels(); track $index) {

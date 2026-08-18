@@ -3,13 +3,31 @@
 }
 
 /* ---------- ON-SCREEN LAYOUT ---------- */
-/* Form is full width (touch target); the label preview is taken out of flow and pinned as a
-   compact thumbnail in the panel's top-right corner, so it doesn't cost the form any width. */
+/* Deux colonnes : formulaire de création à gauche, liste à imprimer à droite (voir
+   .labels-layout) — le titre reste au-dessus, en pleine largeur. La miniature d'aperçu (voir
+   .preview-wrap) est en flux normal, centrée en haut du formulaire. */
+/* .page est une colonne flex (titre fixe + .labels-layout qui prend le reste) — plus de
+   overflow-y ici : c'est .panel et .queue-panel qui scrollent chacun dans leur propre colonne
+   (voir plus bas), pas .page entier, sinon on se retrouve avec une scrollbar sur toute la page
+   en plus/à la place de celles des colonnes. */
 .page {
   padding: 28px 36px 28px;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+}
+
+.intro { margin-bottom: 22px; flex-shrink: 0; }
+
+/* stretch (défaut) plutôt que align-items:start : les deux colonnes prennent toute la hauteur
+   disponible, ce qui borne .panel/.queue-panel et active leur overflow-y:auto respectif. */
+.labels-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
 }
 
 .panel {
@@ -21,11 +39,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 28px 32px 32px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-/* Reserves room so the title/subtitle wrap before running under the absolutely positioned
-   preview, rather than text and thumbnail overlapping. */
-.intro { padding-right: 240px; }
 .page-title {
   font-family: var(--font-display); font-weight: 900; font-size: 26px;
   letter-spacing: -.5px; margin: 0 0 8px;
@@ -61,6 +78,9 @@
   min-height: 48px;
 }
 .date-input { max-width: 240px; }
+/* Raccourci pour laisser la place à l'aperçu épinglé en haut à droite de .panel (voir
+   .preview-wrap, position:absolute) — sans ça le champ passe dessous. */
+#product-name { max-width: calc(100% - 250px); }
 
 .date-input-row { display: flex; align-items: center; gap: 10px; }
 .date-clear-btn {
@@ -126,14 +146,16 @@
   color: var(--text-faint);
 }
 
-/* ---------- QUEUE ---------- */
+/* ---------- QUEUE (colonne de droite, voir .labels-layout) ---------- */
+/* Bornée à la hauteur de .labels-layout (voir stretch ci-dessus) — scroll interne plutôt que de
+   grandir indéfiniment avec le nombre d'étiquettes en attente. */
 .queue-panel {
-  margin: 4px 0 60px;
-  /* Matches .page's left/right padding so this card lines up with the form card above. */
-  margin-inline: 36px;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 20px 22px;
 }
+.queue-empty { color: var(--text-faint); font-size: 13.5px; margin: 4px 0; }
 .queue-header {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
   margin-bottom: 14px;
@@ -277,14 +299,13 @@
 
 @media (max-width: 860px) {
   .page { padding: 24px 20px 20px; }
-  .queue-panel { margin: 4px 20px 50px; }
-}
-
-/* Below this width, reserving room for the absolute preview next to the title would squeeze
-   the subtitle too hard — drop the preview back into flow, centered under the intro instead. */
-@media (max-width: 640px) {
-  .intro { padding-right: 0; }
-  .preview-wrap { position: static; margin: 0 auto; }
+  /* La colonne de droite (liste) repasse sous le formulaire plutôt qu'à côté — pas assez de
+     place pour les deux côte à côte en dessous de cette largeur. Le scroll interne borné n'a de
+     sens qu'à côté du formulaire (deux colonnes de même hauteur) ; en une seule colonne, .page
+     redevient le conteneur qui scroll et les deux blocs reprennent leur hauteur naturelle. */
+  .page { overflow-y: auto; }
+  .labels-layout { display: block; }
+  .panel, .queue-panel { min-height: 0; max-height: none; overflow-y: visible; margin-bottom: 24px; }
 }
 
 /* The label mockup is a fixed physical size (150mm) for print accuracy — shrunk down to a
