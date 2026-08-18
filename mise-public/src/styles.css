@@ -52,6 +52,11 @@
   :focus-visible{ outline:2px solid var(--accent-blue); outline-offset:2px; }
   input{ font-family:inherit; }
  
+  /* min-height (pas height) sur mobile — la page scrolle normalement là-bas (voir la requête
+     mobile de .recipe-list plus bas, pensée pour un flux naturel, pas un panneau borné). Sur
+     desktop en revanche (voir @media min-width:881px plus bas), .app est borné à la fenêtre pour
+     que .layout/.recipe-list/.detail puissent scroller chacun indépendamment au lieu que ce soit
+     toute la page qui défile. */
   .app{ min-height:100vh; display:flex; flex-direction:column; }
  
   /* ---------- TOPBAR ---------- */
@@ -315,10 +320,18 @@
      detail pages (recipe-detail / menu-tree) hide the list+filters pane so only the selected
      recipe/menu prints, full width. */
   @media print{
+    .app{ height:auto; overflow:visible; }
     .topbar{ display:none; }
     app-recipe-filters{ display:none; }
     .recipe-list{ display:none; }
     .layout{ display:block; }
+  }
+
+  /* Desktop uniquement — voir docblock de .app plus haut : borne .app à la fenêtre pour activer
+     le scroll indépendant de .recipe-list/.detail/.page (liste de fiches, menus, ingrédients,
+     et toutes les pages "simples" à une colonne) au lieu du scroll de toute la page. */
+  @media (min-width: 881px){
+    .app{ height:100vh; overflow:hidden; }
   }
 
   @media (max-width: 880px){

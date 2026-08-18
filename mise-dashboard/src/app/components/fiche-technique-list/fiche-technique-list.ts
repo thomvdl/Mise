@@ -1,8 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { SimpleEntityService } from '../../core/services/simple-entity.service';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
+import { Category } from '../../core/models/category.model';
+import { Station } from '../../core/models/station.model';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 import { ficheTechniqueToMarkdown, fichesTechniquesToMarkdown } from '../../core/utils/fiche-technique-markdown';
 import { downloadTextFile } from '../../core/utils/download';
@@ -14,17 +18,31 @@ import { downloadTextFile } from '../../core/utils/download';
   styleUrl: './fiche-technique-list.css',
 })
 export class FicheTechniqueList implements OnInit {
+  private readonly http = inject(HttpClient);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
+  private readonly categoryService = new SimpleEntityService<Category>(this.http, 'categories');
+  private readonly stationService = new SimpleEntityService<Station>(this.http, 'stations');
 
   items = signal<FicheTechnique[]>([]);
+  categories = signal<Category[]>([]);
+  stations = signal<Station[]>([]);
   search = signal('');
+  selectedCategoryId = signal<number | null>(null);
+  selectedStationId = signal<number | null>(null);
   pendingDelete = signal<FicheTechnique | null>(null);
   selected = signal<Set<number>>(new Set());
 
   filtered = computed(() => {
     const query = this.search().trim().toLowerCase();
-    if (!query) return this.items();
-    return this.items().filter((item) => item.name.toLowerCase().includes(query));
+    const categoryId = this.selectedCategoryId();
+    const stationId = this.selectedStationId();
+
+    return this.items().filter((item) => {
+      const matchesQuery = !query || item.name.toLowerCase().includes(query);
+      const matchesCategory = categoryId === null || item.category?.id === categoryId;
+      const matchesStation = stationId === null || item.station?.id === stationId;
+      return matchesQuery && matchesCategory && matchesStation;
+    });
   });
 
   /** Coché seulement si toutes les lignes actuellement visibles (filtrées par la recherche) le sont. */
@@ -40,10 +58,22 @@ export class FicheTechniqueList implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.categoryService.list().subscribe((items) => this.categories.set(items));
+    this.stationService.list().subscribe((items) => this.stations.set(items));
   }
 
   reload(): void {
     this.ficheTechniqueService.list().subscribe((items) => this.items.set(items));
+  }
+
+  onCategoryChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedCategoryId.set(value ? Number(value) : null);
+  }
+
+  onStationChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedStationId.set(value ? Number(value) : null);
   }
 
   confirmDelete(item: FicheTechnique): void {

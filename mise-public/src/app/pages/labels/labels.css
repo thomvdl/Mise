@@ -7,6 +7,9 @@
    compact thumbnail in the panel's top-right corner, so it doesn't cost the form any width. */
 .page {
   padding: 28px 36px 28px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .panel {

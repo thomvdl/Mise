@@ -5,6 +5,18 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Rechercher…" [value]="search()" (input)="search.set($any($event.target).value)">
     </div>
+    <select class="form-select list-filter" (change)="onStationChange($event)">
+      <option value="" [selected]="selectedStationId() === null">Toutes les stations</option>
+      @for (station of stations(); track station.id) {
+        <option [value]="station.id" [selected]="selectedStationId() === station.id">{{ station.name }}</option>
+      }
+    </select>
+    <select class="form-select list-filter" (change)="onCategoryChange($event)">
+      <option value="" [selected]="selectedCategoryId() === null">Toutes les catégories</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id" [selected]="selectedCategoryId() === category.id">{{ category.name }}</option>
+      }
+    </select>
     <button type="button" class="btn btn-ghost" [disabled]="selected().size === 0" (click)="exportSelection()">
       Exporter la sélection{{ selected().size ? ' (' + selected().size + ')' : '' }}
     </button>
