@@ -2,21 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { vi } from 'vitest';
 
 import { Labels } from './labels';
 import { environment } from '../../../environments/environment';
-import { BrotherQlPrinterService } from '../../core/services/brother-ql-printer.service';
-import { QueuedLabel } from '../../core/models/label.model';
-
-class FakeBrotherQlPrinterService {
-  supported = true;
-  print = vi.fn((_labels: QueuedLabel[]) => Promise.resolve());
-
-  isSupported(): boolean {
-    return this.supported;
-  }
-}
 
 function isoDateWithOffset(daysFromToday: number): string {
   const date = new Date();
@@ -30,19 +18,11 @@ describe('Labels', () => {
   let component: Labels;
   let fixture: ComponentFixture<Labels>;
   let httpMock: HttpTestingController;
-  let fakePrinter: FakeBrotherQlPrinterService;
 
   beforeEach(async () => {
-    fakePrinter = new FakeBrotherQlPrinterService();
-
     await TestBed.configureTestingModule({
       imports: [Labels],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        provideRouter([]),
-        { provide: BrotherQlPrinterService, useValue: fakePrinter },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Labels);
@@ -126,7 +106,7 @@ describe('Labels', () => {
     const label: HTMLElement = fixture.nativeElement.querySelector('.preview-wrap .label-page');
     expect(label.getAttribute('data-type')).toBe('decongele');
     expect(label.querySelector('.label-name')?.textContent).toContain('Fond de veau');
-    expect(label.querySelector('.label-type')?.textContent).toContain('Décongelé, jeter le');
+    expect(label.querySelector('.label-type')?.textContent).toContain('Décongelé le');
     expect(label.querySelector('.label-date')?.textContent).toContain('16/07/2026');
   });
 
@@ -160,7 +140,7 @@ describe('Labels', () => {
     });
 
     it('seeds the DLC from the selected type\'s default when switching type', () => {
-      component.selectType(component.labelTypes[3]); // "Décongelé, jeter le" → 2 days
+      component.selectType(component.labelTypes[3]); // "Décongelé le" → 2 days
       expect(component.useByDate()).toBe(isoDateWithOffset(2));
 
       component.selectType(component.labelTypes[2]); // "Congelé le" → no default
@@ -264,138 +244,6 @@ describe('Labels', () => {
       component.clearQueue();
       expect(component.queue()).toEqual([]);
     });
-
-    it('renders one printable label per queued item, in the print-only batch', () => {
-      component.selectType(component.labelTypes[4]);
-      component.date.set('2026-07-16');
-      component.productName.set('Restes de risotto');
-      component.addToQueue();
-      fixture.detectChanges();
-
-      const batchLabels: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.print-batch .label-page');
-      expect(batchLabels.length).toBe(1);
-      expect(batchLabels[0].getAttribute('data-type')).toBe('jeter');
-      expect(batchLabels[0].querySelector('.label-name')?.textContent).toContain('Restes de risotto');
-      expect(batchLabels[0].querySelector('.label-date')?.textContent).toContain('16/07/2026');
-    });
-
-    it('renders the DLC in the print-only batch when the queued label has one', () => {
-      component.selectType(component.labelTypes[3]); // 2-day default
-      component.date.set('2026-07-16');
-      component.productName.set('Fond de veau');
-      component.addToQueue();
-      fixture.detectChanges();
-
-      const batchLabel: HTMLElement = fixture.nativeElement.querySelector('.print-batch .label-page');
-      expect(batchLabel.querySelector('.label-use-by')?.textContent).toContain(component.formatDate(isoDateWithOffset(2)));
-    });
-
-    it('does not open the print dialog when the queue is empty', () => {
-      const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
-      component.printQueue();
-      expect(printSpy).not.toHaveBeenCalled();
-    });
-
-    it('opens the print dialog when the queue has at least one label', () => {
-      const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
-      component.productName.set('Beurre');
-      component.addToQueue();
-      component.printQueue();
-      expect(printSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('direct printing on a Brother QL printer', () => {
-    it('does nothing when the queue is empty', async () => {
-      await component.printQueueOnBrotherQl();
-      expect(fakePrinter.print).not.toHaveBeenCalled();
-    });
-
-    it('sends the whole queue to the printer, and toggles the busy state', async () => {
-      component.productName.set('Beurre');
-      component.addToQueue();
-      component.productName.set('Lait');
-      component.addToQueue();
-
-      const printPromise = component.printQueueOnBrotherQl();
-      expect(component.printingOnBrotherQl()).toBe(true);
-
-      await printPromise;
-
-      expect(fakePrinter.print).toHaveBeenCalledWith(component.queue());
-      expect(component.printingOnBrotherQl()).toBe(false);
-      expect(component.brotherQlError()).toBeNull();
-    });
-
-    it('surfaces the error message when printing fails', async () => {
-      fakePrinter.print.mockRejectedValueOnce(new Error('Aucune imprimante sélectionnée.'));
-
-      component.productName.set('Beurre');
-      component.addToQueue();
-      await component.printQueueOnBrotherQl();
-
-      expect(component.brotherQlError()).toBe('Aucune imprimante sélectionnée.');
-      expect(component.printingOnBrotherQl()).toBe(false);
-    });
-
-    it('enables the Brother QL button when the service reports WebUSB support', () => {
-      component.productName.set('Beurre');
-      component.addToQueue();
-      fixture.detectChanges();
-
-      const button: HTMLButtonElement = fixture.nativeElement.querySelector('.brother-ql-btn');
-      expect(button.disabled).toBe(false);
-    });
-  });
-});
-
-describe('Labels — WebUSB unsupported', () => {
-  let component: Labels;
-  let fixture: ComponentFixture<Labels>;
-  let httpMock: HttpTestingController;
-
-  beforeEach(async () => {
-    const unsupportedPrinter = new FakeBrotherQlPrinterService();
-    unsupportedPrinter.supported = false;
-
-    await TestBed.configureTestingModule({
-      imports: [Labels],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        provideRouter([]),
-        { provide: BrotherQlPrinterService, useValue: unsupportedPrinter },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(Labels);
-    component = fixture.componentInstance;
-    httpMock = TestBed.inject(HttpTestingController);
-
-    fixture.detectChanges();
-    httpMock.expectOne(`${environment.apiUrl}/ingredients`).flush([]);
-    httpMock.expectOne(`${environment.apiUrl}/fiche-techniques`).flush([]);
-
-    await fixture.whenStable();
-    fixture.detectChanges();
-  });
-
-  afterEach(() => {
-    httpMock.verify();
-  });
-
-  it('reports WebUSB as unsupported', () => {
-    expect(component.brotherQlSupported).toBe(false);
-  });
-
-  it('disables the Brother QL button and shows the browser hint once a label is queued', () => {
-    component.productName.set('Beurre');
-    component.addToQueue();
-    fixture.detectChanges();
-
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.brother-ql-btn');
-    expect(button.disabled).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('Chrome ou Edge');
   });
 });
 
@@ -410,7 +258,6 @@ describe('Labels — arriving from a fiche technique ("Imprimer une étiquette")
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: BrotherQlPrinterService, useValue: new FakeBrotherQlPrinterService() },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: convertToParamMap({ produit: 'Crêpes sucrées' }) } },

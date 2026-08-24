@@ -4,9 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
-import { BrotherQlPrinterService } from '../../core/services/brother-ql-printer.service';
 import { AuthService } from '../../core/services/auth.service';
-import { PrintedLabelService } from '../../core/services/printed-label.service';
 import { LABEL_TYPES, LabelType, QueuedLabel } from '../../core/models/label.model';
 
 const PRODUCT_NAME_MAX_LENGTH = 55;
@@ -41,9 +39,7 @@ export class Labels {
   private readonly route = inject(ActivatedRoute);
   private readonly ingredientService = inject(IngredientService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
-  private readonly brotherQlPrinter = inject(BrotherQlPrinterService);
   private readonly auth = inject(AuthService);
-  private readonly printedLabelService = inject(PrintedLabelService);
 
   private readonly ingredients = toSignal(this.ingredientService.list(), { initialValue: [] });
   private readonly ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
@@ -52,7 +48,6 @@ export class Labels {
 
   readonly labelTypes = LABEL_TYPES;
   readonly dateOffsets = [0, 1, 2, 3, 4, 5];
-  readonly brotherQlSupported = this.brotherQlPrinter.isSupported();
   readonly productNameMaxLength = PRODUCT_NAME_MAX_LENGTH;
 
   selectedType = signal<LabelType>(LABEL_TYPES[0]);
@@ -63,9 +58,6 @@ export class Labels {
   /** Number of copies of the label being composed to add to the queue at once (1-10). */
   printQuantity = signal(MIN_PRINT_QUANTITY);
   queue = signal<QueuedLabel[]>([]);
-
-  printingOnBrotherQl = signal(false);
-  brotherQlError = signal<string | null>(null);
 
   currentUserName = computed(() => this.auth.user()?.name ?? '');
 
@@ -80,11 +72,8 @@ export class Labels {
   formattedDate = computed(() => formatIsoDate(this.date()));
   formattedUseByDate = computed(() => formatIsoDate(this.useByDate()));
 
-  /** Total physical labels queued, copies included — what "Imprimer tout" will actually print. */
+  /** Total physical labels queued, copies included. */
   totalLabelCount = computed(() => this.queue().reduce((sum, item) => sum + item.quantity, 0));
-
-  /** Queue expanded so each copy is its own entry — one per physical label, for print rendering. */
-  printableLabels = computed(() => this.queue().flatMap((item) => Array.from({ length: item.quantity }, () => item)));
 
   constructor() {
     const produit = this.route.snapshot.queryParamMap.get('produit');
@@ -162,53 +151,5 @@ export class Labels {
 
   formatDate(value: string): string {
     return formatIsoDate(value);
-  }
-
-  printQueue(): void {
-    if (this.queue().length === 0) return;
-    // window.print() est fire-and-forget (impossible de savoir si l'impression a réellement
-    // abouti côté navigateur), donc on trace l'intention au moment du clic plutôt qu'après coup.
-    this.recordPrint('browser');
-    window.print();
-  }
-
-  async printQueueOnBrotherQl(): Promise<void> {
-    if (this.queue().length === 0 || this.printingOnBrotherQl()) return;
-
-    this.printingOnBrotherQl.set(true);
-    this.brotherQlError.set(null);
-
-    try {
-      await this.brotherQlPrinter.print(this.printableLabels());
-      // Ici, contrairement à window.print(), on sait que l'impression a réellement abouti —
-      // on n'enregistre donc qu'en cas de succès.
-      this.recordPrint('brother_ql');
-    } catch (error) {
-      this.brotherQlError.set(
-        error instanceof Error ? error.message : "Une erreur est survenue lors de l'impression.",
-      );
-    } finally {
-      this.printingOnBrotherQl.set(false);
-    }
-  }
-
-  /**
-   * Journalise chaque étiquette de la file pour la traçabilité HACCP (une ligne par entrée de
-   * file, avec sa quantité). Fire-and-forget et erreurs ignorées volontairement : l'impression
-   * réelle des étiquettes ne doit jamais être bloquée ou retardée par un souci d'historique.
-   */
-  private recordPrint(via: 'browser' | 'brother_ql'): void {
-    for (const item of this.queue()) {
-      this.printedLabelService
-        .create({
-          type_key: item.type.key,
-          product_name: item.productName,
-          date: item.date,
-          use_by_date: item.useByDate,
-          quantity: item.quantity,
-          printed_via: via,
-        })
-        .subscribe({ error: () => {} });
-    }
   }
 }

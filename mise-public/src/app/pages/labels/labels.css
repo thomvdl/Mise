@@ -169,20 +169,6 @@
 }
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
 
-.print-btn {
-  border: 1px solid var(--accent-green); background: var(--accent-green); color: #fff;
-  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-}
-.print-btn:hover { filter: brightness(1.08); }
-.print-btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
-
-.brother-ql-btn { border-color: var(--accent-copper); background: var(--accent-copper); flex-shrink: 0; }
-
-.form-error { font-size: 12px; color: var(--accent-red); margin: 0 0 14px; }
-
-.brother-ql-panel { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-.brother-ql-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
-
 .queue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .queue-row {
   display: flex; align-items: center; gap: 10px;
@@ -294,9 +280,6 @@
 .label-use-by-caption { margin-top: 4mm; }
 .label-use-by { margin-top: 2mm; }
 
-/* the batch that actually gets printed — invisible on screen */
-.print-batch { display: none; }
-
 @media (max-width: 860px) {
   .page { padding: 24px 20px 20px; }
   /* La colonne de droite (liste) repasse sous le formulaire plutôt qu'à côté — pas assez de
@@ -310,9 +293,7 @@
 
 /* The label mockup is a fixed physical size (150mm) for print accuracy — shrunk down to a
    compact corner thumbnail here via `zoom` (which scales layout + paint together, unlike a
-   narrower `width` which would just clip/overlap the mm-sized content inside). Scoped to the
-   on-screen preview only — `.print-batch` has its own separate `.label-page` copies that get
-   sent to the printer and must stay full size. */
+   narrower `width` which would just clip/overlap the mm-sized content inside). */
 .preview-wrap .label-page { zoom: 0.4; }
 
 @media (max-width: 600px) {
@@ -320,29 +301,4 @@
 }
 @media (max-width: 420px) {
   .preview-wrap .label-page { zoom: 0.28; }
-}
-
-/* ---------- PRINT ---------- */
-@media print {
-  .no-print { display: none !important; }
-
-  .print-batch {
-    display: block;
-  }
-
-  .print-batch .label-page {
-    margin: 0;
-    border-radius: 0; box-shadow: none;
-    break-after: page;
-    page-break-after: always;
-  }
-  .print-batch .label-page:last-child {
-    break-after: auto;
-    page-break-after: auto;
-  }
-
-  @page {
-    size: 150mm 100mm;
-    margin: 0;
-  }
 }
