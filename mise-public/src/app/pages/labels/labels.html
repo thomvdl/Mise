@@ -1,4 +1,4 @@
-<div class="page">
+<div class="page no-print">
   <div class="intro">
     <h1 class="page-title">Impression d'étiquettes</h1>
     <p class="page-sub">Composez une étiquette et ajoutez-la à la liste, répétez pour chacune.</p>
@@ -114,11 +114,25 @@
       <span class="queue-title">Liste à imprimer ({{ totalLabelCount() }})</span>
       <div class="queue-actions">
         <button type="button" class="btn-ghost" (click)="clearQueue()">Vider la liste</button>
+        <button type="button" class="print-btn" [disabled]="printingOnZebra()" (click)="printQueueOnZebra()">
+          @if (printingOnZebra()) {
+            Impression…
+          } @else {
+            Imprimer sur la Zebra
+          }
+        </button>
       </div>
     </div>
 
-    <!-- Impression temporairement désactivée (matériel en cours de reconfiguration) — la file
-         reste consultable, on retirera ce commentaire quand un bouton d'impression sera réactivé. -->
+    @if (zebraError()) {
+      <p class="form-error">{{ zebraError() }}</p>
+    }
+
+    <div class="fallback-row">
+      <button type="button" class="btn-ghost" (click)="printQueueViaBrowser()">
+        Imprimer via le navigateur (secours)
+      </button>
+    </div>
 
     <ul class="queue-list">
       @for (item of queue(); track item.id) {
@@ -142,4 +156,25 @@
     }
   </div>
   </div>
+</div>
+
+<div class="print-batch">
+  @for (item of printableLabels(); track $index) {
+    <div class="label-page" [attr.data-type]="item.type.key">
+      <div class="label-body">
+        <div class="label-name-col">
+          <div class="label-name">{{ item.productName }}</div>
+        </div>
+        <div class="label-type-block">
+          <div class="label-type">{{ item.type.title }}</div>
+          <div class="label-date">{{ formatDate(item.date) }}</div>
+          @if (item.useByDate) {
+            <div class="label-type label-use-by-caption">DLC</div>
+            <div class="label-date label-use-by">{{ formatDate(item.useByDate) }}</div>
+          }
+        </div>
+      </div>
+      <div class="label-footer">Fait par : <span class="label-footer-name">{{ item.madeBy || '—' }}</span></div>
+    </div>
+  }
 </div>

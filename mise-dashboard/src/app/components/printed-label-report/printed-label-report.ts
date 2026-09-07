@@ -151,7 +151,9 @@ export class PrintedLabelReport {
   }
 
   printedViaLabel(via: string): string {
-    return via === 'brother_ql' ? 'Brother QL' : 'Navigateur';
+    if (via === 'zebra_network') return 'Zebra (réseau)';
+    if (via === 'brother_ql') return 'Brother QL';
+    return 'Navigateur';
   }
 
   generatedAt(): string {

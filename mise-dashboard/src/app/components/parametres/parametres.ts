@@ -20,5 +20,6 @@ export class Parametres {
     { label: 'Allergènes', description: 'Liste des allergènes', path: '/allergenes' },
     { label: 'Appareils', description: 'Frigos, chambres froides, congélateurs…', path: '/appareils' },
     { label: 'Friteuses', description: 'Friteuses et durée de vie de l\'huile', path: '/friteuses' },
+    { label: "Impression d'étiquettes", description: 'IP de l\'imprimante Zebra réseau', path: '/parametres/impression' },
   ];
 }

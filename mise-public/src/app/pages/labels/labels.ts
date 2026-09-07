@@ -1,10 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { forkJoin } from 'rxjs';
 
 import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PrintedLabelService } from '../../core/services/printed-label.service';
 import { LABEL_TYPES, LabelType, QueuedLabel } from '../../core/models/label.model';
 
 const PRODUCT_NAME_MAX_LENGTH = 55;
@@ -40,6 +42,7 @@ export class Labels {
   private readonly ingredientService = inject(IngredientService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly auth = inject(AuthService);
+  private readonly printedLabelService = inject(PrintedLabelService);
 
   private readonly ingredients = toSignal(this.ingredientService.list(), { initialValue: [] });
   private readonly ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
@@ -59,6 +62,9 @@ export class Labels {
   printQuantity = signal(MIN_PRINT_QUANTITY);
   queue = signal<QueuedLabel[]>([]);
 
+  printingOnZebra = signal(false);
+  zebraError = signal<string | null>(null);
+
   currentUserName = computed(() => this.auth.user()?.name ?? '');
 
   /** Product names pulled from the catalogs, offered as suggestions — the field itself stays free text. */
@@ -72,8 +78,11 @@ export class Labels {
   formattedDate = computed(() => formatIsoDate(this.date()));
   formattedUseByDate = computed(() => formatIsoDate(this.useByDate()));
 
-  /** Total physical labels queued, copies included. */
+  /** Total physical labels queued, copies included — what "Imprimer tout" will actually print. */
   totalLabelCount = computed(() => this.queue().reduce((sum, item) => sum + item.quantity, 0));
+
+  /** Queue expanded so each copy is its own entry — one per physical label, for the browser print fallback. */
+  printableLabels = computed(() => this.queue().flatMap((item) => Array.from({ length: item.quantity }, () => item)));
 
   constructor() {
     const produit = this.route.snapshot.queryParamMap.get('produit');
@@ -151,5 +160,61 @@ export class Labels {
 
   formatDate(value: string): string {
     return formatIsoDate(value);
+  }
+
+  printQueueViaBrowser(): void {
+    if (this.queue().length === 0) return;
+    // window.print() est fire-and-forget (impossible de savoir si l'impression a réellement
+    // abouti côté navigateur), donc on trace l'intention au moment du clic plutôt qu'après coup.
+    this.recordPrint('browser');
+    window.print();
+  }
+
+  printQueueOnZebra(): void {
+    if (this.queue().length === 0 || this.printingOnZebra()) return;
+
+    this.printingOnZebra.set(true);
+    this.zebraError.set(null);
+
+    const requests = this.queue().map((item) =>
+      this.printedLabelService.printZebra({
+        type_key: item.type.key,
+        product_name: item.productName,
+        date: item.date,
+        use_by_date: item.useByDate,
+        quantity: item.quantity,
+      }),
+    );
+
+    forkJoin(requests).subscribe({
+      // Ici, contrairement à window.print(), le serveur confirme l'impression réelle avant de
+      // répondre — pas besoin d'un recordPrint séparé, printZebra journalise déjà côté serveur.
+      next: () => this.printingOnZebra.set(false),
+      error: (error) => {
+        this.printingOnZebra.set(false);
+        this.zebraError.set(error?.error?.message ?? "Une erreur est survenue lors de l'impression.");
+      },
+    });
+  }
+
+  /**
+   * Journalise chaque étiquette de la file pour la traçabilité HACCP (une ligne par entrée de
+   * file, avec sa quantité). Fire-and-forget et erreurs ignorées volontairement : l'impression
+   * réelle des étiquettes ne doit jamais être bloquée ou retardée par un souci d'historique.
+   * Uniquement pour le fallback navigateur — le chemin Zebra journalise déjà côté serveur.
+   */
+  private recordPrint(via: 'browser'): void {
+    for (const item of this.queue()) {
+      this.printedLabelService
+        .create({
+          type_key: item.type.key,
+          product_name: item.productName,
+          date: item.date,
+          use_by_date: item.useByDate,
+          quantity: item.quantity,
+          printed_via: via,
+        })
+        .subscribe({ error: () => {} });
+    }
   }
 }

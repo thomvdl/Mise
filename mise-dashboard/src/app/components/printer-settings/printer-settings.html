@@ -1,0 +1,40 @@
+<div class="page-header">
+  <h1 class="page-title">Impression d'étiquettes</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-grid">
+    <div class="form-field">
+      <label class="form-label" for="printer_ip">Adresse IP de la Zebra ZD411d</label>
+      <input
+        id="printer_ip"
+        class="form-input"
+        type="text"
+        formControlName="printer_ip"
+        placeholder="Ex. 192.168.1.50"
+        [class.has-error]="form.controls.printer_ip.invalid && form.controls.printer_ip.touched" />
+      @if (form.controls.printer_ip.invalid && form.controls.printer_ip.touched) {
+        <span class="form-error">Adresse IPv4 invalide (ex. 192.168.1.50).</span>
+      }
+      <p class="form-hint">
+        Imprimante en réseau (Ethernet), écoute en ZPL sur le port 9100. Laisser vide pour
+        désactiver l'impression réseau — la page Étiquettes proposera alors uniquement le fallback
+        navigateur.
+      </p>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+  @if (saved()) {
+    <p class="form-success">Enregistré.</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Retour</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

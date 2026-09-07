@@ -169,6 +169,17 @@
 }
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
 
+.print-btn {
+  border: 1px solid var(--accent-green); background: var(--accent-green); color: #fff;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+}
+.print-btn:hover { filter: brightness(1.08); }
+.print-btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+
+.form-error { font-size: 12px; color: var(--accent-red); margin: 0 0 14px; }
+
+.fallback-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+
 .queue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .queue-row {
   display: flex; align-items: center; gap: 10px;
@@ -199,31 +210,32 @@
 .queue-remove:hover { background: color-mix(in srgb, var(--accent-red) 12%, transparent); border-color: var(--accent-red); color: var(--accent-red); }
 
 /* ---------- THE LABEL ITSELF (always white/ink — printed on physical label stock) ---------- */
-/* 150 x 100 mm, landscape: product name on the left, colored type/date block on the right,
-   with a "Fait par : <nom>" footer pinned along the bottom of the whole label. */
+/* 57 x 32 mm — taille réelle du support chargé dans la Zebra ZD411d (le ZPL envoyé à
+   l'imprimante utilise le même format, voir ZplLabelBuilder côté API). Product name à gauche,
+   colored type/date block à droite, "Fait par : <nom>" en pied de page. */
 .label-page {
-  width: 150mm; height: 100mm;
+  width: 57mm; height: 32mm;
   background: #ffffff; color: #14171a;
-  border-radius: 3mm;
+  border-radius: 1mm;
   box-shadow: 0 14px 34px rgba(15, 18, 20, .28);
-  padding: 8mm;
-  display: flex; flex-direction: column; gap: 3mm;
+  padding: 2.5mm;
+  display: flex; flex-direction: column; gap: 1mm;
 }
 
 .label-body {
   flex: 1;
   min-height: 0;
-  display: flex; flex-direction: row; align-items: stretch; gap: 7mm;
+  display: flex; flex-direction: row; align-items: stretch; gap: 2.5mm;
 }
 
 .label-footer {
   flex: 0 0 auto;
-  font-family: var(--font-mono); font-size: 3.6mm; font-weight: 400;
+  font-family: var(--font-mono); font-size: 1.3mm; font-weight: 400;
   color: #8B9096;
   text-align: right;
 }
 .label-footer-name {
-  font-size: 4.4mm; font-weight: 700;
+  font-size: 1.5mm; font-weight: 700;
   color: #14171a;
 }
 
@@ -234,11 +246,11 @@
      width and keeps pushing .label-type-block further right as more characters are typed. */
   min-width: 0;
   display: flex; align-items: center; justify-content: center;
-  padding: 4mm;
+  padding: 1.4mm;
   overflow: hidden;
 }
 .label-name {
-  font-family: var(--font-display); font-weight: 800; font-size: 9mm; line-height: 1.15;
+  font-family: var(--font-display); font-weight: 800; font-size: 3.2mm; line-height: 1.15;
   text-wrap: balance;
   /* Justified (even left/right edges) for readability on wrapped multi-word names; a single
      line has nothing to justify, so it's centered like the rest of the label. */
@@ -253,7 +265,7 @@
   flex: 1;
   min-width: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  border-radius: 3mm; color: #fff;
+  border-radius: 1mm; color: #fff;
   background: var(--label-accent, #5AAEDB);
 }
 .label-page[data-type="congele"] { --label-accent: #5AAEDB; }
@@ -263,13 +275,13 @@
 .label-page[data-type="jeter"] { --label-accent: #3A3F44; }
 
 .label-type {
-  font-family: var(--font-mono); font-weight: 600; font-size: 6mm;
+  font-family: var(--font-mono); font-weight: 600; font-size: 2mm;
   letter-spacing: .1em; text-transform: uppercase;
-  text-align: center; 
+  text-align: center;
 }
 .label-date {
-  font-family: var(--font-mono); font-weight: 700; font-size: 12mm; line-height: 1.05;
-  font-variant-numeric: tabular-nums; margin-top: 3mm;
+  font-family: var(--font-mono); font-weight: 700; font-size: 4mm; line-height: 1.05;
+  font-variant-numeric: tabular-nums; margin-top: 1mm;
 }
 
 
@@ -277,8 +289,8 @@
 /* .label-use-by-caption / .label-use-by reuse .label-type / .label-date's own sizing (the DLC
    date is meant to read with exactly the same weight as the main date) — only the top margin
    is overridden here, to separate the second pair from the first. */
-.label-use-by-caption { margin-top: 4mm; }
-.label-use-by { margin-top: 2mm; }
+.label-use-by-caption { margin-top: 1.5mm; }
+.label-use-by { margin-top: 0.7mm; }
 
 @media (max-width: 860px) {
   .page { padding: 24px 20px 20px; }
@@ -291,14 +303,40 @@
   .panel, .queue-panel { min-height: 0; max-height: none; overflow-y: visible; margin-bottom: 24px; }
 }
 
-/* The label mockup is a fixed physical size (150mm) for print accuracy — shrunk down to a
-   compact corner thumbnail here via `zoom` (which scales layout + paint together, unlike a
-   narrower `width` which would just clip/overlap the mm-sized content inside). */
-.preview-wrap .label-page { zoom: 0.4; }
+/* The label mockup is a fixed physical size (57mm) for print accuracy — the real label is tiny,
+   so it's scaled *up* here via `zoom` (which scales layout + paint together, unlike a wider
+   `width` which would just clip/overlap the mm-sized content inside) to stay readable on screen
+   while composing. */
+.preview-wrap .label-page { zoom: 2.4; }
 
 @media (max-width: 600px) {
-  .preview-wrap .label-page { zoom: 0.34; }
+  .preview-wrap .label-page { zoom: 1.8; }
 }
 @media (max-width: 420px) {
-  .preview-wrap .label-page { zoom: 0.28; }
+  .preview-wrap .label-page { zoom: 1.4; }
+}
+
+/* ---------- PRINT (fallback navigateur) ---------- */
+.print-batch { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+
+  .print-batch { display: block; }
+
+  .print-batch .label-page {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  .print-batch .label-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  @page {
+    size: 57mm 32mm;
+    margin: 0;
+  }
 }

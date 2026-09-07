@@ -7,7 +7,7 @@ export interface PrintedLabel {
   date: string;
   use_by_date: string | null;
   quantity: number;
-  printed_via: 'browser' | 'brother_ql';
+  printed_via: 'browser' | 'brother_ql' | 'zebra_network';
   created_at: string;
 }
 
