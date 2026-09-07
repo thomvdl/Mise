@@ -95,6 +95,9 @@ class PrintedLabelController extends Controller
             $validated['date'],
             $validated['use_by_date'] ?? null,
             $validated['quantity'],
+            (int) Setting::get('printer_dpi', '203'),
+            (float) Setting::get('label_width_mm', '57'),
+            (float) Setting::get('label_height_mm', '32'),
         );
 
         $socket = @fsockopen($printerIp, self::PRINTER_PORT, $errno, $errstr, 5);

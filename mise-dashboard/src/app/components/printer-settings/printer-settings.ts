@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 
 import { SettingService } from '../../core/services/setting.service';
 
@@ -24,12 +25,27 @@ export class PrinterSettings implements OnInit {
       nonNullable: true,
       validators: [Validators.pattern(IPV4_PATTERN)],
     }),
+    printer_dpi: new FormControl('203', { nonNullable: true, validators: [Validators.required] }),
+    label_width_mm: new FormControl(57, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    label_height_mm: new FormControl(32, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
   });
 
   ngOnInit(): void {
     this.settingService.list().subscribe((settings) => {
-      const printerIp = settings.find((s) => s.key === 'printer_ip')?.value;
-      if (printerIp) this.form.patchValue({ printer_ip: printerIp });
+      const byKey = new Map(settings.map((s) => [s.key, s.value]));
+
+      this.form.patchValue({
+        printer_ip: byKey.get('printer_ip') ?? '',
+        printer_dpi: byKey.get('printer_dpi') ?? '203',
+        label_width_mm: byKey.get('label_width_mm') ? Number(byKey.get('label_width_mm')) : 57,
+        label_height_mm: byKey.get('label_height_mm') ? Number(byKey.get('label_height_mm')) : 32,
+      });
     });
   }
 
@@ -39,13 +55,18 @@ export class PrinterSettings implements OnInit {
       return;
     }
 
-    const value = this.form.getRawValue().printer_ip.trim();
+    const value = this.form.getRawValue();
 
     this.saving.set(true);
     this.saved.set(false);
     this.errorMessage.set(null);
 
-    this.settingService.update('printer_ip', value || null).subscribe({
+    forkJoin([
+      this.settingService.update('printer_ip', value.printer_ip.trim() || null),
+      this.settingService.update('printer_dpi', value.printer_dpi),
+      this.settingService.update('label_width_mm', String(value.label_width_mm)),
+      this.settingService.update('label_height_mm', String(value.label_height_mm)),
+    ]).subscribe({
       next: () => {
         this.saving.set(false);
         this.saved.set(true);

@@ -5,7 +5,7 @@
 <form class="form-card" [formGroup]="form" (ngSubmit)="save()">
   <div class="form-grid">
     <div class="form-field">
-      <label class="form-label" for="printer_ip">Adresse IP de la Zebra ZD411d</label>
+      <label class="form-label" for="printer_ip">Adresse IP de l'imprimante</label>
       <input
         id="printer_ip"
         class="form-input"
@@ -17,9 +17,53 @@
         <span class="form-error">Adresse IPv4 invalide (ex. 192.168.1.50).</span>
       }
       <p class="form-hint">
-        Imprimante en réseau (Ethernet), écoute en ZPL sur le port 9100. Laisser vide pour
-        désactiver l'impression réseau — la page Étiquettes proposera alors uniquement le fallback
-        navigateur.
+        Imprimante Zebra en réseau (Ethernet/Wi-Fi), écoute en ZPL sur le port 9100 — n'importe
+        quel modèle Zebra convient. Laisser vide pour désactiver l'impression réseau — la page
+        Étiquettes proposera alors uniquement le fallback navigateur.
+      </p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="printer_dpi">Résolution de l'imprimante</label>
+      <select id="printer_dpi" class="form-select" formControlName="printer_dpi">
+        <option value="203">203 dpi (standard)</option>
+        <option value="300">300 dpi</option>
+        <option value="600">600 dpi</option>
+      </select>
+      <p class="form-hint">Se trouve sur la fiche technique du modèle Zebra utilisé.</p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="label_width_mm">Largeur de l'étiquette (mm)</label>
+      <input
+        id="label_width_mm"
+        class="form-input"
+        type="number"
+        min="1"
+        step="0.5"
+        formControlName="label_width_mm"
+        [class.has-error]="form.controls.label_width_mm.invalid && form.controls.label_width_mm.touched" />
+      @if (form.controls.label_width_mm.invalid && form.controls.label_width_mm.touched) {
+        <span class="form-error">Indiquez une largeur valide.</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="label_height_mm">Hauteur de l'étiquette (mm)</label>
+      <input
+        id="label_height_mm"
+        class="form-input"
+        type="number"
+        min="1"
+        step="0.5"
+        formControlName="label_height_mm"
+        [class.has-error]="form.controls.label_height_mm.invalid && form.controls.label_height_mm.touched" />
+      @if (form.controls.label_height_mm.invalid && form.controls.label_height_mm.touched) {
+        <span class="form-error">Indiquez une hauteur valide.</span>
+      }
+      <p class="form-hint">
+        Taille du support chargé dans l'imprimante — la mise en page de l'étiquette s'adapte
+        automatiquement à la résolution et à ces dimensions.
       </p>
     </div>
   </div>
