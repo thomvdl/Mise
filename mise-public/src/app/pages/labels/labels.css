@@ -303,17 +303,18 @@
   .panel, .queue-panel { min-height: 0; max-height: none; overflow-y: visible; margin-bottom: 24px; }
 }
 
-/* The label mockup is a fixed physical size (57mm) for print accuracy — the real label is tiny,
-   so it's scaled *up* here via `zoom` (which scales layout + paint together, unlike a wider
-   `width` which would just clip/overlap the mm-sized content inside) to stay readable on screen
-   while composing. */
-.preview-wrap .label-page { zoom: 2.4; }
+/* The label mockup is a fixed physical size (57mm) for print accuracy. At zoom:1 it's already
+   only ~215x121px on screen (57mm/32mm at 96dpi) — small enough to fit the ~250px reserved next
+   to the form (see #product-name above) without spilling over it, so no scaling *up* is needed
+   here unlike the old 150mm layout. Shrunk further on narrow screens, where that reserved space
+   itself gets tighter. */
+.preview-wrap .label-page { zoom: 1; }
 
 @media (max-width: 600px) {
-  .preview-wrap .label-page { zoom: 1.8; }
+  .preview-wrap .label-page { zoom: 0.85; }
 }
 @media (max-width: 420px) {
-  .preview-wrap .label-page { zoom: 1.4; }
+  .preview-wrap .label-page { zoom: 0.7; }
 }
 
 /* ---------- PRINT (fallback navigateur) ---------- */
