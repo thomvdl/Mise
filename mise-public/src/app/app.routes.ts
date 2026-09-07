@@ -15,6 +15,7 @@ export const routes: Routes = [
             { path: 'etiquettes', loadComponent: () => import('./pages/labels/labels').then((m) => m.Labels) },
             { path: 'discussion', loadComponent: () => import('./pages/discussion/discussion').then((m) => m.Discussion) },
             { path: 'courses', loadComponent: () => import('./pages/courses/courses').then((m) => m.Courses) },
+            { path: 'mise-en-place', loadComponent: () => import('./pages/mise-en-place/mise-en-place').then((m) => m.MiseEnPlace) },
             { path: 'calendrier', loadComponent: () => import('./pages/calendrier/calendrier').then((m) => m.Calendrier) },
             { path: 'temperatures', loadComponent: () => import('./pages/temperatures/temperatures').then((m) => m.Temperatures) },
             { path: 'huile', loadComponent: () => import('./pages/huile/huile').then((m) => m.Huile) },

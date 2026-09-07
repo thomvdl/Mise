@@ -1,0 +1,115 @@
+<div class="page-header">
+  <h1 class="page-title">Mise en place</h1>
+  @if (isAdmin) {
+    <div class="page-actions">
+      <button type="button" class="btn btn-danger" (click)="confirmClearAll()">Vider la liste</button>
+    </div>
+  }
+</div>
+
+<div class="section">
+  <div class="section-title">Ajouter une tâche</div>
+  <div class="add-item-row">
+    <input
+      class="form-input"
+      type="text"
+      placeholder="Ajouter une tâche…"
+      [(ngModel)]="newItemName"
+      (keydown.enter)="addItem()" />
+    <select class="station-select" (change)="onNewItemStationChange($event)">
+      <option value="" [selected]="newItemStationId() === null">Choisir une station…</option>
+      @for (station of stations(); track station.id) {
+        <option [value]="station.id" [selected]="newItemStationId() === station.id">{{ station.name }}</option>
+      }
+    </select>
+    <app-datetime-picker [(ngModel)]="newItemDeadline"></app-datetime-picker>
+    <select class="station-select" (change)="onNewItemUrgencyChange($event)">
+      <option value="faible" [selected]="newItemUrgency() === 'faible'">Faible</option>
+      <option value="moyenne" [selected]="newItemUrgency() === 'moyenne'">Moyenne</option>
+      <option value="urgente" [selected]="newItemUrgency() === 'urgente'">Urgente</option>
+    </select>
+    <button type="button" class="btn btn-primary" [disabled]="!canAdd()" (click)="addItem()">Ajouter</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Tâches ({{ filteredItems().length }})</div>
+
+  <div class="filter-row">
+    <select class="station-select" (change)="onFilterStationChange($event)">
+      <option value="" [selected]="filterStationId() === null">Toutes les stations</option>
+      @for (station of stations(); track station.id) {
+        <option [value]="station.id" [selected]="filterStationId() === station.id">{{ station.name }}</option>
+      }
+    </select>
+    <select class="station-select" (change)="onFilterStatusChange($event)">
+      <option value="" [selected]="filterStatus() === null">Tous les statuts</option>
+      <option value="todo" [selected]="filterStatus() === 'todo'">À faire</option>
+      <option value="done" [selected]="filterStatus() === 'done'">Fait</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tâche</th>
+          <th>Station</th>
+          <th>Échéance</th>
+          <th>Urgence</th>
+          <th>Ajouté par</th>
+          <th>Statut</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filteredItems(); track item.id) {
+          <tr [class.done]="item.status === 'done'">
+            <td>{{ item.name }}</td>
+            <td>
+              <span class="badge" [style.--card-color]="item.station.color">{{ item.station.name }}</span>
+            </td>
+            <td>{{ item.deadline ? (item.deadline | date: 'short') : '—' }}</td>
+            <td>
+              <span class="urgency-badge" [class]="'urgency-' + item.urgency">
+                {{ item.urgency === 'urgente' ? 'Urgente' : item.urgency === 'moyenne' ? 'Moyenne' : 'Faible' }}
+              </span>
+            </td>
+            <td>{{ item.user.name }}</td>
+            <td>
+              <span class="status-badge" [class.done]="item.status === 'done'">
+                {{ item.status === 'done' ? 'Fait' : 'À faire' }}
+              </span>
+            </td>
+            <td class="col-actions">
+              @if (isAdmin) {
+                <button type="button" class="btn btn-ghost btn-sm" (click)="toggleStatus(item)">
+                  {{ item.status === 'done' ? 'Marquer à faire' : 'Marquer fait' }}
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="7">Aucune tâche de mise en place.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="'Supprimer « ' + (pendingDelete()?.name ?? '') + ' » de la liste ?'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [open]="pendingClearAll()"
+  message="Vider toute la liste de mise en place ? Toutes les tâches seront supprimées."
+  (confirm)="clearAllConfirmed()"
+  (cancel)="cancelClearAll()">
+</app-confirm-dialog>

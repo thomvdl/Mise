@@ -195,13 +195,29 @@ export const routes: Routes = [
       },
 
       {
+        path: 'mise-en-place',
+        loadComponent: () =>
+          import('./components/mise-en-place-list/mise-en-place-list').then((m) => m.MiseEnPlaceList),
+      },
+
+      {
         path: 'calendrier',
         loadComponent: () => import('./components/event-calendar/event-calendar').then((m) => m.EventCalendar),
       },
 
       {
         path: 'parametres',
-        loadComponent: () => import('./components/parametres/parametres').then((m) => m.Parametres),
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./components/parametres/parametres').then((m) => m.Parametres),
+          },
+          {
+            path: 'impression',
+            loadComponent: () =>
+              import('./components/printer-settings/printer-settings').then((m) => m.PrinterSettings),
+          },
+        ],
       },
 
       {

@@ -1,0 +1,223 @@
+:host {
+  display: contents;
+}
+
+.page {
+  padding: 32px 36px 60px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.intro {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+}
+
+.page-sub {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.form-hint {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.text-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.add-item-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.add-item-row .text-input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.station-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--surface-2)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239AA1A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 34px 10px 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.station-select:hover {
+  border-color: var(--accent-blue);
+}
+
+.add-btn {
+  border: 1px solid var(--accent-blue);
+  background: var(--accent-blue);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.add-btn:hover:not(:disabled) {
+  background: var(--accent-blue-dim);
+  border-color: var(--accent-blue-dim);
+}
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.ing-table .col-check {
+  width: 40px;
+}
+
+.ing-table tr.done td {
+  color: var(--text-faint);
+}
+.ing-table tr.done .task-name {
+  text-decoration: line-through;
+}
+.ing-table tr.overdue td {
+  color: var(--accent-red);
+}
+.ing-table tr.overdue .task-name {
+  color: var(--text);
+}
+
+.task-name {
+  font-weight: 700;
+}
+
+.check {
+  display: inline-flex;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.check input {
+  position: absolute;
+  opacity: 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+}
+.check-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: all 0.15s ease;
+}
+.check-box svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.15s ease;
+}
+.check input:checked + .check-box {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+}
+.check input:checked + .check-box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+.check input:focus-visible + .check-box {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+.check:hover .check-box {
+  border-color: var(--accent-blue);
+}
+
+.station-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--card-color, var(--accent-blue));
+  white-space: nowrap;
+}
+
+.urgency-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.urgency-badge.urgency-faible {
+  background: color-mix(in srgb, var(--accent-green) 16%, transparent);
+  color: var(--accent-green);
+}
+.urgency-badge.urgency-moyenne {
+  background: color-mix(in srgb, #e0a83c 20%, transparent);
+  color: #b9852a;
+}
+.urgency-badge.urgency-urgente {
+  background: color-mix(in srgb, var(--accent-red) 16%, transparent);
+  color: var(--accent-red);
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 20px 18px 50px;
+  }
+  .add-item-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

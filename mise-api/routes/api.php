@@ -13,8 +13,10 @@ use App\Http\Controllers\IngredientCategoryController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MiseEnPlaceItemController;
 use App\Http\Controllers\PictureController;
 use App\Http\Controllers\PrintedLabelController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShoppingItemController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\TemperatureReleveController;
@@ -56,6 +58,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // (chaque impression côté public s'enregistre elle-même), append-only (only index/store,
     // voir PrintedLabelController).
     Route::apiResource('printed-labels', PrintedLabelController::class)->only(['index', 'store']);
+    // Imprime réellement sur la Zebra réseau (ZPL/TCP côté serveur) puis journalise en un seul
+    // aller-retour — voir PrintedLabelController::printZebra. Ouvert au même rôle que store()
+    // ci-dessus : n'importe qui peut imprimer une étiquette depuis mise-public.
+    Route::post('printed-labels/print-zebra', [PrintedLabelController::class, 'printZebra']);
 
     // Chanel de discussion — lecture et écriture de messages ouvertes à tout utilisateur
     // connecté (user ou admin), seule la création/suppression de chanels et la suppression
@@ -67,6 +73,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // son statut (à faire/fait) ou le supprimer (groupe role:admin plus bas).
     Route::apiResource('shopping-items', ShoppingItemController::class)->only(['index', 'store'])
         ->parameters(['shopping-items' => 'shopping_item']);
+
+    // Mise en place — n'importe qui peut ajouter une tâche (rattachée obligatoirement à une
+    // station) et cocher/décocher son statut (à faire/fait) depuis la case côté public ; seule
+    // la suppression est réservée à l'admin (groupe role:admin plus bas).
+    Route::apiResource('mise-en-place-items', MiseEnPlaceItemController::class)->only(['index', 'store', 'update'])
+        ->parameters(['mise-en-place-items' => 'mise_en_place_item']);
 
     // Calendrier d'événements — lecture ouverte (vue calendrier côté public), écriture
     // réservée à l'admin (groupe role:admin plus bas).
@@ -91,7 +103,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('messages', MessageController::class)->only(['destroy']);
         Route::apiResource('shopping-items', ShoppingItemController::class)->only(['update', 'destroy'])
             ->parameters(['shopping-items' => 'shopping_item']);
+        Route::apiResource('mise-en-place-items', MiseEnPlaceItemController::class)->only(['destroy'])
+            ->parameters(['mise-en-place-items' => 'mise_en_place_item']);
         Route::apiResource('events', EventController::class)->only(['store', 'update', 'destroy'])
             ->parameters(['events' => 'event']);
+
+        // Config globale de l'app (ex. IP de l'imprimante d'étiquettes) — dashboard uniquement,
+        // mise-public n'y a jamais accès directement (voir PrintedLabelController::printZebra).
+        Route::get('settings', [SettingController::class, 'index']);
+        Route::put('settings/{key}', [SettingController::class, 'update']);
     });
 });

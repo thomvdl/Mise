@@ -29,6 +29,7 @@ export class Topbar {
     { label: 'Ingrédients', path: '/ingredients' },
     { label: 'Impression', path: '/etiquettes' },
     { label: 'Discussion', path: '/discussion' },
+    { label: 'Mise en place', path: '/mise-en-place' },
     { label: 'Liste de courses', path: '/courses' },
     { label: 'Calendrier', path: '/calendrier' },
     { label: 'Températures', path: '/temperatures' },

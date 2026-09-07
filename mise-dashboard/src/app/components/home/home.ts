@@ -79,6 +79,12 @@ export class Home {
       icon: 'message',
     },
     {
+      label: 'Mise en place',
+      description: 'Todo par station avant le service.',
+      path: '/mise-en-place',
+      icon: 'check',
+    },
+    {
       label: 'Liste de courses',
       description: 'Suivre les articles à commander.',
       path: '/courses',

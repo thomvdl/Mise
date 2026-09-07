@@ -1,0 +1,93 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Mise en place</h1>
+    <p class="page-sub">Todo par station avant le service.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Ajouter une tâche</div>
+    <div class="add-item-row">
+      <input
+        class="text-input"
+        type="text"
+        placeholder="Ajouter une tâche…"
+        [(ngModel)]="newItemName"
+        (keydown.enter)="addItem()" />
+      <select class="station-select" (change)="onNewItemStationChange($event)">
+        <option value="" [selected]="newItemStationId() === null">Choisir une station…</option>
+        @for (station of stations(); track station.id) {
+          <option [value]="station.id" [selected]="newItemStationId() === station.id">{{ station.name }}</option>
+        }
+      </select>
+      <app-datetime-picker [(ngModel)]="newItemDeadline"></app-datetime-picker>
+      <select class="station-select" (change)="onNewItemUrgencyChange($event)">
+        <option value="faible" [selected]="newItemUrgency() === 'faible'">Urgence : faible</option>
+        <option value="moyenne" [selected]="newItemUrgency() === 'moyenne'">Urgence : moyenne</option>
+        <option value="urgente" [selected]="newItemUrgency() === 'urgente'">Urgence : urgente</option>
+      </select>
+      <button type="button" class="add-btn" [disabled]="!canAdd()" (click)="addItem()">Ajouter</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Tâches ({{ filteredItems().length }})</div>
+
+    <div class="filter-row">
+      <select class="station-select" (change)="onFilterStationChange($event)">
+        <option value="" [selected]="filterStationId() === null">Toutes les stations</option>
+        @for (station of stations(); track station.id) {
+          <option [value]="station.id" [selected]="filterStationId() === station.id">{{ station.name }}</option>
+        }
+      </select>
+      <select class="station-select" (change)="onFilterStatusChange($event)">
+        <option value="" [selected]="filterStatus() === null">Tous les statuts</option>
+        <option value="todo" [selected]="filterStatus() === 'todo'">À faire</option>
+        <option value="done" [selected]="filterStatus() === 'done'">Fait</option>
+      </select>
+    </div>
+
+    @if (filteredItems().length === 0) {
+      <p class="form-hint">Aucune tâche de mise en place.</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="ing-table">
+          <thead>
+            <tr>
+              <th class="col-check"></th>
+              <th>Tâche</th>
+              <th>Station</th>
+              <th>Échéance</th>
+              <th>Urgence</th>
+              <th>Ajouté par</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filteredItems(); track item.id) {
+              <tr [class.done]="item.status === 'done'" [class.overdue]="isOverdue(item)">
+                <td class="col-check">
+                  <label class="check">
+                    <input type="checkbox" [checked]="item.status === 'done'" (change)="toggleDone(item, $event)" />
+                    <span class="check-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>
+                    </span>
+                  </label>
+                </td>
+                <td class="task-name">{{ item.name }}</td>
+                <td>
+                  <span class="station-badge" [style.--card-color]="item.station.color">{{ item.station.name }}</span>
+                </td>
+                <td>{{ item.deadline ? (item.deadline | date: 'short') : '—' }}</td>
+                <td>
+                  <span class="urgency-badge" [class]="'urgency-' + item.urgency">
+                    {{ item.urgency === 'urgente' ? 'Urgente' : item.urgency === 'moyenne' ? 'Moyenne' : 'Faible' }}
+                  </span>
+                </td>
+                <td>{{ item.user.name }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

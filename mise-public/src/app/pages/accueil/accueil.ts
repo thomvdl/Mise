@@ -67,6 +67,12 @@ export class Accueil {
       icon: 'droplet',
     },
     {
+      label: 'Mise en place',
+      description: 'Todo par station avant le service.',
+      path: '/mise-en-place',
+      icon: 'check',
+    },
+    {
       label: 'Liste de courses',
       description: 'Ajouter et suivre les articles à commander.',
       path: '/courses',
