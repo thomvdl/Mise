@@ -13,7 +13,7 @@ class ShoppingItemController extends Controller
      */
     public function index()
     {
-        return ShoppingItem::query()->with('user:id,name')->orderBy('created_at')->get();
+        return ShoppingItem::query()->with(['user:id,name', 'station'])->orderBy('created_at')->get();
     }
 
     /**
@@ -25,11 +25,12 @@ class ShoppingItemController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'station_id' => ['nullable', 'integer', 'exists:stations,id'],
         ]);
 
         $item = ShoppingItem::create([...$validated, 'user_id' => $request->user()->id, 'status' => 'todo']);
 
-        return response()->json($item->load('user:id,name'), 201);
+        return response()->json($item->load(['user:id,name', 'station']), 201);
     }
 
     /**
@@ -45,7 +46,7 @@ class ShoppingItemController extends Controller
 
         $shoppingItem->update($validated);
 
-        return $shoppingItem->load('user:id,name');
+        return $shoppingItem->load(['user:id,name', 'station']);
     }
 
     /**

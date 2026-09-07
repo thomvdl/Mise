@@ -1,56 +1,80 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { ShoppingItemService } from '../../core/services/shopping-item.service';
-import { ShoppingItem } from '../../core/models/shopping-item.model';
+import { SimpleEntityService } from '../../core/services/simple-entity.service';
+import { ShoppingItem, ShoppingStatus } from '../../core/models/shopping-item.model';
+import { Station } from '../../core/models/station.model';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-shopping-list',
-  imports: [FormsModule, DatePipe, ConfirmDialog],
+  imports: [FormsModule, ConfirmDialog],
   templateUrl: './shopping-list.html',
   styleUrl: './shopping-list.css',
 })
 export class ShoppingList implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly shoppingItemService = inject(ShoppingItemService);
+  private readonly stationService = new SimpleEntityService<Station>(inject(HttpClient), 'stations');
 
   readonly isAdmin = this.auth.isAdmin();
 
   items = signal<ShoppingItem[]>([]);
+  stations = signal<Station[]>([]);
   newItemName = signal('');
+  newItemStationId = signal<number | null>(null);
   pendingDelete = signal<ShoppingItem | null>(null);
   pendingClearAll = signal(false);
 
-  sortByStatus = signal(false);
+  filterStationId = signal<number | null>(null);
+  filterStatus = signal<ShoppingStatus | null>('todo');
 
-  sortedItems = computed(() => {
-    const items = this.items();
-    if (!this.sortByStatus()) return items;
-    return [...items].sort((a, b) => (a.status === b.status ? 0 : a.status === 'done' ? 1 : -1));
+  filteredItems = computed(() => {
+    const stationId = this.filterStationId();
+    const status = this.filterStatus();
+
+    return this.items().filter((item) => {
+      const matchesStation = stationId === null || item.station?.id === stationId;
+      const matchesStatus = status === null || item.status === status;
+      return matchesStation && matchesStatus;
+    });
   });
 
   ngOnInit(): void {
     this.reload();
+    this.stationService.list().subscribe((stations) => this.stations.set(stations));
   }
 
   reload(): void {
     this.shoppingItemService.list().subscribe((items) => this.items.set([...items].reverse()));
   }
 
-  toggleSort(): void {
-    this.sortByStatus.update((sorted) => !sorted);
+  onNewItemStationChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.newItemStationId.set(value ? Number(value) : null);
+  }
+
+  onFilterStationChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.filterStationId.set(value ? Number(value) : null);
+  }
+
+  onFilterStatusChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.filterStatus.set(value ? (value as ShoppingStatus) : null);
   }
 
   addItem(): void {
     const name = this.newItemName().trim();
     if (!name) return;
 
-    this.shoppingItemService.create(name).subscribe(() => {
+    this.shoppingItemService.create(name, this.newItemStationId()).subscribe(() => {
       this.newItemName.set('');
+      this.newItemStationId.set(null);
       this.reload();
     });
   }

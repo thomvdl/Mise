@@ -2,60 +2,90 @@
   <h1 class="page-title">Liste de courses</h1>
   @if (isAdmin) {
     <div class="page-actions">
-      <button type="button" class="btn btn-ghost" (click)="toggleSort()">
-        {{ sortByStatus() ? 'Trier par ajout' : 'Trier par statut' }}
-      </button>
       <button type="button" class="btn btn-danger" (click)="confirmClearAll()">Vider la liste</button>
     </div>
   }
 </div>
 
-<div class="add-item-row">
-  <input
-    class="form-input"
-    type="text"
-    placeholder="Ajouter un article…"
-    [(ngModel)]="newItemName"
-    (keydown.enter)="addItem()" />
-  <button type="button" class="btn btn-primary" (click)="addItem()">Ajouter</button>
+<div class="section">
+  <div class="section-title">Ajouter un article</div>
+  <div class="add-item-row">
+    <input
+      class="form-input"
+      type="text"
+      placeholder="Ajouter un article…"
+      [(ngModel)]="newItemName"
+      (keydown.enter)="addItem()" />
+    <select class="station-select" (change)="onNewItemStationChange($event)">
+      <option value="" [selected]="newItemStationId() === null">Sans station</option>
+      @for (station of stations(); track station.id) {
+        <option [value]="station.id" [selected]="newItemStationId() === station.id">{{ station.name }}</option>
+      }
+    </select>
+    <button type="button" class="btn btn-primary" (click)="addItem()">Ajouter</button>
+  </div>
 </div>
 
-<div class="table-wrap">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Article</th>
-        <th>Ajouté par</th>
-        <th>Statut</th>
-        <th class="col-actions"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (item of sortedItems(); track item.id) {
-        <tr [class.done]="item.status === 'done'">
-          <td>{{ item.name }}</td>
-          <td>{{ item.user.name }}</td>
-          <td>
-            <span class="status-badge" [class.done]="item.status === 'done'">
-              {{ item.status === 'done' ? 'Fait' : 'À faire' }}
-            </span>
-          </td>
-          <td class="col-actions">
-            @if (isAdmin) {
-              <button type="button" class="btn btn-ghost btn-sm" (click)="toggleStatus(item)">
-                {{ item.status === 'done' ? 'Marquer à faire' : 'Marquer fait' }}
-              </button>
-              <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
-            }
-          </td>
-        </tr>
-      } @empty {
-        <tr class="empty-row">
-          <td colspan="4">Aucun article dans la liste.</td>
-        </tr>
+<div class="section">
+  <div class="section-title">Articles ({{ filteredItems().length }})</div>
+
+  <div class="filter-row">
+    <select class="station-select" (change)="onFilterStationChange($event)">
+      <option value="" [selected]="filterStationId() === null">Toutes les stations</option>
+      @for (station of stations(); track station.id) {
+        <option [value]="station.id" [selected]="filterStationId() === station.id">{{ station.name }}</option>
       }
-    </tbody>
-  </table>
+    </select>
+    <select class="station-select" (change)="onFilterStatusChange($event)">
+      <option value="" [selected]="filterStatus() === null">Tous les statuts</option>
+      <option value="todo" [selected]="filterStatus() === 'todo'">À faire</option>
+      <option value="done" [selected]="filterStatus() === 'done'">Fait</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Article</th>
+          <th>Station</th>
+          <th>Ajouté par</th>
+          <th>Statut</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filteredItems(); track item.id) {
+          <tr [class.done]="item.status === 'done'">
+            <td>{{ item.name }}</td>
+            <td>
+              @if (item.station) {
+                <span class="badge" [style.--card-color]="item.station.color">{{ item.station.name }}</span>
+              }
+            </td>
+            <td>{{ item.user.name }}</td>
+            <td>
+              <span class="status-badge" [class.done]="item.status === 'done'">
+                {{ item.status === 'done' ? 'Fait' : 'À faire' }}
+              </span>
+            </td>
+            <td class="col-actions">
+              @if (isAdmin) {
+                <button type="button" class="btn btn-ghost btn-sm" (click)="toggleStatus(item)">
+                  {{ item.status === 'done' ? 'Marquer à faire' : 'Marquer fait' }}
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="5">Aucun article dans la liste.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <app-confirm-dialog

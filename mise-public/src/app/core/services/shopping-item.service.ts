@@ -13,7 +13,7 @@ export class ShoppingItemService {
     return this.http.get<ShoppingItem[]>(this.baseUrl);
   }
 
-  create(name: string) {
-    return this.http.post<ShoppingItem>(this.baseUrl, { name });
+  create(name: string, stationId: number | null) {
+    return this.http.post<ShoppingItem>(this.baseUrl, { name, station_id: stationId });
   }
 }
