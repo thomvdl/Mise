@@ -25,6 +25,10 @@ class AllergenSeeder extends Seeder
             'moutarde' => ['code' => 'MOU', 'color' => '#EAB308'],
             'soja' => ['code' => 'SOJ', 'color' => '#A3E635'],
             'sulfites' => ['code' => 'SUL', 'color' => '#A855F7'],
+            'arachides' => ['code' => 'ARA', 'color' => '#B45309'],
+            'sésame' => ['code' => 'SES', 'color' => '#14B8A6'],
+            'mollusques' => ['code' => 'MOL', 'color' => '#6366F1'],
+            'lupin' => ['code' => 'LUP', 'color' => '#EC4899'],
         ];
 
         foreach ($allergens as $name => $data) {
