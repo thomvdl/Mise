@@ -17,6 +17,15 @@
       [value]="covers()"
       (change)="onCoversInput($event)" />
   </div>
+
+  <div class="form-field">
+    <label class="form-label" for="group-by">Grouper par</label>
+    <select id="group-by" class="form-select" [value]="groupBy()" (change)="onGroupByInput($event)">
+      <option value="categorie">Catégorie</option>
+      <option value="poste">Poste</option>
+      <option value="fiche-technique">Fiche technique</option>
+    </select>
+  </div>
 </div>
 
 @if (menu(); as menu) {
@@ -35,9 +44,9 @@
     @if (isEmpty()) {
       <p class="report-empty">Aucune fiche technique liée aux plats de ce menu.</p>
     } @else {
-      @for (group of groups(); track group.categoryName) {
+      @for (group of groups(); track group.label) {
         <div class="section">
-          <div class="section-title">{{ group.categoryName }}</div>
+          <div class="section-title">{{ group.label }}</div>
           <table class="data-table">
             <tbody>
               @for (line of group.lines; track line.ingredientId) {

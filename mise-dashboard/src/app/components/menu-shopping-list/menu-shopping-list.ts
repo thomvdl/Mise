@@ -10,7 +10,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { Menu } from '../../core/models/menu.model';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { buildShoppingList } from '../../core/utils/menu-shopping-list';
+import { ShoppingListGroupBy, buildShoppingList } from '../../core/utils/menu-shopping-list';
 import { useReportTitle } from '../../core/utils/report-title';
 
 const DEFAULT_COVERS = 10;
@@ -48,12 +48,15 @@ export class MenuShoppingList {
   );
 
   covers = signal(DEFAULT_COVERS);
+  groupBy = signal<ShoppingListGroupBy>('categorie');
 
   /** Cases cochées pendant les courses — état purement local, jamais persisté. */
   private readonly checked = signal<Set<number>>(new Set());
 
   groups = computed(() =>
-    this.menu() ? buildShoppingList(this.menu()!, this.fichesById(), this.ingredientsById(), this.covers()) : [],
+    this.menu()
+      ? buildShoppingList(this.menu()!, this.fichesById(), this.ingredientsById(), this.covers(), this.groupBy())
+      : [],
   );
 
   isEmpty = computed(() => this.groups().every((group) => group.lines.length === 0) && this.menu() !== null);
@@ -76,6 +79,10 @@ export class MenuShoppingList {
   onCoversInput(event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
     if (value > 0) this.covers.set(value);
+  }
+
+  onGroupByInput(event: Event): void {
+    this.groupBy.set((event.target as HTMLSelectElement).value as ShoppingListGroupBy);
   }
 
   isChecked(ingredientId: number): boolean {
