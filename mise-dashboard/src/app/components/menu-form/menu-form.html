@@ -76,6 +76,20 @@
               [formControl]="section.controls.name"
               placeholder="Nom de la section (ex. Entrées, Plats, Desserts)"
               [class.has-error]="section.controls.name.invalid && section.controls.name.touched" />
+            <div class="section-order">
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="moveSection(sectionIndex, -1)"
+                [disabled]="sectionIndex === 0"
+                aria-label="Monter cette section">↑</button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="moveSection(sectionIndex, 1)"
+                [disabled]="sectionIndex === sections.controls.length - 1"
+                aria-label="Descendre cette section">↓</button>
+            </div>
             @if (sections.length > 1) {
               <button
                 type="button"

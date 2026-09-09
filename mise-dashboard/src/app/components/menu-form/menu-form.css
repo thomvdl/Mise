@@ -23,6 +23,16 @@
   font-weight: 600;
 }
 
+.section-order {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.section-order .btn {
+  padding: 4px 10px;
+}
+
 .plats {
   display: flex;
   flex-direction: column;

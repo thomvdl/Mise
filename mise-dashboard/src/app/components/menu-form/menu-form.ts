@@ -134,6 +134,15 @@ export class MenuForm implements OnInit {
     this.sections.removeAt(index);
   }
 
+  moveSection(index: number, direction: -1 | 1): void {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= this.sections.length) return;
+
+    const control = this.sections.at(index);
+    this.sections.removeAt(index);
+    this.sections.insert(newIndex, control);
+  }
+
   addPlat(sectionIndex: number): void {
     this.sections.at(sectionIndex).controls.plats.push(this.buildPlatRow('', '', []));
   }
