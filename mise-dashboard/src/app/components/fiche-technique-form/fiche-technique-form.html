@@ -142,15 +142,11 @@
             @for (row of group.controls.rows.controls; track $index) {
               <div class="editable-row">
                 <div class="form-field">
-                  <select
-                    class="form-select"
+                  <app-ingredient-search-select
+                    [ingredients]="ingredients()"
                     [formControl]="row.controls.ingredient_id"
                     [class.has-error]="row.controls.ingredient_id.invalid && row.controls.ingredient_id.touched">
-                    <option [ngValue]="null">— Choisir un ingrédient —</option>
-                    @for (ingredient of ingredients(); track ingredient.id) {
-                      <option [ngValue]="ingredient.id">{{ ingredient.name }} ({{ ingredient.unit }})</option>
-                    }
-                  </select>
+                  </app-ingredient-search-select>
                 </div>
                 <div class="form-field qty-field">
                   <input

@@ -12,6 +12,7 @@ import { Ingredient } from '../../core/models/ingredient.model';
 import { Difficulty, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
 import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
+import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
 
 type IngredientRow = FormGroup<{
   ingredient_id: FormControl<number | null>;
@@ -30,7 +31,7 @@ type StepRow = FormGroup<{
 
 @Component({
   selector: 'app-fiche-technique-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect],
   templateUrl: './fiche-technique-form.html',
   styleUrl: './fiche-technique-form.css',
 })

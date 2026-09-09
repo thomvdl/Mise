@@ -1,0 +1,40 @@
+<input
+  class="form-input"
+  type="text"
+  autocomplete="off"
+  role="combobox"
+  aria-autocomplete="list"
+  [attr.aria-expanded]="open()"
+  [value]="query()"
+  [disabled]="disabled()"
+  placeholder="Rechercher un ingrédient…"
+  (input)="onInput($any($event.target).value)"
+  (focus)="onFocus()"
+  (keydown)="onKeydown($event)" />
+
+@if (open()) {
+  <div class="iss-panel" role="listbox">
+    @if (results().length === 0) {
+      <p class="iss-empty">Aucun ingrédient trouvé.</p>
+    } @else {
+      @for (ingredient of results(); track ingredient.id; let i = $index) {
+        <button
+          type="button"
+          class="iss-option"
+          role="option"
+          [class.active]="i === activeIndex()"
+          [attr.aria-selected]="ingredient.id === selectedId()"
+          (click)="select(ingredient)"
+          (mouseenter)="activeIndex.set(i)">
+          <span class="iss-option-name">{{ ingredient.name }}</span>
+          <span class="iss-option-meta">
+            {{ ingredient.unit }}@if (ingredient.category) { · {{ ingredient.category.name }} }
+          </span>
+        </button>
+      }
+      @if (moreCount() > 0) {
+        <p class="iss-more">+{{ moreCount() }} autres résultats — affinez la recherche</p>
+      }
+    }
+  </div>
+}
