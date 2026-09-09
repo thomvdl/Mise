@@ -1,0 +1,69 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Grille allergènes</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/menus">Retour</a>
+    <button type="button" class="btn btn-primary" [disabled]="!menu()" (click)="print()">Imprimer</button>
+  </div>
+</div>
+
+@if (menu(); as menu) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Grille allergènes</h1>
+    <p class="report-print-subtitle">{{ menu.name }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">{{ menu.name }}</h2>
+    </div>
+
+    @if (isEmpty()) {
+      <p class="report-empty">Aucun plat dans ce menu.</p>
+    } @else if (grid(); as grid) {
+      <div class="table-wrap">
+        <table class="data-table allergen-grid">
+          <thead>
+            <tr>
+              <th class="ag-plat-col">Plat</th>
+              @for (allergen of grid.allergens; track allergen.id) {
+                <th class="ag-allergen-col" [title]="allergen.name">{{ allergen.code }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of grid.rows; track row.platId) {
+              <tr>
+                <td class="ag-plat-name">
+                  {{ row.platName }}
+                  <span class="ag-section">{{ row.sectionName }}</span>
+                </td>
+                @for (allergen of grid.allergens; track allergen.id) {
+                  <td class="ag-cell" [class.ag-present]="hasAllergen(row, allergen.id)">
+                    @if (hasAllergen(row, allergen.id)) {
+                      <span aria-hidden="true">●</span>
+                    }
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr class="empty-row">
+                <td [attr.colspan]="grid.allergens.length + 1">Aucun plat dans ce menu.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ag-legend no-print">
+        @for (allergen of grid.allergens; track allergen.id) {
+          <span class="ag-legend-item"><strong>{{ allergen.code }}</strong> {{ allergen.name }}</span>
+        }
+      </div>
+    }
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else {
+  <p class="report-empty no-print">Chargement…</p>
+}

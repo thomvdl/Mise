@@ -97,6 +97,11 @@ export const routes: Routes = [
               import('./components/menu-shopping-list/menu-shopping-list').then((m) => m.MenuShoppingList),
           },
           {
+            path: ':id/allergenes',
+            loadComponent: () =>
+              import('./components/menu-allergen-grid/menu-allergen-grid').then((m) => m.MenuAllergenGrid),
+          },
+          {
             path: ':id',
             loadComponent: () => import('./components/menu-form/menu-form').then((m) => m.MenuForm),
           },
