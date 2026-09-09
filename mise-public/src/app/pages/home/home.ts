@@ -48,11 +48,18 @@ export class Home {
     this.ficheTechniques().map((fiche) => enrichFicheTechnique(fiche, this.ingredientsById())),
   );
 
+  /** Plus récentes en premier. */
+  sortedFiches = computed(() =>
+    [...this.enrichedFiches()].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    ),
+  );
+
   filteredFiches = computed(() => {
     const station = this.activeStationSlug();
     const query = this.searchQuery().trim().toLowerCase();
 
-    return this.enrichedFiches().filter((fiche) => {
+    return this.sortedFiches().filter((fiche) => {
       const matchesStation = !station || fiche.station?.slug === station;
       const matchesQuery = !query || fiche.name.toLowerCase().includes(query);
       return matchesStation && matchesQuery;

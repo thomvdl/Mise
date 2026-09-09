@@ -19,6 +19,7 @@ export interface FicheTechnique {
   station_id: number | null;
   servings: number;
   difficulty: Difficulty;
+  created_at: string;
   description: string | null;
   equipment: string[] | null;
   mise_en_place: string | null;
