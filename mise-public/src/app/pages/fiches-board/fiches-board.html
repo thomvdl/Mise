@@ -1,0 +1,47 @@
+<div class="board-header">
+  <div>
+    <h1 class="board-title">Fiches techniques</h1>
+    <p class="board-count">{{ totalCount() }} fiche{{ totalCount() > 1 ? 's' : '' }}</p>
+  </div>
+
+  <div class="board-actions">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher une fiche…" [value]="search()" (input)="onSearchInput($event)">
+    </div>
+    <a class="board-search-link" routerLink="/fiches/recherche">Recherche avancée →</a>
+  </div>
+</div>
+
+<div class="board">
+  @for (column of columns(); track column.station?.id ?? 'sans-poste') {
+    <div class="board-column">
+      <div class="board-column-header" [style.--card-color]="column.station?.color">
+        <span class="board-column-name">{{ column.station?.name ?? 'Sans poste' }}</span>
+        <span class="board-column-count">{{ column.fiches.length }}</span>
+      </div>
+
+      <div class="board-column-cards">
+        @for (fiche of column.fiches; track fiche.id) {
+          <a
+            class="recipe-card"
+            [style.--card-color]="column.station?.color"
+            routerLink="/fiches/recherche"
+            [queryParams]="{ id: fiche.id }">
+            <div class="rc-top">
+              <div class="rc-name">{{ fiche.name }}</div>
+            </div>
+            <div class="rc-meta">
+              <span>{{ fiche.servings }} pers.</span>
+              <span>Difficulté {{ fiche.difficulty }}/3</span>
+            </div>
+          </a>
+        } @empty {
+          <p class="board-column-empty">Aucune fiche.</p>
+        }
+      </div>
+    </div>
+  } @empty {
+    <p class="list-heading">Aucune fiche ne correspond à la recherche.</p>
+  }
+</div>

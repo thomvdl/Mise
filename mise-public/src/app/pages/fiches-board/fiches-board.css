@@ -1,0 +1,129 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 28px 36px 24px;
+}
+
+.board-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.board-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  margin: 0 0 4px;
+}
+
+.board-count {
+  margin: 0;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.board-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.board-search-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.board-search-link:hover {
+  color: var(--accent-blue);
+}
+
+.board {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 280px;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.board-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  border-top: 3px solid var(--card-color, var(--text-faint));
+  background: var(--surface-2);
+}
+
+.board-column-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14.5px;
+}
+
+.board-column-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--surface-3);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.board-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.board-column-empty {
+  margin: 4px;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+/* .recipe-card est un <button> partout ailleurs (recipe-list) — ici c'est un <a> routerLink,
+   inline par défaut, d'où ce réajustement propre à cette page. */
+.board-column-cards .recipe-card {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+@media (max-width: 880px) {
+  :host {
+    padding: 18px 18px 24px;
+  }
+  .board-column {
+    flex: 0 0 240px;
+  }
+}

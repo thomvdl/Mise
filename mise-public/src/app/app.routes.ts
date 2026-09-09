@@ -9,7 +9,8 @@ export const routes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', loadComponent: () => import('./pages/accueil/accueil').then((m) => m.Accueil) },
-            { path: 'fiches', loadComponent: () => import('./pages/home/home').then((m) => m.Home) },
+            { path: 'fiches', loadComponent: () => import('./pages/fiches-board/fiches-board').then((m) => m.FichesBoard) },
+            { path: 'fiches/recherche', loadComponent: () => import('./pages/home/home').then((m) => m.Home) },
             { path: 'menus', loadComponent: () => import('./pages/menus/menus').then((m) => m.Menus) },
             { path: 'ingredients', loadComponent: () => import('./pages/ingredients/ingredients').then((m) => m.Ingredients) },
             { path: 'etiquettes', loadComponent: () => import('./pages/labels/labels').then((m) => m.Labels) },
