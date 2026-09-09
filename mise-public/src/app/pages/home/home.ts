@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
 import { RecipeFilters } from '../../components/recipe-filters/recipe-filters';
@@ -15,7 +15,7 @@ import { enrichFicheTechnique } from '../../core/utils/enrich-fiche-technique';
 
 @Component({
   selector: 'app-home',
-  imports: [RecipeFilters, RecipeList, RecipeDetail, RouterLink],
+  imports: [RecipeFilters, RecipeList, RecipeDetail],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
