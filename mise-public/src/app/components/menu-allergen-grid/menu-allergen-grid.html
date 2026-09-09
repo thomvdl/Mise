@@ -1,0 +1,45 @@
+@if (grid(); as grid) {
+  <div class="section">
+    <div class="section-title">Grille allergènes</div>
+
+    @if (grid.rows.length === 0) {
+      <p class="list-heading">Aucun plat dans ce menu.</p>
+    } @else {
+      <div class="ag-table-wrap">
+        <table class="allergen-grid">
+          <thead>
+            <tr>
+              <th class="ag-plat-col">Plat</th>
+              @for (allergen of grid.allergens; track allergen.id) {
+                <th class="ag-allergen-col" [title]="allergen.name">{{ allergen.code }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of grid.rows; track row.platId) {
+              <tr>
+                <td class="ag-plat-name">
+                  {{ row.platName }}
+                  <span class="ag-section">{{ row.sectionName }}</span>
+                </td>
+                @for (allergen of grid.allergens; track allergen.id) {
+                  <td class="ag-cell" [class.ag-present]="hasAllergen(row, allergen.id)">
+                    @if (hasAllergen(row, allergen.id)) {
+                      <span aria-hidden="true">●</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ag-legend">
+        @for (allergen of grid.allergens; track allergen.id) {
+          <span class="ag-legend-item"><strong>{{ allergen.code }}</strong> {{ allergen.name }}</span>
+        }
+      </div>
+    }
+  </div>
+}

@@ -251,4 +251,28 @@
   .menu-plat-desc {
     font-size: 6pt !important;
   }
+
+  /* ---------- GRILLE ALLERGÈNES (menu-allergen-grid) ---------- */
+  .allergen-grid th,
+  .allergen-grid td {
+    padding: 2pt 4pt !important;
+    border-bottom: 0.5pt solid #999 !important;
+  }
+
+  .allergen-grid th {
+    font-size: 5.5pt !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .ag-plat-name {
+    font-size: 6.8pt !important;
+  }
+
+  .ag-section {
+    font-size: 5.5pt !important;
+  }
+
+  .ag-legend-item {
+    font-size: 6pt !important;
+  }
 }

@@ -15,6 +15,9 @@
       }
       <div class="dh-actions no-print">
         <button type="button" class="print-label-link" (click)="print()">Imprimer le menu</button>
+        <button type="button" class="print-label-link" (click)="showAllergenGrid.set(!showAllergenGrid())">
+          {{ showAllergenGrid() ? 'Masquer la grille allergènes' : 'Grille allergènes' }}
+        </button>
       </div>
     </div>
   </div>
@@ -44,6 +47,10 @@
     </div>
   } @empty {
     <p class="list-heading">Aucune section dans ce menu.</p>
+  }
+
+  @if (showAllergenGrid()) {
+    <app-menu-allergen-grid [menu]="m" />
   }
 
   <p class="report-print-footer only-print">MISE.</p>
