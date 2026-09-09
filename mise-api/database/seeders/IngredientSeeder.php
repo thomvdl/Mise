@@ -173,7 +173,7 @@ class IngredientSeeder extends Seeder
             ['name' => 'Ail', 'unit' => 'kg', 'price' => 6.00, 'category' => 'Légumes', 'allergens' => []],
             ['name' => 'Poireau', 'unit' => 'kg', 'price' => 2.00, 'category' => 'Légumes', 'allergens' => []],
             ['name' => 'Tomate', 'unit' => 'kg', 'price' => 2.80, 'category' => 'Légumes', 'allergens' => []],
-            ['name' => 'Concombre', 'unit' => 'kg', 'price' => 1.80, 'category' => 'Légumes', 'allergens' => []],
+            ['name' => 'Concombre', 'unit' => 'pièce', 'price' => 0.90, 'category' => 'Légumes', 'allergens' => []],
             ['name' => 'Courgette', 'unit' => 'kg', 'price' => 2.20, 'category' => 'Légumes', 'allergens' => []],
             ['name' => 'Aubergine', 'unit' => 'kg', 'price' => 2.60, 'category' => 'Légumes', 'allergens' => []],
             ['name' => 'Poivron rouge', 'unit' => 'kg', 'price' => 3.50, 'category' => 'Légumes', 'allergens' => []],
