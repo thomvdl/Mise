@@ -99,7 +99,7 @@
 .board-column-cards {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   padding: 14px;
   overflow-y: auto;
   /* Valeur fixe plutôt que de compter sur la chaîne flex min-height:0 (fragile à travers
@@ -122,19 +122,25 @@
   text-decoration: none;
   cursor: pointer;
   margin-bottom: 0;
-  padding: 14px 16px;
+  padding: 18px 18px;
+  overflow: visible;
 }
 
 .board-column-cards .rc-name {
-  font-size: 16px;
-  line-height: 1.3;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  display: block;
+  font-size: 17px;
+  line-height: 1.35;
+  /* Pas de line-clamp ici — ces cartes sont l'affichage principal, le nom complet doit rester
+     lisible plutôt que tronqué avec des points de suspension. */
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+  white-space: normal;
 }
 
 .board-column-cards .rc-meta {
-  font-size: 13px;
-  margin-top: 6px;
+  font-size: 13.5px;
+  margin-top: 10px;
 }
 
 @media (max-width: 880px) {
