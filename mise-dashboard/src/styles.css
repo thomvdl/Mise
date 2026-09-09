@@ -223,6 +223,16 @@ html[data-theme="light"] .theme-toggle .knob{ left:31px; background:var(--accent
   padding:9px 12px; border-radius:8px; font-size:13.5px; width:100%;
 }
 .form-textarea{ resize:vertical; min-height:80px; line-height:1.5; }
+.form-select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  padding-right:34px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239AA1A8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.form-select:hover{ border-color:var(--accent-blue); }
+html[data-theme="light"] .form-select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23585F65' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
 .form-input.has-error, .form-select.has-error, .form-textarea.has-error{ border-color:var(--accent-red); }
 .form-error{ font-size:11.5px; color:var(--accent-red); }
 .checkbox-grid{ display:flex; flex-wrap:wrap; gap:8px; }
