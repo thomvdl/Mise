@@ -2,105 +2,418 @@
   color: var(--text-faint);
 }
 
-.report-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+/* Reprend mise-public/recipe-detail.css + les classes équivalentes de mise-public/styles.css
+   (dh-*, dial, ing-table, steps, timer, chef-note…) — dupliquées ici plutôt que partagées,
+   comme partout ailleurs entre les deux frontends (voir CONTEXT.md : pas de package commun). */
+
+.dh-photo {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
   border-radius: var(--radius);
-  padding: 1.25rem;
-  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  margin-bottom: 22px;
 }
 
-.fp-badges {
+.detail-header {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.dh-left {
+  flex: 1;
+  min-width: 260px;
+}
+
+.dh-station {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 5px;
   margin-bottom: 10px;
 }
 
-.fp-title {
-  margin: 0 0 6px;
-  font-size: 1.3rem;
-  color: var(--text);
+.dh-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 32px;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
 }
 
-.fp-sub {
-  margin: 0 0 10px;
+.dh-sub {
   color: var(--text-dim);
-  font-size: 0.9rem;
-  max-width: 70ch;
-}
-
-.fp-meta {
-  display: flex;
-  gap: 1.25rem;
-  color: var(--text-faint);
-  font-size: 0.85rem;
-  margin-bottom: 10px;
-}
-
-.fp-allergens {
-  margin-bottom: 4px;
-}
-
-.fp-equipment {
-  margin: 0;
-  padding-left: 1.2rem;
-  color: var(--text);
-  font-size: 0.9rem;
-}
-
-.fp-group-label {
-  color: var(--text-faint);
-  font-size: 0.8rem;
-  margin-left: 4px;
-}
-
-.fp-note {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  max-width: 80ch;
-}
-
-.fp-note-warning {
-  color: var(--accent-red);
-}
-
-.fp-steps {
-  margin: 0;
-  padding-left: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.fp-steps li {
-  color: var(--text);
-  font-size: 0.9rem;
+  font-size: 14px;
+  max-width: 60ch;
   line-height: 1.5;
 }
 
-.fp-step-timer {
-  margin-left: 8px;
+.dh-allergens {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.dh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.print-label-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-copper);
+  background: none;
+  border: 1px solid var(--accent-copper);
+  border-radius: 999px;
+  padding: 6px 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.print-label-link:hover {
+  background: var(--accent-copper);
+  color: #fff;
+}
+
+/* portions dial */
+.dial-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.dial-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+.dial-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.dial {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+.dial svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.dial-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 6;
+}
+.dial-progress {
+  fill: none;
+  stroke: var(--accent-blue);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s ease;
+}
+.dial-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.dial-num {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+.dial-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
   color: var(--text-faint);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.equipment-list li {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ingredients table */
+.ing-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ing-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.ing-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ing-table tr:last-child td {
+  border-bottom: none;
+}
+.ing-group-row td {
+  padding: 14px 10px 6px;
+  border-bottom: none;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.ing-group-row:first-child td {
+  padding-top: 0;
+}
+.ing-name {
+  font-weight: 600;
+}
+.ing-qty {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ing-cost {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.cost-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28px;
+  padding: 12px 10px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.cf-item {
+  text-align: right;
+}
+.cf-label {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.cf-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+.cf-note {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* steps */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.step {
+  display: flex;
+  gap: 14px;
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.step:hover {
+  background: var(--surface-2);
+}
+.step:last-child {
+  border-bottom: none;
+}
+.step-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.step.done .step-num {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: #fff;
+}
+.step-body {
+  flex: 1;
+}
+.step-text {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.step.done .step-text {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+.step-meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timer-ring {
+  position: relative;
+  width: 30px;
+  height: 30px;
+}
+.timer-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.timer-ring .tr-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+.timer-ring .tr-progress {
+  fill: none;
+  stroke: var(--accent-copper);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.timer-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+.timer-btn:hover {
+  border-color: var(--accent-copper);
+  color: var(--accent-copper);
+}
+.timer-btn.running {
+  background: var(--accent-copper);
+  color: #fff;
+  border-color: var(--accent-copper);
+}
+.timer-time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 44px;
+}
+
+/* chef note */
+.chef-note {
+  border: 1px dashed var(--border);
+  border-left: 3px solid var(--accent-copper);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  background: var(--surface-2);
+}
+.chef-note strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-copper);
+  margin-bottom: 6px;
+}
+.chef-note.haccp {
+  border-left-color: var(--accent-red);
+}
+.chef-note.haccp strong {
+  color: var(--accent-red);
 }
 
 .only-print {
   display: none;
 }
 
-/* La mise en page d'impression commune (en-tête/pied de page, report-card, section, tableau,
-   badges, noir et blanc, tenue sur une page A4…) vit dans src/styles/print-report.css — ne
-   reste ici que ce qui est propre à cette page : la note HACCP ne peut plus compter sur le
-   rouge en N&B, donc gras à la place. */
+/* La mise en page d'impression commune (en-tête/pied de page, noir et blanc, tenue sur une
+   page A4…) vit dans src/styles/print-report.css — ne reste ici que ce qui est propre à cette
+   page : masquer le dial et les minuteurs interactifs (inutiles sur papier). */
 @media print {
-  .fp-note-warning {
-    font-weight: 700;
-  }
-
-  .fp-steps li {
-    break-inside: avoid;
+  .dh-title {
+    font-size: 26px;
   }
 }

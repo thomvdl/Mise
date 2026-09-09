@@ -113,32 +113,114 @@
     gap: 8pt !important;
   }
 
-  /* Titres/sous-titres/méta propres aux pages fiche technique (fp-*) et menu (mp-*) — mêmes
-     rôles que report-print-subtitle/meta ci-dessus mais rendus par des classes différentes
-     puisque ces pages n'utilisent pas de sélecteur d'appareil/friteuse en tête de rapport. */
-  .fp-title,
+  /* Titre/sous-titre propres à la page menu (mp-*) — même rôle que report-print-subtitle/meta
+     ci-dessus mais rendus par des classes différentes puisque cette page n'utilise pas de
+     sélecteur d'appareil/friteuse en tête de rapport. */
   .mp-title {
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 11pt !important;
     margin-bottom: 2pt !important;
   }
 
-  .fp-sub,
   .mp-sub,
   .mp-dates {
     font-family: Helvetica, Arial, sans-serif !important;
     font-size: 6.5pt !important;
   }
 
-  .fp-meta {
-    font-family: Helvetica, Arial, sans-serif !important;
-    font-size: 6pt !important;
-    gap: 8pt !important;
+  /* ---------- FICHE TECHNIQUE (fiche-technique-print, mêmes classes que mise-public/recipe-detail) ---------- */
+  .dh-photo {
+    max-height: 38mm;
+    margin-bottom: 6pt !important;
   }
 
-  .fp-badges {
-    gap: 3pt !important;
-    margin-bottom: 3pt !important;
+  .dh-station {
+    background: none !important;
+    border: 0.75pt solid #000 !important;
+    font-size: 6pt !important;
+    padding: 1.5pt 5pt !important;
+    margin-bottom: 4pt !important;
+  }
+
+  .dh-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 14pt !important;
+    margin: 0 0 3pt !important;
+  }
+
+  .dh-sub {
+    font-size: 7pt !important;
+  }
+
+  .dh-allergens {
+    margin-top: 4pt !important;
+  }
+
+  .equipment-list li {
+    font-size: 6.5pt !important;
+    padding: 1.5pt 5pt !important;
+    background: none !important;
+    border: 0.5pt solid #000 !important;
+  }
+
+  .ing-table th {
+    font-size: 5.5pt !important;
+    padding: 1.5pt 4pt !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+
+  .ing-table td {
+    font-size: 6.8pt !important;
+    padding: 1.5pt 4pt !important;
+    border-bottom: 0.5pt solid #999 !important;
+  }
+
+  .ing-group-row td {
+    font-size: 5.5pt !important;
+    padding: 4pt 4pt 1.5pt !important;
+  }
+
+  .cost-footer {
+    font-size: 6.5pt !important;
+    padding-top: 4pt !important;
+    gap: 14pt !important;
+  }
+
+  .cost-footer .cf-value {
+    font-size: 8pt !important;
+  }
+
+  .step {
+    padding: 4pt 2pt !important;
+    break-inside: avoid;
+  }
+
+  .step-num {
+    width: 14pt !important;
+    height: 14pt !important;
+    font-size: 6.5pt !important;
+    border: 0.75pt solid #000 !important;
+    background: none !important;
+  }
+
+  .step-text {
+    font-size: 6.8pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .timer-time {
+    font-size: 5.5pt !important;
+  }
+
+  .chef-note {
+    background: none !important;
+    border: 0.75pt solid #000 !important;
+    padding: 5pt 6pt !important;
+    font-size: 6.5pt !important;
+  }
+
+  .chef-note strong {
+    font-size: 5.5pt !important;
   }
 
   .section {
@@ -155,18 +237,6 @@
 
   .section-title::after {
     background: #000 !important;
-  }
-
-  .fp-equipment,
-  .fp-note,
-  .fp-steps li {
-    font-size: 6.8pt !important;
-    line-height: 1.3 !important;
-  }
-
-  .fp-step-timer {
-    font-family: Helvetica, Arial, sans-serif !important;
-    font-size: 6pt !important;
   }
 
   .mp-plat-name {
