@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, computed, forwardRef, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, effect, forwardRef, inject, input, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 import { Ingredient } from '../../core/models/ingredient.model';
@@ -50,6 +50,20 @@ export class IngredientSearchSelect implements ControlValueAccessor {
   results = computed(() => this.matches().slice(0, MAX_RESULTS));
   moreCount = computed(() => Math.max(0, this.matches().length - MAX_RESULTS));
 
+  constructor() {
+    // `writeValue` peut arriver avant que `ingredients` (chargée à part par le parent) ne soit
+    // peuplée — resynchronise le texte affiché dès que la liste arrive, plutôt que de figer un
+    // champ vide. Ignoré pendant que l'utilisateur tape/navigue (`open()`) pour ne pas écraser sa saisie.
+    effect(() => {
+      const id = this.selectedId();
+      const list = this.ingredients();
+      if (this.open()) return;
+
+      const ingredient = list.find((i) => i.id === id);
+      this.query.set(ingredient ? ingredient.name : '');
+    });
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (this.open() && !this.elementRef.nativeElement.contains(event.target as Node)) {
@@ -59,8 +73,6 @@ export class IngredientSearchSelect implements ControlValueAccessor {
 
   writeValue(value: number | null): void {
     this.selectedId.set(value);
-    const ingredient = this.ingredients().find((i) => i.id === value);
-    this.query.set(ingredient ? ingredient.name : '');
   }
 
   registerOnChange(fn: (value: number | null) => void): void {
@@ -128,8 +140,8 @@ export class IngredientSearchSelect implements ControlValueAccessor {
 
   private close(): void {
     this.open.set(false);
-    // Une recherche laissée sans sélection valide revient au dernier ingrédient choisi (ou vide).
-    this.query.set(this.selectedIngredient()?.name ?? '');
+    // Une recherche laissée sans sélection valide revient au dernier ingrédient choisi (ou
+    // vide) — géré par l'effect ci-dessus dès que `open()` repasse à false.
     this.onTouched();
   }
 
