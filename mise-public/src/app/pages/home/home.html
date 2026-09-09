@@ -5,14 +5,20 @@
   (searchChange)="searchQuery.set($event)">
 </app-recipe-filters>
 
+<button type="button" class="list-toggle-btn" (click)="toggleList()">
+  {{ showList() ? 'Masquer la liste' : 'Voir la liste' }}
+</button>
+
 <div class="layout">
-  <aside class="recipe-list">
-    <app-recipe-list
-      [fiches]="filteredFiches()"
-      [selectedId]="selectedId()"
-      (select)="selectedId.set($event)">
-    </app-recipe-list>
-  </aside>
+  @if (showList()) {
+    <aside class="recipe-list">
+      <app-recipe-list
+        [fiches]="filteredFiches()"
+        [selectedId]="selectedId()"
+        (select)="selectedId.set($event)">
+      </app-recipe-list>
+    </aside>
+  }
   <main class="detail">
     <app-recipe-detail [fiche]="selectedFiche()"></app-recipe-detail>
   </main>

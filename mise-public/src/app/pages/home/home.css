@@ -1,3 +1,29 @@
 :host {
   display: contents;
 }
+
+/* Bouton mobile uniquement — sur desktop la liste et le détail sont toujours côte à côte,
+   rien à basculer (cf. .layout en grid 2 colonnes dans styles.css). */
+.list-toggle-btn {
+  display: none;
+}
+
+@media (max-width: 880px) {
+  .list-toggle-btn {
+    display: block;
+    margin: 0 18px 10px;
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .list-toggle-btn:hover {
+    border-color: var(--accent-blue);
+  }
+}

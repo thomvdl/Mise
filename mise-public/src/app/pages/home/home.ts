@@ -38,6 +38,9 @@ export class Home {
   searchQuery = signal('');
   selectedId = signal<number | null>(null);
 
+  /** Mobile only (desktop toujours affiché) — bascule visible via un bouton, cf. home.css. */
+  showList = signal(true);
+
   /** `/fiches?id=123` — set by links that navigate straight to a given recipe (e.g. from a menu). */
   private readonly queryParamId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('id'))),
@@ -69,6 +72,10 @@ export class Home {
   selectedFiche = computed(
     () => this.enrichedFiches().find((fiche) => fiche.id === this.selectedId()) ?? null,
   );
+
+  toggleList(): void {
+    this.showList.update((visible) => !visible);
+  }
 
   constructor() {
     effect(() => {
