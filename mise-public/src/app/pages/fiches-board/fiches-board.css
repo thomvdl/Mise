@@ -61,7 +61,7 @@
 .board-column {
   display: flex;
   flex-direction: column;
-  flex: 0 0 280px;
+  flex: 0 0 340px;
   min-height: 0;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -99,9 +99,12 @@
 .board-column-cards {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
   overflow-y: auto;
+  /* Valeur fixe plutôt que de compter sur la chaîne flex min-height:0 (fragile à travers
+     :host/.board/.board-column) — garantit un scroll propre par colonne dans tous les cas. */
+  max-height: 68vh;
 }
 
 .board-column-empty {
@@ -111,12 +114,27 @@
 }
 
 /* .recipe-card est un <button> partout ailleurs (recipe-list) — ici c'est un <a> routerLink,
-   inline par défaut, d'où ce réajustement propre à cette page. */
+   inline par défaut, d'où ce réajustement propre à cette page. Taille et espacement
+   augmentés par rapport à la liste latérale (recipe-list) : ces cartes sont l'affichage
+   principal de la page, pas une liste secondaire à côté du détail. */
 .board-column-cards .recipe-card {
   display: block;
   text-decoration: none;
   cursor: pointer;
   margin-bottom: 0;
+  padding: 14px 16px;
+}
+
+.board-column-cards .rc-name {
+  font-size: 16px;
+  line-height: 1.3;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.board-column-cards .rc-meta {
+  font-size: 13px;
+  margin-top: 6px;
 }
 
 @media (max-width: 880px) {
@@ -124,6 +142,9 @@
     padding: 18px 18px 24px;
   }
   .board-column {
-    flex: 0 0 240px;
+    flex: 0 0 280px;
+  }
+  .board-column-cards {
+    max-height: 55vh;
   }
 }
