@@ -2,6 +2,16 @@
   display: contents;
 }
 
+/* La recherche vit maintenant au-dessus de la liste plutôt que dans la barre de filtres
+   pleine largeur — .search a une largeur fixe (200px) par défaut ailleurs (filter-bar,
+   fiches-board), ici elle doit occuper toute la colonne. */
+.recipe-list-search {
+  flex-shrink: 0;
+}
+.recipe-list-search input {
+  width: 100%;
+}
+
 /* Bouton mobile uniquement — sur desktop la liste et le détail sont toujours côte à côte,
    rien à basculer (cf. .layout en grid 2 colonnes dans styles.css). */
 .list-toggle-btn {
