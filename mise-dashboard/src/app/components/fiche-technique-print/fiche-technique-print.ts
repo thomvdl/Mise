@@ -16,16 +16,10 @@ import { map } from 'rxjs';
 
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { IngredientService } from '../../core/services/ingredient.service';
-import { FicheTechnique } from '../../core/models/fiche-technique.model';
+import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { enrichFicheTechnique } from '../../core/utils/enrich-fiche-technique';
+import { enrichFicheTechnique, uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
-import {
-  ResolvedIngredientLine,
-  resolveIngredientLines,
-  resolveStepGroups,
-  uniqueAllergensFromLines,
-} from '../../core/utils/resolve-fiche-components';
 import { useReportTitle } from '../../core/utils/report-title';
 
 interface TimerState {
@@ -34,9 +28,15 @@ interface TimerState {
   running: boolean;
 }
 
+interface ScaledIngredientLine {
+  ingredient: FicheTechniqueIngredient;
+  quantity: number;
+  lineCost: number | null;
+}
+
 interface IngredientGroup {
   label: string | null;
-  lines: ResolvedIngredientLine[];
+  lines: ScaledIngredientLine[];
 }
 
 const DIAL_RADIUS = 46;
@@ -80,14 +80,6 @@ export class FicheTechniquePrint {
     { initialValue: new Map<number, Ingredient>() },
   );
 
-  /** Full fiche catalogue, needed to resolve component sub-recipes more than one level deep. */
-  private readonly fichesById = toSignal(
-    this.ficheTechniqueService.list().pipe(
-      map((fiches) => new Map<number, FicheTechnique>(fiches.map((f) => [f.id, f]))),
-    ),
-    { initialValue: new Map<number, FicheTechnique>() },
-  );
-
   /** `FicheTechniqueController` n'eager-load pas ingredients.allergens — voir enrichFicheTechnique. */
   fiche = computed(() => {
     const fiche = this.rawFiche();
@@ -101,25 +93,29 @@ export class FicheTechniquePrint {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
-  allergens = computed(() => uniqueAllergensFromLines(this.scaledIngredients()));
+  allergens = computed(() => {
+    const fiche = this.fiche();
+    return fiche ? uniqueAllergens(fiche) : [];
+  });
 
   scaleFactor = computed(() => {
     const fiche = this.fiche();
     return fiche && fiche.servings > 0 ? this.servings() / fiche.servings : 1;
   });
 
-  /** Flattened ingredients, recursively expanding any component sub-recipes down to raw ingredients. */
-  scaledIngredients = computed<ResolvedIngredientLine[]>(() => {
-    const fiche = this.fiche();
-    if (!fiche) return [];
+  scaledIngredients = computed<ScaledIngredientLine[]>(() => {
+    const factor = this.scaleFactor();
 
-    return resolveIngredientLines(fiche, this.scaleFactor(), this.fichesById(), this.ingredientsById());
-  });
+    return (this.fiche()?.ingredients ?? []).map((ingredient) => {
+      const quantity = Number(ingredient.pivot.quantity) * factor;
+      const price = ingredient.price !== null ? Number(ingredient.price) : null;
 
-  /** Steps of the fiche AND of every component it's built from, grouped in prep order. */
-  stepGroups = computed(() => {
-    const fiche = this.fiche();
-    return fiche ? resolveStepGroups(fiche, this.fichesById()) : [];
+      return {
+        ingredient,
+        quantity,
+        lineCost: price !== null ? price * quantity : null,
+      };
+    });
   });
 
   /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
@@ -128,7 +124,7 @@ export class FicheTechniquePrint {
     const byKey = new Map<string, IngredientGroup>();
 
     for (const line of this.scaledIngredients()) {
-      const label = line.groupLabel;
+      const label = line.ingredient.pivot.group_label;
       const key = label ?? '';
       let group = byKey.get(key);
       if (!group) {
@@ -178,12 +174,10 @@ export class FicheTechniquePrint {
       this.doneSteps.set(new Set());
 
       const nextTimers = new Map<number, TimerState>();
-      for (const group of this.stepGroups()) {
-        for (const step of group.steps) {
-          if (step.timer_minutes) {
-            const totalSec = step.timer_minutes * 60;
-            nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
-          }
+      for (const step of fiche?.steps ?? []) {
+        if (step.timer_minutes) {
+          const totalSec = step.timer_minutes * 60;
+          nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
         }
       }
       this.timers.set(nextTimers);

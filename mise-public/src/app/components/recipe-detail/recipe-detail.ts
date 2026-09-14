@@ -2,15 +2,9 @@ import { Component, DestroyRef, ElementRef, effect, inject, input, signal, compu
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { FicheTechnique } from '../../core/models/fiche-technique.model';
-import { Ingredient } from '../../core/models/ingredient.model';
+import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
+import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
-import {
-  ResolvedIngredientLine,
-  resolveIngredientLines,
-  resolveStepGroups,
-  uniqueAllergensFromLines,
-} from '../../core/utils/resolve-fiche-components';
 
 interface TimerState {
   remainingSec: number;
@@ -18,9 +12,15 @@ interface TimerState {
   running: boolean;
 }
 
+interface ScaledIngredientLine {
+  ingredient: FicheTechniqueIngredient;
+  quantity: number;
+  lineCost: number | null;
+}
+
 interface IngredientGroup {
   label: string | null;
-  lines: ResolvedIngredientLine[];
+  lines: ScaledIngredientLine[];
 }
 
 const DIAL_RADIUS = 46;
@@ -41,9 +41,6 @@ export class RecipeDetail {
   private dragging = false;
 
   fiche = input<FicheTechnique | null>(null);
-  /** Raw fiche catalogue, needed to resolve component sub-recipes more than one level deep. */
-  fichesById = input<Map<number, FicheTechnique>>(new Map());
-  ingredientsById = input<Map<number, Ingredient>>(new Map());
 
   servings = signal(0);
   doneSteps = signal<Set<number>>(new Set());
@@ -52,25 +49,29 @@ export class RecipeDetail {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
-  allergens = computed(() => uniqueAllergensFromLines(this.scaledIngredients()));
+  allergens = computed(() => {
+    const fiche = this.fiche();
+    return fiche ? uniqueAllergens(fiche) : [];
+  });
 
   scaleFactor = computed(() => {
     const fiche = this.fiche();
     return fiche && fiche.servings > 0 ? this.servings() / fiche.servings : 1;
   });
 
-  /** Flattened ingredients, recursively expanding any component sub-recipes down to raw ingredients. */
-  scaledIngredients = computed<ResolvedIngredientLine[]>(() => {
-    const fiche = this.fiche();
-    if (!fiche) return [];
+  scaledIngredients = computed<ScaledIngredientLine[]>(() => {
+    const factor = this.scaleFactor();
 
-    return resolveIngredientLines(fiche, this.scaleFactor(), this.fichesById(), this.ingredientsById());
-  });
+    return (this.fiche()?.ingredients ?? []).map((ingredient) => {
+      const quantity = Number(ingredient.pivot.quantity) * factor;
+      const price = ingredient.price !== null ? Number(ingredient.price) : null;
 
-  /** Steps of the fiche AND of every component it's built from, grouped in prep order. */
-  stepGroups = computed(() => {
-    const fiche = this.fiche();
-    return fiche ? resolveStepGroups(fiche, this.fichesById()) : [];
+      return {
+        ingredient,
+        quantity,
+        lineCost: price !== null ? price * quantity : null,
+      };
+    });
   });
 
   /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
@@ -79,7 +80,7 @@ export class RecipeDetail {
     const byKey = new Map<string, IngredientGroup>();
 
     for (const line of this.scaledIngredients()) {
-      const label = line.groupLabel;
+      const label = line.ingredient.pivot.group_label;
       const key = label ?? '';
       let group = byKey.get(key);
       if (!group) {
@@ -121,12 +122,10 @@ export class RecipeDetail {
       this.doneSteps.set(new Set());
 
       const nextTimers = new Map<number, TimerState>();
-      for (const group of this.stepGroups()) {
-        for (const step of group.steps) {
-          if (step.timer_minutes) {
-            const totalSec = step.timer_minutes * 60;
-            nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
-          }
+      for (const step of fiche?.steps ?? []) {
+        if (step.timer_minutes) {
+          const totalSec = step.timer_minutes * 60;
+          nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
         }
       }
       this.timers.set(nextTimers);

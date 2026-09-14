@@ -1,7 +1,6 @@
 import { Menu } from '../models/menu.model';
 import { FicheTechnique } from '../models/fiche-technique.model';
 import { Ingredient } from '../models/ingredient.model';
-import { resolveIngredientLines } from './resolve-fiche-components';
 
 export type ShoppingListGroupBy = 'categorie' | 'poste' | 'fiche-technique';
 
@@ -50,15 +49,13 @@ function collectContributions(
 
         const factor = covers / fiche.servings;
 
-        // Recurses through any component sub-recipes (e.g. "Fond brun" used by "Bœuf bourguignon")
-        // down to raw ingredients — the shopping list needs what to actually buy, not sub-fiche names.
-        for (const line of resolveIngredientLines(fiche, factor, fichesById, ingredientsById)) {
+        for (const ingredient of fiche.ingredients ?? []) {
           contributions.push({
-            ingredientId: line.ingredient.id,
-            name: line.ingredient.name,
-            unit: line.ingredient.unit,
-            quantity: line.quantity,
-            categoryName: ingredientsById.get(line.ingredient.id)?.category?.name ?? null,
+            ingredientId: ingredient.id,
+            name: ingredient.name,
+            unit: ingredient.unit,
+            quantity: Number(ingredient.pivot.quantity) * factor,
+            categoryName: ingredientsById.get(ingredient.id)?.category?.name ?? null,
             stationName: fiche.station?.name ?? null,
             ficheName: fiche.name,
           });

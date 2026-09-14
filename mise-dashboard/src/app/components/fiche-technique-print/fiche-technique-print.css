@@ -223,13 +223,6 @@
 .ing-name {
   font-weight: 600;
 }
-.ing-source {
-  display: block;
-  font-family: var(--font-mono);
-  font-weight: 400;
-  font-size: 10px;
-  color: var(--text-faint);
-}
 .ing-qty {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -273,17 +266,6 @@
 }
 
 /* steps */
-.step-group-title {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--accent-copper);
-  margin: 18px 0 6px;
-}
-.step-group-title:first-child {
-  margin-top: 0;
-}
 .steps {
   display: flex;
   flex-direction: column;

@@ -32,15 +32,4 @@ export interface FicheTechnique {
   ingredients?: FicheTechniqueIngredient[];
   steps?: Step[];
   pictures?: Picture[];
-  /** Sub-recipes this fiche is composed of — only the direct children, one level deep. */
-  components?: FicheTechniqueComponent[];
-}
-
-/**
- * A fiche used as a sub-recipe of another. `pivot.quantity` is a fraction/multiple of the
- * component's OWN base recipe (e.g. 0.5 = half a batch at its own `servings`), not an absolute
- * mass/volume — so it composes with servings-scaling by simple multiplication.
- */
-export interface FicheTechniqueComponent extends FicheTechnique {
-  pivot: { quantity: string; group_label: string | null };
 }

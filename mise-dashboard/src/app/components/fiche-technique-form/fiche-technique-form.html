@@ -170,51 +170,6 @@
   </div>
 
   <div class="section">
-    <div class="section-title">Composants (sous-fiches)</div>
-    <p class="form-hint">
-      Utilisez une autre fiche technique comme composant (ex. « Fond brun » dans un « Bœuf bourguignon »). La
-      quantité est une fraction ou un multiple de la recette de base du composant (1 = une préparation complète, 0.5
-      = une demi-préparation) — ses ingrédients seront automatiquement mis à l'échelle et ajoutés à cette fiche.
-    </p>
-    <div class="editable-list">
-      @for (row of components.controls; track $index) {
-        <div class="editable-row">
-          <div class="form-field">
-            <select
-              class="form-select"
-              [formControl]="row.controls.component_fiche_technique_id"
-              [class.has-error]="row.controls.component_fiche_technique_id.invalid && row.controls.component_fiche_technique_id.touched">
-              <option [ngValue]="null">— Choisir une fiche —</option>
-              @for (candidate of availableComponentFiches(); track candidate.id) {
-                <option [ngValue]="candidate.id">{{ candidate.name }} ({{ candidate.servings }} portions)</option>
-              }
-            </select>
-          </div>
-          <div class="form-field qty-field">
-            <input
-              class="form-input"
-              type="number"
-              step="0.001"
-              min="0.001"
-              [formControl]="row.controls.quantity"
-              placeholder="Quantité (x recette)"
-              [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
-          </div>
-          <div class="form-field">
-            <input
-              class="form-input"
-              type="text"
-              [formControl]="row.controls.group_label"
-              placeholder="Groupe (optionnel)" />
-          </div>
-          <button type="button" class="row-remove" (click)="removeComponentRow($index)" aria-label="Retirer">×</button>
-        </div>
-      }
-      <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addComponentRow()">+ Ajouter un composant</button>
-    </div>
-  </div>
-
-  <div class="section">
     <div class="section-title">Étapes</div>
     <div class="editable-list">
       @for (row of stepRows.controls; track $index) {

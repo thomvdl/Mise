@@ -86,14 +86,9 @@
               <td colspan="3">{{ group.label ?? 'Divers' }}</td>
             </tr>
           }
-          @for (line of group.lines; track $index) {
+          @for (line of group.lines; track line.ingredient.id) {
             <tr>
-              <td class="ing-name">
-                {{ line.ingredient.name }}
-                @if (line.sourceFicheName) {
-                  <span class="ing-source">via {{ line.sourceFicheName }}</span>
-                }
-              </td>
+              <td class="ing-name">{{ line.ingredient.name }}</td>
               <td class="ing-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
               <td class="ing-cost">
                 @if (line.lineCost !== null) {
@@ -133,45 +128,40 @@
 
   <div class="section">
     <div class="section-title">Étapes</div>
-    @for (group of stepGroups(); track group.ficheId) {
-      @if (!group.isRoot) {
-        <div class="step-group-title">À préparer : {{ group.ficheName }}</div>
-      }
-      <div class="steps">
-        @for (step of group.steps; track step.id) {
-          <div class="step" [class.done]="doneSteps().has(step.id)" (click)="toggleStep(step.id)">
-            <div class="step-num">{{ step.position }}</div>
-            <div class="step-body">
-              <div class="step-text">{{ step.instruction }}</div>
-              @if (timers().get(step.id); as timer) {
-                <div class="step-meta">
-                  <div class="timer">
-                    <div class="timer-ring no-print">
-                      <svg viewBox="0 0 30 30">
-                        <circle class="tr-track" cx="15" cy="15" r="12" />
-                        <circle
-                          class="tr-progress"
-                          cx="15" cy="15" r="12"
-                          [attr.stroke-dasharray]="timerCircumference"
-                          [attr.stroke-dashoffset]="timerOffset(timer)" />
-                      </svg>
-                    </div>
-                    <span class="timer-time">{{ formatTime(timer.remainingSec) }}</span>
-                    <button
-                      type="button"
-                      class="timer-btn no-print"
-                      [class.running]="timer.running"
-                      (click)="toggleTimer(step.id); $event.stopPropagation()">
-                      {{ timer.running ? 'Pause' : 'Démarrer' }}
-                    </button>
+    <div class="steps">
+      @for (step of fiche.steps ?? []; track step.id) {
+        <div class="step" [class.done]="doneSteps().has(step.id)" (click)="toggleStep(step.id)">
+          <div class="step-num">{{ step.position }}</div>
+          <div class="step-body">
+            <div class="step-text">{{ step.instruction }}</div>
+            @if (timers().get(step.id); as timer) {
+              <div class="step-meta">
+                <div class="timer">
+                  <div class="timer-ring no-print">
+                    <svg viewBox="0 0 30 30">
+                      <circle class="tr-track" cx="15" cy="15" r="12" />
+                      <circle
+                        class="tr-progress"
+                        cx="15" cy="15" r="12"
+                        [attr.stroke-dasharray]="timerCircumference"
+                        [attr.stroke-dashoffset]="timerOffset(timer)" />
+                    </svg>
                   </div>
+                  <span class="timer-time">{{ formatTime(timer.remainingSec) }}</span>
+                  <button
+                    type="button"
+                    class="timer-btn no-print"
+                    [class.running]="timer.running"
+                    (click)="toggleTimer(step.id); $event.stopPropagation()">
+                    {{ timer.running ? 'Pause' : 'Démarrer' }}
+                  </button>
                 </div>
-              }
-            </div>
+              </div>
+            }
           </div>
-        }
-      </div>
-    }
+        </div>
+      }
+    </div>
   </div>
 
   @if (fiche.plating) {
