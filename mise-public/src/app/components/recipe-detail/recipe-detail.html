@@ -10,6 +10,7 @@
 
   <div class="detail-header">
     <div class="dh-left">
+      <a class="back-link no-print" routerLink="/fiches">← Retour aux fiches</a>
       @if (fiche.station) {
         <div class="dh-station" [style.background]="fiche.station.color">{{ fiche.station.name }}</div>
       }
