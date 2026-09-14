@@ -1,57 +1,33 @@
 :host {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
-/* La recherche vit maintenant au-dessus de la liste plutôt que dans la barre de filtres
-   pleine largeur — .search a une largeur fixe (200px) par défaut ailleurs (filter-bar,
-   fiches-board), ici elle doit occuper toute la colonne. */
-.recipe-list-search {
-  flex-shrink: 0;
-}
-.recipe-list-search input {
-  width: 100%;
+/* .detail (padding, scroll) vient de styles.css — ici juste le complément pour qu'elle occupe
+   tout l'espace vertical restant, rôle auparavant tenu par .layout (grid parent, retiré avec
+   la liste/les filtres). */
+.detail {
+  flex: 1;
+  min-height: 0;
 }
 
-/* Icône seule plutôt qu'un bouton texte pleine largeur — disponible sur toutes les tailles
-   d'écran. Sur desktop, masquer la liste laisse le détail prendre toute la largeur
-   (.layout.list-hidden ci-dessous) au lieu d'être coincé dans la première colonne de 340px du
-   grid (cf. .layout dans styles.css). L'état actif (liste visible) se lit sur le fond/bordure
-   du bouton plutôt que sur l'icône, qui reste la même dans les deux états. */
-.list-toggle-btn {
+.empty-state {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  margin: 0 18px 10px;
-  padding: 0;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  padding: 28px 36px 40px;
+  color: var(--text-faint);
+  font-size: 14px;
+  text-align: center;
 }
-.list-toggle-btn svg {
-  width: 16px;
-  height: 16px;
-}
-.list-toggle-btn:hover {
-  border-color: var(--accent-blue);
+.empty-state a {
   color: var(--accent-blue);
+  font-weight: 700;
+  text-decoration: none;
 }
-.list-toggle-btn.active {
-  background: var(--surface-3);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
-}
-.list-toggle-btn:active {
-  transform: scale(0.94);
-}
-
-/* Ne s'applique qu'au grid 2 colonnes du desktop — sous 880px, .layout est déjà en 1 colonne
-   (styles.css) donc cette règle n'y change rien. */
-.layout.list-hidden {
-  grid-template-columns: 1fr;
+.empty-state a:hover {
+  text-decoration: underline;
 }

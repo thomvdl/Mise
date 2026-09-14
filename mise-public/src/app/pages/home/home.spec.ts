@@ -8,10 +8,7 @@ import { Home } from './home';
 import { environment } from '../../../environments/environment';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 
-const FICHES = [
-  { id: 5, name: 'Autre fiche' } as FicheTechnique,
-  { id: 7, name: 'Fiche ciblée' } as FicheTechnique,
-];
+const FICHE = { id: 7, name: 'Fiche ciblée' } as FicheTechnique;
 
 describe('Home', () => {
   let component: Home;
@@ -24,7 +21,7 @@ describe('Home', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        // Simulates arriving via a "/fiches?id=7" link, e.g. from a menu's linked recipe.
+        // Simulates arriving via a "/fiches/recherche?id=7" link, e.g. from the fiches table.
         { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap({ id: '7' })) } },
       ],
     }).compileComponents();
@@ -33,8 +30,7 @@ describe('Home', () => {
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
 
-    httpMock.expectOne(`${environment.apiUrl}/stations`).flush([]);
-    httpMock.expectOne(`${environment.apiUrl}/fiche-techniques`).flush(FICHES);
+    httpMock.expectOne(`${environment.apiUrl}/fiche-techniques/7`).flush(FICHE);
     httpMock.expectOne(`${environment.apiUrl}/ingredients`).flush([]);
 
     await fixture.whenStable();
@@ -48,8 +44,7 @@ describe('Home', () => {
     expect(component).toBeTruthy();
   });
 
-  it('preselects the fiche technique named by the id query param', () => {
-    expect(component.selectedId()).toBe(7);
-    expect(component.selectedFiche()?.name).toBe('Fiche ciblée');
+  it('loads the fiche technique named by the id query param', () => {
+    expect(component.fiche()?.name).toBe('Fiche ciblée');
   });
 });

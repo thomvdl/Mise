@@ -1,42 +1,9 @@
-
-<app-recipe-filters
-  [stations]="stations()"
-  [(activeStationSlug)]="activeStationSlug">
-</app-recipe-filters>
-
-<button
-  type="button"
-  class="list-toggle-btn"
-  [class.active]="showList()"
-  [attr.aria-pressed]="showList()"
-  [attr.aria-label]="showList() ? 'Masquer la liste des fiches' : 'Afficher la liste des fiches'"
-  [title]="showList() ? 'Masquer la liste' : 'Afficher la liste'"
-  (click)="toggleList()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/>
-    <line x1="9" y1="3" x2="9" y2="21"/>
-  </svg>
-</button>
-
-<div class="layout" [class.list-hidden]="!showList()">
-  @if (showList()) {
-    <aside class="recipe-list">
-      <div class="search recipe-list-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          type="text"
-          placeholder="Rechercher une fiche…"
-          [value]="searchQuery()"
-          (input)="searchQuery.set($any($event.target).value)" />
-      </div>
-      <app-recipe-list
-        [fiches]="filteredFiches()"
-        [selectedId]="selectedId()"
-        (select)="selectedId.set($event)">
-      </app-recipe-list>
-    </aside>
-  }
-  <main class="detail">
-    <app-recipe-detail [fiche]="selectedFiche()"></app-recipe-detail>
-  </main>
-</div>
+@if (fiche(); as f) {
+  <div class="detail">
+    <app-recipe-detail [fiche]="f"></app-recipe-detail>
+  </div>
+} @else {
+  <div class="empty-state">
+    <p>Choisissez une fiche depuis <a routerLink="/fiches">le tableau des fiches techniques</a>.</p>
+  </div>
+}

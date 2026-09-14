@@ -1,32 +1,35 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
-import { RecipeFilters } from '../../components/recipe-filters/recipe-filters';
-import { RecipeList } from '../../components/recipe-list/recipe-list';
 import { RecipeDetail } from '../../components/recipe-detail/recipe-detail';
 
-import { StationService } from '../../core/services/station.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { IngredientService } from '../../core/services/ingredient.service';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { enrichFicheTechnique } from '../../core/utils/enrich-fiche-technique';
 
+/**
+ * Vue détail seule — la sélection se fait via le tableau `/fiches`, cette page se contente
+ * d'afficher la fiche pointée par `?id=` (lien depuis le tableau, un menu, ou tout autre appelant).
+ * Pas de liste ni de filtres ici : ç'a été retiré au profit du tableau, plus adapté pour parcourir
+ * et filtrer par poste/catégorie.
+ */
 @Component({
   selector: 'app-home',
-  imports: [RecipeFilters, RecipeList, RecipeDetail],
+  imports: [RecipeDetail, RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
 export class Home {
-  private readonly stationService = inject(StationService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
   private readonly route = inject(ActivatedRoute);
 
-  stations = toSignal(this.stationService.list(), { initialValue: [] });
-  ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
+  private readonly rawFiche = signal<FicheTechnique | null>(null);
+
   ingredientsById = toSignal(
     this.ingredientService.list().pipe(map((ingredients) => new Map<number, Ingredient>(
       ingredients.map((ingredient) => [ingredient.id, ingredient]),
@@ -34,67 +37,32 @@ export class Home {
     { initialValue: new Map<number, Ingredient>() },
   );
 
-  activeStationSlug = signal<string | null>(null);
-  searchQuery = signal('');
-  selectedId = signal<number | null>(null);
+  /** `FicheTechniqueController` n'eager-load pas ingredients.allergens — voir enrichFicheTechnique. */
+  fiche = computed(() => {
+    const fiche = this.rawFiche();
+    return fiche ? enrichFicheTechnique(fiche, this.ingredientsById()) : null;
+  });
 
-  /** Bascule visible sur toutes les tailles d'écran (bouton .list-toggle-btn, cf. home.css et
-   * home.html pour .layout.list-hidden). Repliée par défaut sous 880px pour laisser toute la
-   * largeur au détail sur mobile ; dépliée par défaut au-delà. */
-  showList = signal(!window.matchMedia('(max-width: 880px)').matches);
-
-  /** `/fiches?id=123` — set by links that navigate straight to a given recipe (e.g. from a menu). */
+  /** `?id=123` — posé par le tableau /fiches, un menu, ou tout autre lien direct vers une fiche. */
   private readonly queryParamId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('id'))),
     { initialValue: null },
   );
 
-  enrichedFiches = computed(() =>
-    this.ficheTechniques().map((fiche) => enrichFicheTechnique(fiche, this.ingredientsById())),
-  );
-
-  /** Plus récentes en premier. */
-  sortedFiches = computed(() =>
-    [...this.enrichedFiches()].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    ),
-  );
-
-  filteredFiches = computed(() => {
-    const station = this.activeStationSlug();
-    const query = this.searchQuery().trim().toLowerCase();
-
-    return this.sortedFiches().filter((fiche) => {
-      const matchesStation = !station || fiche.station?.slug === station;
-      const matchesQuery = !query || fiche.name.toLowerCase().includes(query);
-      return matchesStation && matchesQuery;
-    });
-  });
-
-  selectedFiche = computed(
-    () => this.enrichedFiches().find((fiche) => fiche.id === this.selectedId()) ?? null,
-  );
-
-  toggleList(): void {
-    this.showList.update((visible) => !visible);
-  }
-
   constructor() {
     effect(() => {
       const idParam = this.queryParamId();
-      if (idParam === null) return;
+      const id = idParam !== null ? Number(idParam) : NaN;
 
-      const id = Number(idParam);
-      if (!Number.isNaN(id)) {
-        this.selectedId.set(id);
+      if (Number.isNaN(id)) {
+        this.rawFiche.set(null);
+        return;
       }
-    });
 
-    effect(() => {
-      const list = this.filteredFiches();
-      if (this.selectedId() === null && list.length > 0) {
-        this.selectedId.set(list[0].id);
-      }
+      this.ficheTechniqueService.get(id).subscribe({
+        next: (fiche) => this.rawFiche.set(fiche),
+        error: () => this.rawFiche.set(null),
+      });
     });
   }
 }
