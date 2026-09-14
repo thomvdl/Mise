@@ -1,6 +1,7 @@
 import { FicheTechnique, FicheTechniqueIngredient } from '../models/fiche-technique.model';
 import { Ingredient } from '../models/ingredient.model';
 import { Allergen } from '../models/allergen.model';
+import { Step } from '../models/step.model';
 
 export interface ResolvedIngredientLine {
   ingredient: FicheTechniqueIngredient;
@@ -72,6 +73,43 @@ export function resolveIngredientLines(
   }
 
   return lines;
+}
+
+export interface ResolvedStepGroup {
+  ficheId: number;
+  ficheName: string;
+  steps: Step[];
+  /** False for a component's own group — lets the template skip the heading for the fiche being viewed. */
+  isRoot: boolean;
+}
+
+/**
+ * Resolves the steps of a fiche AND of every component it's built from, each component's own
+ * steps grouped separately (its own `position` numbering, untouched) so the reader can follow the
+ * prep in a sensible order. Depth-first: a component's own sub-components come before it, and the
+ * root fiche's own steps come last — mirroring the order you'd actually cook in (sub-recipes
+ * first, final assembly last). `step.id` is globally unique across fiches, so callers keying
+ * timers/checked-state off it don't need to worry about collisions between groups.
+ */
+export function resolveStepGroups(
+  fiche: FicheTechnique,
+  fichesById: Map<number, FicheTechnique>,
+  visited: Set<number> = new Set(),
+  depth = 0,
+): ResolvedStepGroup[] {
+  if (depth > MAX_DEPTH || visited.has(fiche.id)) return [];
+
+  const nextVisited = new Set(visited).add(fiche.id);
+  const groups: ResolvedStepGroup[] = [];
+
+  for (const component of fiche.components ?? []) {
+    const componentFiche = fichesById.get(component.id) ?? component;
+    groups.push(...resolveStepGroups(componentFiche, fichesById, nextVisited, depth + 1));
+  }
+
+  groups.push({ ficheId: fiche.id, ficheName: fiche.name, steps: fiche.steps ?? [], isRoot: depth === 0 });
+
+  return groups;
 }
 
 export function uniqueAllergensFromLines(lines: ResolvedIngredientLine[]): Allergen[] {

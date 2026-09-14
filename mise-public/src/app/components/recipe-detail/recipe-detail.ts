@@ -8,6 +8,7 @@ import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-qu
 import {
   ResolvedIngredientLine,
   resolveIngredientLines,
+  resolveStepGroups,
   uniqueAllergensFromLines,
 } from '../../core/utils/resolve-fiche-components';
 
@@ -66,6 +67,12 @@ export class RecipeDetail {
     return resolveIngredientLines(fiche, this.scaleFactor(), this.fichesById(), this.ingredientsById());
   });
 
+  /** Steps of the fiche AND of every component it's built from, grouped in prep order. */
+  stepGroups = computed(() => {
+    const fiche = this.fiche();
+    return fiche ? resolveStepGroups(fiche, this.fichesById()) : [];
+  });
+
   /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
   groupedIngredients = computed<IngredientGroup[]>(() => {
     const groups: IngredientGroup[] = [];
@@ -114,10 +121,12 @@ export class RecipeDetail {
       this.doneSteps.set(new Set());
 
       const nextTimers = new Map<number, TimerState>();
-      for (const step of fiche?.steps ?? []) {
-        if (step.timer_minutes) {
-          const totalSec = step.timer_minutes * 60;
-          nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
+      for (const group of this.stepGroups()) {
+        for (const step of group.steps) {
+          if (step.timer_minutes) {
+            const totalSec = step.timer_minutes * 60;
+            nextTimers.set(step.id, { remainingSec: totalSec, totalSec, running: false });
+          }
         }
       }
       this.timers.set(nextTimers);
