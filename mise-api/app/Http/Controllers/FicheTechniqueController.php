@@ -10,7 +10,9 @@ use Illuminate\Validation\ValidationException;
 
 class FicheTechniqueController extends Controller
 {
-    private const RELATIONS = ['category', 'station', 'ingredients', 'steps', 'pictures', 'components', 'usedIn'];
+    // components.ingredients (one level, not components.components.ingredients) lets the frontend
+    // price a component line from its own recipe cost without a fully recursive resolver.
+    private const RELATIONS = ['category', 'station', 'ingredients', 'steps', 'pictures', 'components.ingredients', 'usedIn'];
 
     /**
      * Display a listing of the resource.

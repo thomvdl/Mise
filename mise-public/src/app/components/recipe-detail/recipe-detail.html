@@ -105,7 +105,11 @@
                 <span class="ing-source">fiche technique</span>
               </td>
               <td class="ing-qty">× {{ line.quantity | number: '1.0-2' }}</td>
-              <td class="ing-cost"></td>
+              <td class="ing-cost">
+                @if (line.lineCost !== null) {
+                  {{ line.costIncomplete ? '≥ ' : '' }}{{ line.lineCost | number: '1.2-2' }} €
+                }
+              </td>
             </tr>
           }
         }

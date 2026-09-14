@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
+import { componentCost } from '../../core/utils/component-cost';
 
 interface TimerState {
   remainingSec: number;
@@ -18,11 +19,14 @@ interface ScaledIngredientLine {
   lineCost: number | null;
 }
 
-/** Une fiche technique utilisée comme composant, affichée telle quelle (lien + multiplicateur) —
- * pas de recalcul récursif vers ses propres ingrédients, ça n'entre pas dans le coût matière. */
+/** Une fiche technique utilisée comme composant, affichée comme un lien + multiplicateur. Son
+ * coût est celui d'une préparation complète (ses propres ingrédients) × ce multiplicateur — un
+ * seul niveau, pas de recalcul récursif au-delà des ingrédients directs du composant. */
 interface ScaledComponentLine {
   component: FicheTechniqueComponent;
   quantity: number;
+  lineCost: number | null;
+  costIncomplete: boolean;
 }
 
 interface IngredientGroup {
@@ -84,14 +88,17 @@ export class RecipeDetail {
     });
   });
 
-  /** Multiplicateur mis à l'échelle des portions, tel quel — pas de recalcul récursif. */
+  /** Multiplicateur mis à l'échelle des portions ; coût = celui d'une préparation complète du
+   * composant × ce multiplicateur (un seul niveau, voir `componentCost`). */
   scaledComponents = computed<ScaledComponentLine[]>(() => {
     const factor = this.scaleFactor();
 
-    return (this.fiche()?.components ?? []).map((component) => ({
-      component,
-      quantity: Number(component.pivot.quantity) * factor,
-    }));
+    return (this.fiche()?.components ?? []).map((component) => {
+      const quantity = Number(component.pivot.quantity) * factor;
+      const cost = componentCost(component, quantity);
+
+      return { component, quantity, lineCost: cost.lineCost, costIncomplete: cost.incomplete };
+    });
   });
 
   /** Ingrédients ET composants regroupés par sous-recette (pivot.group_label), dans l'ordre de
@@ -123,12 +130,19 @@ export class RecipeDetail {
 
   showIngredientGroupLabels = computed(() => this.groupedIngredients().length > 1);
 
-  totalCost = computed(() =>
-    this.scaledIngredients().reduce((sum, line) => sum + (line.lineCost ?? 0), 0),
+  totalCost = computed(
+    () =>
+      this.scaledIngredients().reduce((sum, line) => sum + (line.lineCost ?? 0), 0) +
+      this.scaledComponents().reduce((sum, line) => sum + (line.lineCost ?? 0), 0),
   );
 
-  /** True when at least one ingredient has no price — totalCost()/costPerPortion() then understate the real cost. */
-  hasIncompleteCost = computed(() => this.scaledIngredients().some((line) => line.lineCost === null));
+  /** True when at least one ingredient — or component, via its own ingredients — has no price:
+   * totalCost()/costPerPortion() then understate the real cost. */
+  hasIncompleteCost = computed(
+    () =>
+      this.scaledIngredients().some((line) => line.lineCost === null) ||
+      this.scaledComponents().some((line) => line.costIncomplete),
+  );
 
   costPerPortion = computed(() => {
     const servings = this.servings();
