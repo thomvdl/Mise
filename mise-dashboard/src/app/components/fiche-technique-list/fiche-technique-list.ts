@@ -51,9 +51,24 @@ export class FicheTechniqueList implements OnInit {
     return visible.length > 0 && visible.every((item) => this.selected().has(item.id));
   });
 
+  deleteTitle = computed(() =>
+    (this.pendingDelete()?.used_in ?? []).length > 0 ? 'Fiche utilisée ailleurs' : 'Confirmer la suppression',
+  );
+
   deleteMessage = computed(() => {
     const item = this.pendingDelete();
-    return item ? `Supprimer la fiche technique « ${item.name} » ? Cette action est irréversible.` : '';
+    if (!item) return '';
+
+    const usedIn = item.used_in ?? [];
+    if (usedIn.length === 0) {
+      return `Supprimer la fiche technique « ${item.name} » ? Cette action est irréversible.`;
+    }
+
+    const names = usedIn.map((parent) => parent.name).join(', ');
+    return (
+      `Supprimer la fiche technique « ${item.name} » ? Elle est utilisée comme composant dans : ${names}. ` +
+      `Ces fiches perdront cette ligne (et son coût) sans avertissement une fois supprimée. Cette action est irréversible.`
+    );
   });
 
   ngOnInit(): void {
