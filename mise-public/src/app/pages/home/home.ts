@@ -38,9 +38,9 @@ export class Home {
   searchQuery = signal('');
   selectedId = signal<number | null>(null);
 
-  /** Mobile only (desktop toujours affiché) — bascule visible via un bouton, cf. home.css.
-   * Repliée par défaut sous 880px (même seuil que .list-toggle-btn en CSS) pour laisser toute
-   * la largeur au détail sur mobile ; toujours dépliée au-delà, où il n'y a pas de bouton. */
+  /** Bascule visible sur toutes les tailles d'écran (bouton .list-toggle-btn, cf. home.css et
+   * home.html pour .layout.list-hidden). Repliée par défaut sous 880px pour laisser toute la
+   * largeur au détail sur mobile ; dépliée par défaut au-delà. */
   showList = signal(!window.matchMedia('(max-width: 880px)').matches);
 
   /** `/fiches?id=123` — set by links that navigate straight to a given recipe (e.g. from a menu). */

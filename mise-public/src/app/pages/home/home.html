@@ -8,7 +8,7 @@
   {{ showList() ? 'Masquer la liste' : 'Voir la liste' }}
 </button>
 
-<div class="layout">
+<div class="layout" [class.list-hidden]="!showList()">
   @if (showList()) {
     <aside class="recipe-list">
       <div class="search recipe-list-search">

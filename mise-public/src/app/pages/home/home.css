@@ -12,28 +12,29 @@
   width: 100%;
 }
 
-/* Bouton mobile uniquement — sur desktop la liste et le détail sont toujours côte à côte,
-   rien à basculer (cf. .layout en grid 2 colonnes dans styles.css). */
+/* Disponible sur toutes les tailles d'écran — sur desktop, masquer la liste laisse le détail
+   prendre toute la largeur (.layout.list-hidden ci-dessous) au lieu d'être coincé dans la
+   première colonne de 340px du grid (cf. .layout dans styles.css). */
 .list-toggle-btn {
-  display: none;
+  display: block;
+  margin: 0 18px 10px;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.list-toggle-btn:hover {
+  border-color: var(--accent-blue);
 }
 
-@media (max-width: 880px) {
-  .list-toggle-btn {
-    display: block;
-    margin: 0 18px 10px;
-    padding: 8px 14px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-  }
-  .list-toggle-btn:hover {
-    border-color: var(--accent-blue);
-  }
+/* Ne s'applique qu'au grid 2 colonnes du desktop — sous 880px, .layout est déjà en 1 colonne
+   (styles.css) donc cette règle n'y change rien. */
+.layout.list-hidden {
+  grid-template-columns: 1fr;
 }
