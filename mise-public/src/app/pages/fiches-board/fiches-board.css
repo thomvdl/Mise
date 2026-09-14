@@ -33,7 +33,7 @@
 .board-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -49,108 +49,111 @@
   color: var(--accent-blue);
 }
 
-.board {
-  display: flex;
-  gap: 16px;
+.list-filter {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 34px 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239AA1A8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.list-filter:hover {
+  border-color: var(--accent-blue);
+}
+html[data-theme="light"] .list-filter {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23585F65' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* table */
+.table-wrap {
   flex: 1;
   min-height: 0;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.board-column {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 340px;
-  min-height: 0;
-  background: var(--surface);
+  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  background: var(--surface);
 }
 
-.board-column-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 14px;
+.fiches-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.fiches-table th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding: 12px 16px;
+  background: var(--surface-2);
   border-bottom: 1px solid var(--border);
-  border-top: 3px solid var(--card-color, var(--text-faint));
+}
+.fiches-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.fiches-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.fiches-table tbody tr:hover {
   background: var(--surface-2);
 }
-
-.board-column-name {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 14.5px;
+.fiches-table .col-name {
+  font-weight: 600;
+}
+.fiches-table .col-actions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+.fiches-table .empty-row td {
+  text-align: center;
+  color: var(--text-faint);
+  padding: 32px 16px;
 }
 
-.board-column-count {
+.badge {
+  display: inline-block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--text-faint);
-  background: var(--surface-3);
-  padding: 2px 7px;
-  border-radius: 999px;
+  letter-spacing: 0.5px;
+  background: var(--card-color, var(--accent-blue));
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 5px;
 }
 
-.board-column-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px;
-  overflow-y: auto;
-  /* Valeur fixe plutôt que de compter sur la chaîne flex min-height:0 (fragile à travers
-     :host/.board/.board-column) — garantit un scroll propre par colonne dans tous les cas. */
-  max-height: 68vh;
-}
-
-.board-column-empty {
-  margin: 4px;
-  color: var(--text-faint);
-  font-size: 12.5px;
-}
-
-/* .recipe-card est un <button> partout ailleurs (recipe-list) — ici c'est un <a> routerLink,
-   inline par défaut, d'où ce réajustement propre à cette page. Taille et espacement
-   augmentés par rapport à la liste latérale (recipe-list) : ces cartes sont l'affichage
-   principal de la page, pas une liste secondaire à côté du détail. */
-.board-column-cards .recipe-card {
-  display: block;
+.view-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-copper);
   text-decoration: none;
-  cursor: pointer;
-  margin-bottom: 0;
-  padding: 18px 18px;
-  overflow: visible;
+  white-space: nowrap;
 }
-
-.board-column-cards .rc-name {
-  display: block;
-  font-size: 17px;
-  line-height: 1.35;
-  /* Pas de line-clamp ici — ces cartes sont l'affichage principal, le nom complet doit rester
-     lisible plutôt que tronqué avec des points de suspension. */
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  overflow: visible;
-  white-space: normal;
-}
-
-.board-column-cards .rc-meta {
-  font-size: 13.5px;
-  margin-top: 10px;
+.view-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 880px) {
   :host {
     padding: 18px 18px 24px;
   }
-  .board-column {
-    flex: 0 0 280px;
-  }
-  .board-column-cards {
-    max-height: 55vh;
+  .fiches-table th:nth-child(3),
+  .fiches-table td:nth-child(3) {
+    display: none;
   }
 }

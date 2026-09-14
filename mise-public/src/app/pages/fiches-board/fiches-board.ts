@@ -4,21 +4,17 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { StationService } from '../../core/services/station.service';
+import { CategoryService } from '../../core/services/category.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Station } from '../../core/models/station.model';
-
-interface Column {
-  station: Station | null;
-  fiches: FicheTechnique[];
-}
+import { Category } from '../../core/models/category.model';
 
 /**
- * Page d'accueil des fiches techniques — un tableau en colonnes par poste, pensé pour repérer
- * une fiche d'un coup d'œil plutôt que de fouiller dans la liste+détail de /fiches/recherche
- * (toujours accessible pour la recherche par nom/poste et la lecture d'une fiche). Un `?id=`
- * dans l'URL (utilisé par menu-tree pour pointer directement vers une fiche) saute ce tableau
- * et redirige vers la vue détail, pour ne pas casser ce lien existant.
+ * Page d'accueil des fiches techniques — un tableau consultation seule (recherche + filtres
+ * poste/catégorie), sans les actions d'édition du dashboard. Un `?id=` dans l'URL (utilisé par
+ * menu-tree pour pointer directement vers une fiche) saute ce tableau et redirige vers la vue
+ * détail, pour ne pas casser ce lien existant.
  */
 @Component({
   selector: 'app-fiches-board',
@@ -31,9 +27,12 @@ export class FichesBoard {
   private readonly router = inject(Router);
 
   stations = toSignal(inject(StationService).list(), { initialValue: [] as Station[] });
+  categories = toSignal(inject(CategoryService).list(), { initialValue: [] as Category[] });
   fiches = toSignal(inject(FicheTechniqueService).list(), { initialValue: [] as FicheTechnique[] });
 
   search = signal('');
+  selectedStationId = signal<number | null>(null);
+  selectedCategoryId = signal<number | null>(null);
 
   private readonly queryParamId = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('id'))),
@@ -42,23 +41,17 @@ export class FichesBoard {
 
   filteredFiches = computed(() => {
     const query = this.search().trim().toLowerCase();
-    if (!query) return this.fiches();
-    return this.fiches().filter((fiche) => fiche.name.toLowerCase().includes(query));
-  });
+    const stationId = this.selectedStationId();
+    const categoryId = this.selectedCategoryId();
 
-  columns = computed<Column[]>(() => {
-    const fiches = this.filteredFiches();
-    const columns: Column[] = this.stations().map((station) => ({
-      station,
-      fiches: fiches.filter((fiche) => fiche.station_id === station.id),
-    }));
-
-    const withoutStation = fiches.filter((fiche) => fiche.station_id === null);
-    if (withoutStation.length > 0) {
-      columns.push({ station: null, fiches: withoutStation });
-    }
-
-    return columns;
+    return this.fiches()
+      .filter((fiche) => {
+        const matchesQuery = !query || fiche.name.toLowerCase().includes(query);
+        const matchesStation = stationId === null || fiche.station_id === stationId;
+        const matchesCategory = categoryId === null || fiche.category_id === categoryId;
+        return matchesQuery && matchesStation && matchesCategory;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
   });
 
   totalCount = computed(() => this.filteredFiches().length);
@@ -74,5 +67,15 @@ export class FichesBoard {
 
   onSearchInput(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  onStationChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedStationId.set(value ? Number(value) : null);
+  }
+
+  onCategoryChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedCategoryId.set(value ? Number(value) : null);
   }
 }
