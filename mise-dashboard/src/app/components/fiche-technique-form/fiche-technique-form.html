@@ -152,11 +152,27 @@
                   <input
                     class="form-input"
                     type="number"
-                    step="0.001"
+                    [step]="quantityStep(row)"
                     min="0"
                     [formControl]="row.controls.quantity"
                     placeholder="Quantité"
                     [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
+                </div>
+                <div class="unit-field">
+                  @if (unitOptions(row); as opts) {
+                    <div class="unit-toggle">
+                      <button
+                        type="button"
+                        [class.active]="row.controls.input_unit.value === opts.base"
+                        (click)="setInputUnit(row, opts.base)">{{ opts.base }}</button>
+                      <button
+                        type="button"
+                        [class.active]="row.controls.input_unit.value === opts.small"
+                        (click)="setInputUnit(row, opts.small)">{{ opts.small }}</button>
+                    </div>
+                  } @else if (row.controls.input_unit.value) {
+                    <span class="unit-label">{{ row.controls.input_unit.value }}</span>
+                  }
                 </div>
                 <button type="button" class="row-remove" (click)="removeIngredientRow(groupIndex, $index)" aria-label="Retirer">×</button>
               </div>

@@ -12,11 +12,15 @@ import { Ingredient } from '../../core/models/ingredient.model';
 import { Difficulty, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
 import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
+import { smallUnitFor } from '../../core/utils/format-quantity';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
 
 type IngredientRow = FormGroup<{
   ingredient_id: FormControl<number | null>;
   quantity: FormControl<number | null>;
+  /** Unité dans laquelle `quantity` est actuellement saisie (kg OU g pour un ingrédient en kg,
+   * jamais autre chose) — convertie vers l'unité de base de l'ingrédient à l'enregistrement. */
+  input_unit: FormControl<string>;
 }>;
 
 type IngredientGroup = FormGroup<{
@@ -128,7 +132,9 @@ export class FicheTechniqueForm implements OnInit {
             groupsByLabel.set(label, group);
             this.ingredientGroups.push(group);
           }
-          group.controls.rows.push(this.buildIngredientRow(ingredient.id, Number(ingredient.pivot.quantity)));
+          group.controls.rows.push(
+            this.buildIngredientRow(ingredient.id, Number(ingredient.pivot.quantity), ingredient.unit),
+          );
         }
 
         for (const step of fiche.steps ?? []) {
@@ -156,11 +162,72 @@ export class FicheTechniqueForm implements OnInit {
     this.equipment.removeAt(index);
   }
 
-  private buildIngredientRow(ingredientId: number | null, quantity: number | null): IngredientRow {
-    return new FormGroup({
+  /**
+   * `unit` est l'unité de base réelle de l'ingrédient (connue à l'édition via
+   * `FicheTechniqueIngredient.unit`, ou résolue au choix de l'ingrédient pour une ligne neuve).
+   * Pour une unité convertible (kg/L), une quantité déjà petite (< 1) est présentée d'emblée dans
+   * la sous-unité (g/mL) — cohérent avec l'affichage de `formatQuantity` ailleurs dans l'app.
+   */
+  private buildIngredientRow(ingredientId: number | null, quantity: number | null, unit: string | null): IngredientRow {
+    const conversion = unit ? smallUnitFor(unit) : null;
+    const useSmallUnit = conversion !== null && quantity !== null && Math.abs(quantity) < 1;
+
+    const row = new FormGroup({
       ingredient_id: new FormControl<number | null>(ingredientId, { validators: [Validators.required] }),
-      quantity: new FormControl<number | null>(quantity, { validators: [Validators.required, Validators.min(0)] }),
+      quantity: new FormControl<number | null>(
+        useSmallUnit ? this.round(quantity! * conversion!.factor, 0) : quantity,
+        { validators: [Validators.required, Validators.min(0)] },
+      ),
+      input_unit: new FormControl(useSmallUnit ? conversion!.unit : (unit ?? ''), { nonNullable: true }),
     });
+
+    // Une ligne neuve n'a pas d'unité tant qu'aucun ingrédient n'est choisi — dès que l'ingrédient
+    // change (neuf ou remplacé), on retombe sur son unité de base (jamais la petite unité : rien
+    // ne justifie de deviner une magnitude pour une quantité que le chef n'a pas encore saisie).
+    row.controls.ingredient_id.valueChanges.subscribe((id) => {
+      const newUnit = id !== null ? (this.ingredients().find((i) => i.id === id)?.unit ?? '') : '';
+      row.controls.input_unit.setValue(newUnit);
+    });
+
+    return row;
+  }
+
+  /** Unité de base + sous-unité de l'ingrédient sélectionné sur cette ligne, ou null si non
+   * convertible (pièce, c. à café…) ou si aucun ingrédient n'est encore choisi. */
+  unitOptions(row: IngredientRow): { base: string; small: string; factor: number } | null {
+    const ingredientId = row.controls.ingredient_id.value;
+    const baseUnit = ingredientId !== null ? this.ingredients().find((i) => i.id === ingredientId)?.unit : null;
+    if (!baseUnit) return null;
+
+    const conversion = smallUnitFor(baseUnit);
+    return conversion ? { base: baseUnit, small: conversion.unit, factor: conversion.factor } : null;
+  }
+
+  /** Bascule la ligne vers `unit` (base ou sous-unité) en reconvertissant la quantité affichée
+   * pour représenter la même quantité réelle — 0.003 kg devient 3 g, jamais 0.003 g. */
+  setInputUnit(row: IngredientRow, unit: string): void {
+    const opts = this.unitOptions(row);
+    if (!opts || row.controls.input_unit.value === unit) return;
+
+    const currentQty = row.controls.quantity.value;
+    if (currentQty !== null) {
+      const goingToSmall = unit === opts.small;
+      const converted = goingToSmall ? currentQty * opts.factor : currentQty / opts.factor;
+      row.controls.quantity.setValue(this.round(converted, goingToSmall ? 0 : 3));
+    }
+
+    row.controls.input_unit.setValue(unit);
+  }
+
+  /** Pas de saisie adapté à l'unité affichée : grammes/millilitres entiers, ou millièmes en kg/L. */
+  quantityStep(row: IngredientRow): string {
+    const opts = this.unitOptions(row);
+    return opts && row.controls.input_unit.value === opts.small ? '1' : '0.001';
+  }
+
+  private round(value: number, decimals: number): number {
+    const factor = 10 ** decimals;
+    return Math.round(value * factor) / factor;
   }
 
   private buildIngredientGroup(label: string): IngredientGroup {
@@ -179,7 +246,7 @@ export class FicheTechniqueForm implements OnInit {
   }
 
   addIngredientRow(groupIndex: number): void {
-    this.ingredientGroups.at(groupIndex).controls.rows.push(this.buildIngredientRow(null, null));
+    this.ingredientGroups.at(groupIndex).controls.rows.push(this.buildIngredientRow(null, null, null));
   }
 
   removeIngredientRow(groupIndex: number, rowIndex: number): void {
@@ -242,11 +309,20 @@ export class FicheTechniqueForm implements OnInit {
       conservation: value.conservation || null,
       ingredients: this.ingredientGroups.controls.flatMap((group) => {
         const label = group.controls.label.value.trim() || null;
-        return group.controls.rows.controls.map((row) => ({
-          ingredient_id: row.controls.ingredient_id.value as number,
-          quantity: row.controls.quantity.value as number,
-          group_label: label,
-        }));
+        return group.controls.rows.controls.map((row) => {
+          const opts = this.unitOptions(row);
+          const rawQuantity = row.controls.quantity.value as number;
+          // La quantité est saisie dans `input_unit` (base ou sous-unité) — on la reconvertit
+          // vers l'unité de base de l'ingrédient, seule unité que l'API accepte.
+          const quantity =
+            opts && row.controls.input_unit.value === opts.small ? rawQuantity / opts.factor : rawQuantity;
+
+          return {
+            ingredient_id: row.controls.ingredient_id.value as number,
+            quantity,
+            group_label: label,
+          };
+        });
       }),
       steps: this.stepRows.controls.map((row) => ({
         instruction: row.controls.instruction.value,

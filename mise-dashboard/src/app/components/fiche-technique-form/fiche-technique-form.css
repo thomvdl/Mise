@@ -3,6 +3,48 @@
   max-width: 140px;
 }
 
+.unit-field {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.unit-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.unit-toggle button {
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.unit-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+.unit-toggle button.active {
+  background: var(--accent-blue);
+  color: #fff;
+}
+.unit-toggle button:hover:not(.active) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.unit-label {
+  padding: 9px 4px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
 .step-order {
   display: flex;
   flex-direction: column;
