@@ -1,11 +1,11 @@
 .back-link {
-  display: inline-block;
+  display: block;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   color: var(--text-dim);
   text-decoration: none;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .back-link:hover {
   color: var(--accent-blue);
