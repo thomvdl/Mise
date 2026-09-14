@@ -37,18 +37,6 @@
   flex-wrap: wrap;
 }
 
-.board-search-link {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.board-search-link:hover {
-  color: var(--accent-blue);
-}
-
 .list-filter {
   background: var(--surface-2);
   border: 1px solid var(--border);
