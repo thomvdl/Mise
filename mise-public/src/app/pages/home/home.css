@@ -12,25 +12,42 @@
   width: 100%;
 }
 
-/* Disponible sur toutes les tailles d'écran — sur desktop, masquer la liste laisse le détail
-   prendre toute la largeur (.layout.list-hidden ci-dessous) au lieu d'être coincé dans la
-   première colonne de 340px du grid (cf. .layout dans styles.css). */
+/* Icône seule plutôt qu'un bouton texte pleine largeur — disponible sur toutes les tailles
+   d'écran. Sur desktop, masquer la liste laisse le détail prendre toute la largeur
+   (.layout.list-hidden ci-dessous) au lieu d'être coincé dans la première colonne de 340px du
+   grid (cf. .layout dans styles.css). L'état actif (liste visible) se lit sur le fond/bordure
+   du bouton plutôt que sur l'icône, qui reste la même dans les deux états. */
 .list-toggle-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   margin: 0 18px 10px;
-  padding: 8px 14px;
+  padding: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--text-dim);
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
+}
+.list-toggle-btn svg {
+  width: 16px;
+  height: 16px;
 }
 .list-toggle-btn:hover {
   border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.list-toggle-btn.active {
+  background: var(--surface-3);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.list-toggle-btn:active {
+  transform: scale(0.94);
 }
 
 /* Ne s'applique qu'au grid 2 colonnes du desktop — sous 880px, .layout est déjà en 1 colonne
