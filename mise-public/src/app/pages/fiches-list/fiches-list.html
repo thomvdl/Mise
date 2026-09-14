@@ -1,10 +1,10 @@
-<div class="board-header">
+<div class="list-header">
   <div>
-    <h1 class="board-title">Fiches techniques</h1>
-    <p class="board-count">{{ totalCount() }} fiche{{ totalCount() > 1 ? 's' : '' }}</p>
+    <h1 class="list-title">Fiches techniques</h1>
+    <p class="list-count">{{ totalCount() }} fiche{{ totalCount() > 1 ? 's' : '' }}</p>
   </div>
 
-  <div class="board-actions">
+  <div class="list-actions">
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Rechercher une fiche…" [value]="search()" (input)="onSearchInput($event)">

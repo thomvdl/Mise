@@ -6,7 +6,7 @@
   padding: 28px 36px 24px;
 }
 
-.board-header {
+.list-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -15,7 +15,7 @@
   margin-bottom: 20px;
 }
 
-.board-title {
+.list-title {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 28px;
@@ -23,14 +23,14 @@
   margin: 0 0 4px;
 }
 
-.board-count {
+.list-count {
   margin: 0;
   color: var(--text-faint);
   font-family: var(--font-mono);
   font-size: 12px;
 }
 
-.board-actions {
+.list-actions {
   display: flex;
   align-items: center;
   gap: 12px;

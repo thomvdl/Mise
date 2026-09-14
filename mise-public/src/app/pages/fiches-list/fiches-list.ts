@@ -17,12 +17,12 @@ import { Category } from '../../core/models/category.model';
  * détail, pour ne pas casser ce lien existant.
  */
 @Component({
-  selector: 'app-fiches-board',
+  selector: 'app-fiches-list',
   imports: [RouterLink],
-  templateUrl: './fiches-board.html',
-  styleUrl: './fiches-board.css',
+  templateUrl: './fiches-list.html',
+  styleUrl: './fiches-list.css',
 })
-export class FichesBoard {
+export class FichesList {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
