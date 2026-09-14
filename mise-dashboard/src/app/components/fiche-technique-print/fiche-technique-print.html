@@ -93,7 +93,7 @@
           @for (line of group.lines; track line.ingredient.id) {
             <tr>
               <td class="ing-name">{{ line.ingredient.name }}</td>
-              <td class="ing-qty">{{ line.quantity | number: '1.0-2' }} {{ line.ingredient.unit }}</td>
+              <td class="ing-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
               <td class="ing-cost">
                 @if (line.lineCost !== null) {
                   {{ line.lineCost | number: '1.2-2' }} €

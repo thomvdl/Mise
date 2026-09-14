@@ -59,7 +59,7 @@
                   </td>
                   <td [class.msl-done]="isChecked(line.ingredientId)">{{ line.name }}</td>
                   <td class="msl-qty" [class.msl-done]="isChecked(line.ingredientId)">
-                    {{ formatQuantity(line.quantity) }} {{ line.unit }}
+                    {{ formatQuantity(line.quantity, line.unit) }}
                   </td>
                 </tr>
               }

@@ -10,6 +10,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { Menu } from '../../core/models/menu.model';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
+import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 import { ShoppingListGroupBy, buildShoppingList } from '../../core/utils/menu-shopping-list';
 import { useReportTitle } from '../../core/utils/report-title';
 
@@ -97,8 +98,8 @@ export class MenuShoppingList {
     });
   }
 
-  formatQuantity(value: number): string {
-    return value.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  formatQuantity(value: number, unit: string): string {
+    return formatQuantityUtil(value, unit);
   }
 
   generatedAt(): string {

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 
 import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
+import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 
 interface TimerState {
   remainingSec: number;
@@ -235,5 +236,9 @@ export class RecipeDetail {
 
       return changed ? next : timers;
     });
+  }
+
+  formatQuantity(quantity: number, unit: string): string {
+    return formatQuantityUtil(quantity, unit);
   }
 }

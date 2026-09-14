@@ -19,6 +19,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { enrichFicheTechnique, uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
+import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 import { useReportTitle } from '../../core/utils/report-title';
 
 interface TimerState {
@@ -287,5 +288,9 @@ export class FicheTechniquePrint {
 
       return changed ? next : timers;
     });
+  }
+
+  formatQuantity(quantity: number, unit: string): string {
+    return formatQuantityUtil(quantity, unit);
   }
 }
