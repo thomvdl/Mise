@@ -10,7 +10,7 @@ import { SimpleEntityService } from '../../core/services/simple-entity.service';
 import { Category } from '../../core/models/category.model';
 import { Station } from '../../core/models/station.model';
 import { Ingredient, IngredientPayload } from '../../core/models/ingredient.model';
-import { Difficulty, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
+import { Difficulty, FicheTechnique, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
 import {
   ParsedFicheTechnique,
   ParsedFicheTechniqueBlock,
@@ -83,11 +83,20 @@ interface IngredientMatch {
   existing: Ingredient | null;
 }
 
+/** Une ligne "× recette" résolue contre le catalogue de fiches techniques plutôt que celui des
+ * ingrédients — pas d'auto-création possible ici (contrairement à un ingrédient manquant), une
+ * fiche introuvable est juste ignorée à l'enregistrement (voir buildPayload). */
+interface ComponentMatch {
+  line: ParsedIngredientLine;
+  existing: FicheTechnique | null;
+}
+
 interface ResolvedBlock {
   block: ParsedFicheTechniqueBlock;
   matchedStation: Station | null;
   matchedCategory: Category | null;
   ingredientMatches: IngredientMatch[];
+  componentMatches: ComponentMatch[];
 }
 
 @Component({
@@ -108,6 +117,7 @@ export class FicheTechniqueImport {
   categories = signal<Category[]>([]);
   stations = signal<Station[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  fiches = signal<FicheTechnique[]>([]);
   saving = signal(false);
   errorMessage = signal<string | null>(null);
 
@@ -115,6 +125,7 @@ export class FicheTechniqueImport {
     this.categoryService.list().subscribe((items) => this.categories.set(items));
     this.stationService.list().subscribe((items) => this.stations.set(items));
     this.ingredientService.list().subscribe((items) => this.ingredients.set(items));
+    this.ficheTechniqueService.list().subscribe((items) => this.fiches.set(items));
   }
 
   blocks = computed(() => parseMultipleFicheTechniques(this.markdownText()));
@@ -123,10 +134,11 @@ export class FicheTechniqueImport {
     const stations = this.stations();
     const categories = this.categories();
     const ingredients = this.ingredients();
+    const fiches = this.fiches();
 
     return this.blocks().map((block) => {
       if (!block.value) {
-        return { block, matchedStation: null, matchedCategory: null, ingredientMatches: [] };
+        return { block, matchedStation: null, matchedCategory: null, ingredientMatches: [], componentMatches: [] };
       }
 
       const fiche = block.value;
@@ -139,10 +151,18 @@ export class FicheTechniqueImport {
         matchedCategory: fiche.category
           ? (categories.find((category) => slugify(category.name) === slugify(fiche.category!)) ?? null)
           : null,
-        ingredientMatches: fiche.ingredients.map((line) => ({
-          line,
-          existing: ingredients.find((ingredient) => slugify(ingredient.name) === slugify(line.name)) ?? null,
-        })),
+        ingredientMatches: fiche.ingredients
+          .filter((line) => !line.isComponent)
+          .map((line) => ({
+            line,
+            existing: ingredients.find((ingredient) => slugify(ingredient.name) === slugify(line.name)) ?? null,
+          })),
+        componentMatches: fiche.ingredients
+          .filter((line) => line.isComponent)
+          .map((line) => ({
+            line,
+            existing: fiches.find((candidate) => slugify(candidate.name) === slugify(line.name)) ?? null,
+          })),
       };
     });
   });
@@ -163,6 +183,12 @@ export class FicheTechniqueImport {
     }
     return [...byKey.values()];
   });
+
+  /** Références "× recette" qui ne correspondent à aucune fiche technique existante — contrairement
+   * à un ingrédient, on ne peut pas en créer une automatiquement ; la ligne sera juste ignorée. */
+  missingComponentsCount = computed(() =>
+    this.resolved().reduce((sum, r) => sum + r.componentMatches.filter((m) => !m.existing).length, 0),
+  );
 
   onTextInput(event: Event): void {
     this.markdownText.set((event.target as HTMLTextAreaElement).value);
@@ -237,7 +263,16 @@ export class FicheTechniqueImport {
         group_label: line.group,
       })),
       steps: fiche.steps.map((step) => ({ instruction: step.instruction, timer_minutes: step.timerMinutes })),
-      components: [],
+      // Une référence "× recette" introuvable est silencieusement omise (pas d'auto-création
+      // possible pour une fiche technique comme pour un ingrédient) — signalé dans l'aperçu via
+      // missingComponentsCount avant l'enregistrement.
+      components: resolvedBlock.componentMatches
+        .filter((match) => match.existing)
+        .map((match) => ({
+          component_fiche_technique_id: match.existing!.id,
+          quantity: match.line.quantity ?? 0,
+          group_label: match.line.group,
+        })),
     };
   }
 }

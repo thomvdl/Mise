@@ -6,7 +6,12 @@ export interface ParsedIngredientLine {
   unit: string;
   /** Sub-recipe/section label from the nearest preceding "### Groupe" heading, or null when ungrouped. */
   group: string | null;
+  /** true when `unit` is the "× recette" marker — `name` then resolves against the fiche
+   * technique catalog (a component reference), not the ingredient one. */
+  isComponent: boolean;
 }
+
+const COMPONENT_UNIT_MARKER = /^[×x]\s*recette$/i;
 
 export interface ParsedStepLine {
   instruction: string;
@@ -54,7 +59,7 @@ function parseIngredientLine(line: string, group: string | null): ParsedIngredie
   const separatorIndex = body.indexOf('—');
 
   if (separatorIndex === -1) {
-    return { name: body, quantity: null, unit: '', group };
+    return { name: body, quantity: null, unit: '', group, isComponent: false };
   }
 
   const name = body.slice(0, separatorIndex).trim();
@@ -62,10 +67,17 @@ function parseIngredientLine(line: string, group: string | null): ParsedIngredie
   const match = rest.match(/^([\d.,]+)\s*(.*)$/);
 
   if (!match) {
-    return { name, quantity: null, unit: rest, group };
+    return { name, quantity: null, unit: rest, group, isComponent: COMPONENT_UNIT_MARKER.test(rest) };
   }
 
-  return { name, quantity: parseFloat(match[1].replace(',', '.')), unit: match[2].trim(), group };
+  const unit = match[2].trim();
+  return {
+    name,
+    quantity: parseFloat(match[1].replace(',', '.')),
+    unit,
+    group,
+    isComponent: COMPONENT_UNIT_MARKER.test(unit),
+  };
 }
 
 function parseStepLine(line: string): ParsedStepLine {
@@ -282,19 +294,45 @@ export function ficheTechniqueToMarkdown(fiche: FicheTechnique): string {
     sections.push(`## Matériel\n${fiche.equipment.map((item) => `- ${item}`).join('\n')}`);
   }
 
-  if (fiche.ingredients?.length) {
-    const hasGroups = fiche.ingredients.some((ingredient) => ingredient.pivot.group_label);
-    let currentGroup: string | null | undefined;
-    const lines: string[] = [];
+  if (fiche.ingredients?.length || fiche.components?.length) {
+    const hasGroups =
+      (fiche.ingredients ?? []).some((i) => i.pivot.group_label) ||
+      (fiche.components ?? []).some((c) => c.pivot.group_label);
 
-    for (const ingredient of fiche.ingredients) {
-      if (hasGroups && ingredient.pivot.group_label !== currentGroup) {
-        currentGroup = ingredient.pivot.group_label;
-        lines.push(`### ${currentGroup ?? 'Divers'}`);
+    // Composants regroupés avec les ingrédients par group_label, dans l'ordre de première
+    // apparition (les ingrédients du groupe d'abord, ses composants ensuite — le pivot ne garde
+    // pas d'ordre relatif entre les deux tables, comme pour l'affichage impression/détail).
+    const groupOrder: (string | null)[] = [];
+    const ingredientsByGroup = new Map<string | null, string[]>();
+    const componentsByGroup = new Map<string | null, string[]>();
+
+    const ensureGroup = (label: string | null) => {
+      if (!ingredientsByGroup.has(label)) {
+        groupOrder.push(label);
+        ingredientsByGroup.set(label, []);
+        componentsByGroup.set(label, []);
       }
+    };
+
+    for (const ingredient of fiche.ingredients ?? []) {
+      const label = ingredient.pivot.group_label;
+      ensureGroup(label);
       const quantity = formatQuantity(ingredient.pivot.quantity);
       const unit = ingredient.unit ? ` ${ingredient.unit}` : '';
-      lines.push(`- ${ingredient.name} — ${quantity}${unit}`);
+      ingredientsByGroup.get(label)!.push(`- ${ingredient.name} — ${quantity}${unit}`);
+    }
+
+    for (const component of fiche.components ?? []) {
+      const label = component.pivot.group_label;
+      ensureGroup(label);
+      const quantity = formatQuantity(component.pivot.quantity);
+      componentsByGroup.get(label)!.push(`- ${component.name} — ${quantity} × recette`);
+    }
+
+    const lines: string[] = [];
+    for (const label of groupOrder) {
+      if (hasGroups) lines.push(`### ${label ?? 'Divers'}`);
+      lines.push(...ingredientsByGroup.get(label)!, ...componentsByGroup.get(label)!);
     }
 
     sections.push(`## Ingrédients\n${lines.join('\n')}`);

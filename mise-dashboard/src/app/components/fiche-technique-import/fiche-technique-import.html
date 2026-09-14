@@ -4,7 +4,9 @@
 
 <p class="form-hint import-tip">
   Collez une ou plusieurs fiches à la suite dans le même texte — chacune commence simplement par son propre titre
-  « # Nom de la fiche », pas besoin de séparateur particulier.
+  « # Nom de la fiche », pas besoin de séparateur particulier. Une ligne d'ingrédient peut aussi référencer une
+  autre fiche technique comme composant : remplacez l'unité par « × recette », ex.
+  « - Fond brun (fond de veau) — 0.5 × recette » pour une demi-préparation.
 </p>
 
 <div class="import-layout">
@@ -115,6 +117,33 @@
                         </td>
                       </tr>
                     }
+                    @for (match of r.componentMatches; track match.line.name) {
+                      <tr>
+                        <td>
+                          @if (match.line.group) {
+                            <span class="form-hint">{{ match.line.group }}</span>
+                          }
+                        </td>
+                        <td>
+                          {{ match.line.name }}
+                          <span class="form-hint">fiche technique</span>
+                        </td>
+                        <td>
+                          @if (match.line.quantity !== null) {
+                            × {{ match.line.quantity }}
+                          } @else {
+                            <span class="form-error">manquante</span>
+                          }
+                        </td>
+                        <td>
+                          @if (match.existing) {
+                            <span class="form-hint">Existante</span>
+                          } @else {
+                            <span class="form-error">Introuvable — ignorée</span>
+                          }
+                        </td>
+                      </tr>
+                    }
                   </tbody>
                 </table>
               </div>
@@ -143,6 +172,14 @@
       <p class="form-hint">
         {{ newIngredients().length }} ingrédient(s) seront créés automatiquement au total (sans catégorie ni
         allergène — à compléter ensuite dans la fiche Ingrédients).
+      </p>
+    }
+
+    @if (missingComponentsCount() > 0) {
+      <p class="form-error">
+        {{ missingComponentsCount() }} référence(s) « × recette » ne correspondent à aucune fiche technique
+        existante et seront ignorées (contrairement à un ingrédient, une fiche ne peut pas être créée
+        automatiquement).
       </p>
     }
 
