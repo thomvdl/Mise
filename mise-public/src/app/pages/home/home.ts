@@ -11,6 +11,7 @@ import { StationService } from '../../core/services/station.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { IngredientService } from '../../core/services/ingredient.service';
 import { Ingredient } from '../../core/models/ingredient.model';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { enrichFicheTechnique } from '../../core/utils/enrich-fiche-technique';
 
 @Component({
@@ -33,6 +34,9 @@ export class Home {
     ))),
     { initialValue: new Map<number, Ingredient>() },
   );
+
+  /** Raw (unenriched) fiche list, needed to resolve component sub-recipes more than one level deep. */
+  fichesById = computed(() => new Map<number, FicheTechnique>(this.ficheTechniques().map((f) => [f.id, f])));
 
   activeStationSlug = signal<string | null>(null);
   searchQuery = signal('');

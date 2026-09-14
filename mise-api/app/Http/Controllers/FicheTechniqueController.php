@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\FicheTechnique;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FicheTechniqueController extends Controller
 {
-    private const RELATIONS = ['category', 'station', 'ingredients', 'steps', 'pictures'];
+    private const RELATIONS = ['category', 'station', 'ingredients', 'steps', 'pictures', 'components'];
 
     /**
      * Display a listing of the resource.
@@ -26,11 +28,12 @@ class FicheTechniqueController extends Controller
         $validated = $request->validate($this->rules());
 
         $ficheTechnique = FicheTechnique::create(
-            collect($validated)->except(['ingredients', 'steps'])->all()
+            collect($validated)->except(['ingredients', 'steps', 'components'])->all()
         )->refresh();
 
         $this->syncIngredients($ficheTechnique, $validated['ingredients'] ?? []);
         $this->replaceSteps($ficheTechnique, $validated['steps'] ?? []);
+        $this->syncComponents($ficheTechnique, $validated['components'] ?? []);
 
         return response()->json($ficheTechnique->load(self::RELATIONS), 201);
     }
@@ -50,8 +53,12 @@ class FicheTechniqueController extends Controller
     {
         $validated = $request->validate($this->rules($ficheTechnique, forUpdate: true));
 
+        if (array_key_exists('components', $validated)) {
+            $this->guardAgainstInvalidComponents($ficheTechnique, $validated['components']);
+        }
+
         $ficheTechnique->update(
-            collect($validated)->except(['ingredients', 'steps'])->all()
+            collect($validated)->except(['ingredients', 'steps', 'components'])->all()
         );
 
         if (array_key_exists('ingredients', $validated)) {
@@ -60,6 +67,10 @@ class FicheTechniqueController extends Controller
 
         if (array_key_exists('steps', $validated)) {
             $this->replaceSteps($ficheTechnique, $validated['steps']);
+        }
+
+        if (array_key_exists('components', $validated)) {
+            $this->syncComponents($ficheTechnique, $validated['components']);
         }
 
         return $ficheTechnique->load(self::RELATIONS);
@@ -105,6 +116,10 @@ class FicheTechniqueController extends Controller
             'steps' => ['sometimes', 'array'],
             'steps.*.instruction' => ['required_with:steps', 'string'],
             'steps.*.timer_minutes' => ['nullable', 'integer', 'min:0'],
+            'components' => ['sometimes', 'array'],
+            'components.*.component_fiche_technique_id' => ['required_with:components', 'integer', 'exists:fiche_techniques,id'],
+            'components.*.quantity' => ['required_with:components', 'numeric', 'min:0.001'],
+            'components.*.group_label' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -128,5 +143,71 @@ class FicheTechniqueController extends Controller
                 'timer_minutes' => $step['timer_minutes'] ?? null,
             ]);
         }
+    }
+
+    private function syncComponents(FicheTechnique $ficheTechnique, array $components): void
+    {
+        $pivotData = collect($components)->mapWithKeys(fn (array $item) => [
+            $item['component_fiche_technique_id'] => [
+                'quantity' => $item['quantity'],
+                'group_label' => $item['group_label'] ?? null,
+            ],
+        ])->all();
+
+        $ficheTechnique->components()->sync($pivotData);
+    }
+
+    /**
+     * Rejects a fiche referencing itself, directly or through a chain of components, as one of its
+     * own components — the pivot has no way to express or safely resolve a cyclic composition.
+     */
+    private function guardAgainstInvalidComponents(FicheTechnique $ficheTechnique, array $components): void
+    {
+        foreach ($components as $component) {
+            $componentId = $component['component_fiche_technique_id'];
+
+            if ($componentId === $ficheTechnique->id) {
+                throw ValidationException::withMessages([
+                    'components' => ["Une fiche technique ne peut pas s'utiliser elle-même comme composant."],
+                ]);
+            }
+
+            if ($this->isReachable($componentId, $ficheTechnique->id)) {
+                throw ValidationException::withMessages([
+                    'components' => ['Ce composant créerait une référence circulaire entre fiches techniques.'],
+                ]);
+            }
+        }
+    }
+
+    /** Breadth-first search over the fiche_technique_component graph, from $fromId towards $targetId. */
+    private function isReachable(int $fromId, int $targetId): bool
+    {
+        $visited = [];
+        $queue = [$fromId];
+
+        while ($queue) {
+            $currentId = array_shift($queue);
+
+            if ($currentId === $targetId) {
+                return true;
+            }
+
+            if (isset($visited[$currentId])) {
+                continue;
+            }
+
+            $visited[$currentId] = true;
+
+            $childIds = DB::table('fiche_technique_component')
+                ->where('parent_fiche_technique_id', $currentId)
+                ->pluck('component_fiche_technique_id');
+
+            foreach ($childIds as $childId) {
+                $queue[] = $childId;
+            }
+        }
+
+        return false;
     }
 }

@@ -75,6 +75,12 @@
   font-style: italic;
 }
 
+.ing-source {
+  display: block;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
 .only-print {
   display: none;
 }

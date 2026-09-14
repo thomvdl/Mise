@@ -2,9 +2,14 @@ import { Component, DestroyRef, ElementRef, effect, inject, input, signal, compu
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
-import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
+import { Ingredient } from '../../core/models/ingredient.model';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
+import {
+  ResolvedIngredientLine,
+  resolveIngredientLines,
+  uniqueAllergensFromLines,
+} from '../../core/utils/resolve-fiche-components';
 
 interface TimerState {
   remainingSec: number;
@@ -12,15 +17,9 @@ interface TimerState {
   running: boolean;
 }
 
-interface ScaledIngredientLine {
-  ingredient: FicheTechniqueIngredient;
-  quantity: number;
-  lineCost: number | null;
-}
-
 interface IngredientGroup {
   label: string | null;
-  lines: ScaledIngredientLine[];
+  lines: ResolvedIngredientLine[];
 }
 
 const DIAL_RADIUS = 46;
@@ -41,6 +40,9 @@ export class RecipeDetail {
   private dragging = false;
 
   fiche = input<FicheTechnique | null>(null);
+  /** Raw fiche catalogue, needed to resolve component sub-recipes more than one level deep. */
+  fichesById = input<Map<number, FicheTechnique>>(new Map());
+  ingredientsById = input<Map<number, Ingredient>>(new Map());
 
   servings = signal(0);
   doneSteps = signal<Set<number>>(new Set());
@@ -49,29 +51,19 @@ export class RecipeDetail {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
-  allergens = computed(() => {
-    const fiche = this.fiche();
-    return fiche ? uniqueAllergens(fiche) : [];
-  });
+  allergens = computed(() => uniqueAllergensFromLines(this.scaledIngredients()));
 
   scaleFactor = computed(() => {
     const fiche = this.fiche();
     return fiche && fiche.servings > 0 ? this.servings() / fiche.servings : 1;
   });
 
-  scaledIngredients = computed<ScaledIngredientLine[]>(() => {
-    const factor = this.scaleFactor();
+  /** Flattened ingredients, recursively expanding any component sub-recipes down to raw ingredients. */
+  scaledIngredients = computed<ResolvedIngredientLine[]>(() => {
+    const fiche = this.fiche();
+    if (!fiche) return [];
 
-    return (this.fiche()?.ingredients ?? []).map((ingredient) => {
-      const quantity = Number(ingredient.pivot.quantity) * factor;
-      const price = ingredient.price !== null ? Number(ingredient.price) : null;
-
-      return {
-        ingredient,
-        quantity,
-        lineCost: price !== null ? price * quantity : null,
-      };
-    });
+    return resolveIngredientLines(fiche, this.scaleFactor(), this.fichesById(), this.ingredientsById());
   });
 
   /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
@@ -80,7 +72,7 @@ export class RecipeDetail {
     const byKey = new Map<string, IngredientGroup>();
 
     for (const line of this.scaledIngredients()) {
-      const label = line.ingredient.pivot.group_label;
+      const label = line.groupLabel;
       const key = label ?? '';
       let group = byKey.get(key);
       if (!group) {

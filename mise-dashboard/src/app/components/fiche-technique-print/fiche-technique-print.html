@@ -90,9 +90,14 @@
               <td colspan="3">{{ group.label ?? 'Divers' }}</td>
             </tr>
           }
-          @for (line of group.lines; track line.ingredient.id) {
+          @for (line of group.lines; track $index) {
             <tr>
-              <td class="ing-name">{{ line.ingredient.name }}</td>
+              <td class="ing-name">
+                {{ line.ingredient.name }}
+                @if (line.sourceFicheName) {
+                  <span class="ing-source">via {{ line.sourceFicheName }}</span>
+                }
+              </td>
               <td class="ing-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
               <td class="ing-cost">
                 @if (line.lineCost !== null) {

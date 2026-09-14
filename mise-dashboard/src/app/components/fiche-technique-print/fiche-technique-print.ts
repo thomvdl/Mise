@@ -16,10 +16,15 @@ import { map } from 'rxjs';
 
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { IngredientService } from '../../core/services/ingredient.service';
-import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { enrichFicheTechnique, uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
+import { enrichFicheTechnique } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
+import {
+  ResolvedIngredientLine,
+  resolveIngredientLines,
+  uniqueAllergensFromLines,
+} from '../../core/utils/resolve-fiche-components';
 import { useReportTitle } from '../../core/utils/report-title';
 
 interface TimerState {
@@ -28,15 +33,9 @@ interface TimerState {
   running: boolean;
 }
 
-interface ScaledIngredientLine {
-  ingredient: FicheTechniqueIngredient;
-  quantity: number;
-  lineCost: number | null;
-}
-
 interface IngredientGroup {
   label: string | null;
-  lines: ScaledIngredientLine[];
+  lines: ResolvedIngredientLine[];
 }
 
 const DIAL_RADIUS = 46;
@@ -80,6 +79,14 @@ export class FicheTechniquePrint {
     { initialValue: new Map<number, Ingredient>() },
   );
 
+  /** Full fiche catalogue, needed to resolve component sub-recipes more than one level deep. */
+  private readonly fichesById = toSignal(
+    this.ficheTechniqueService.list().pipe(
+      map((fiches) => new Map<number, FicheTechnique>(fiches.map((f) => [f.id, f]))),
+    ),
+    { initialValue: new Map<number, FicheTechnique>() },
+  );
+
   /** `FicheTechniqueController` n'eager-load pas ingredients.allergens — voir enrichFicheTechnique. */
   fiche = computed(() => {
     const fiche = this.rawFiche();
@@ -93,29 +100,19 @@ export class FicheTechniquePrint {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
-  allergens = computed(() => {
-    const fiche = this.fiche();
-    return fiche ? uniqueAllergens(fiche) : [];
-  });
+  allergens = computed(() => uniqueAllergensFromLines(this.scaledIngredients()));
 
   scaleFactor = computed(() => {
     const fiche = this.fiche();
     return fiche && fiche.servings > 0 ? this.servings() / fiche.servings : 1;
   });
 
-  scaledIngredients = computed<ScaledIngredientLine[]>(() => {
-    const factor = this.scaleFactor();
+  /** Flattened ingredients, recursively expanding any component sub-recipes down to raw ingredients. */
+  scaledIngredients = computed<ResolvedIngredientLine[]>(() => {
+    const fiche = this.fiche();
+    if (!fiche) return [];
 
-    return (this.fiche()?.ingredients ?? []).map((ingredient) => {
-      const quantity = Number(ingredient.pivot.quantity) * factor;
-      const price = ingredient.price !== null ? Number(ingredient.price) : null;
-
-      return {
-        ingredient,
-        quantity,
-        lineCost: price !== null ? price * quantity : null,
-      };
-    });
+    return resolveIngredientLines(fiche, this.scaleFactor(), this.fichesById(), this.ingredientsById());
   });
 
   /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
@@ -124,7 +121,7 @@ export class FicheTechniquePrint {
     const byKey = new Map<string, IngredientGroup>();
 
     for (const line of this.scaledIngredients()) {
-      const label = line.ingredient.pivot.group_label;
+      const label = line.groupLabel;
       const key = label ?? '';
       let group = byKey.get(key);
       if (!group) {

@@ -9,7 +9,7 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { Category } from '../../core/models/category.model';
 import { Station } from '../../core/models/station.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { Difficulty, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
+import { Difficulty, FicheTechnique, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
 import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
@@ -27,6 +27,12 @@ type IngredientGroup = FormGroup<{
 type StepRow = FormGroup<{
   instruction: FormControl<string>;
   timer_minutes: FormControl<number | null>;
+}>;
+
+type ComponentRow = FormGroup<{
+  component_fiche_technique_id: FormControl<number | null>;
+  quantity: FormControl<number | null>;
+  group_label: FormControl<string>;
 }>;
 
 @Component({
@@ -58,9 +64,13 @@ export class FicheTechniqueForm implements OnInit {
   categories = signal<Category[]>([]);
   stations = signal<Station[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  fiches = signal<FicheTechnique[]>([]);
   linkedPictures = signal<Picture[]>([]);
 
   isEdit = computed(() => this.editingId() !== null);
+
+  /** A fiche can't reference itself as a component (enforced again server-side). */
+  availableComponentFiches = computed(() => this.fiches().filter((f) => f.id !== this.editingId()));
 
   form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -80,11 +90,13 @@ export class FicheTechniqueForm implements OnInit {
   equipment = new FormArray<FormControl<string>>([]);
   ingredientGroups = new FormArray<IngredientGroup>([]);
   stepRows = new FormArray<StepRow>([]);
+  components = new FormArray<ComponentRow>([]);
 
   ngOnInit(): void {
     this.categoryService.list().subscribe((items) => this.categories.set(items));
     this.stationService.list().subscribe((items) => this.stations.set(items));
     this.ingredientService.list().subscribe((items) => this.ingredients.set(items));
+    this.ficheTechniqueService.list().subscribe((items) => this.fiches.set(items));
 
     this.form.controls.name.valueChanges.subscribe((name) => {
       if (!this.slugTouched()) {
@@ -133,6 +145,12 @@ export class FicheTechniqueForm implements OnInit {
 
         for (const step of fiche.steps ?? []) {
           this.stepRows.push(this.buildStepRow(step.instruction, step.timer_minutes));
+        }
+
+        for (const component of fiche.components ?? []) {
+          this.components.push(
+            this.buildComponentRow(component.id, Number(component.pivot.quantity), component.pivot.group_label ?? ''),
+          );
         }
 
         if (this.ingredientGroups.length === 0) {
@@ -210,15 +228,33 @@ export class FicheTechniqueForm implements OnInit {
     this.stepRows.insert(newIndex, control);
   }
 
+  private buildComponentRow(ficheId: number | null, quantity: number | null, groupLabel: string): ComponentRow {
+    return new FormGroup({
+      component_fiche_technique_id: new FormControl<number | null>(ficheId, { validators: [Validators.required] }),
+      quantity: new FormControl<number | null>(quantity, { validators: [Validators.required, Validators.min(0.001)] }),
+      group_label: new FormControl(groupLabel, { nonNullable: true }),
+    });
+  }
+
+  addComponentRow(): void {
+    this.components.push(this.buildComponentRow(null, 1, ''));
+  }
+
+  removeComponentRow(index: number): void {
+    this.components.removeAt(index);
+  }
+
   save(): void {
     this.ingredientGroups.markAllAsTouched();
     this.stepRows.markAllAsTouched();
+    this.components.markAllAsTouched();
 
     if (
       this.form.invalid ||
       this.equipment.invalid ||
       this.ingredientGroups.invalid ||
-      this.stepRows.invalid
+      this.stepRows.invalid ||
+      this.components.invalid
     ) {
       this.form.markAllAsTouched();
       return;
@@ -251,6 +287,11 @@ export class FicheTechniqueForm implements OnInit {
       steps: this.stepRows.controls.map((row) => ({
         instruction: row.controls.instruction.value,
         timer_minutes: row.controls.timer_minutes.value,
+      })),
+      components: this.components.controls.map((row) => ({
+        component_fiche_technique_id: row.controls.component_fiche_technique_id.value as number,
+        quantity: row.controls.quantity.value as number,
+        group_label: row.controls.group_label.value.trim() || null,
       })),
     };
 

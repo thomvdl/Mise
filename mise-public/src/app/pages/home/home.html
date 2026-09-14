@@ -27,6 +27,9 @@
     </aside>
   }
   <main class="detail">
-    <app-recipe-detail [fiche]="selectedFiche()"></app-recipe-detail>
+    <app-recipe-detail
+      [fiche]="selectedFiche()"
+      [fichesById]="fichesById()"
+      [ingredientsById]="ingredientsById()"></app-recipe-detail>
   </main>
 </div>
