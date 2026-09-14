@@ -1,0 +1,40 @@
+<input
+  class="form-input"
+  type="text"
+  autocomplete="off"
+  role="combobox"
+  aria-autocomplete="list"
+  [attr.aria-expanded]="open()"
+  [value]="query()"
+  [disabled]="disabled()"
+  placeholder="Rechercher une fiche technique…"
+  (input)="onInput($any($event.target).value)"
+  (focus)="onFocus()"
+  (keydown)="onKeydown($event)" />
+
+@if (open()) {
+  <div class="iss-panel" role="listbox">
+    @if (results().length === 0) {
+      <p class="iss-empty">Aucune fiche trouvée.</p>
+    } @else {
+      @for (fiche of results(); track fiche.id; let i = $index) {
+        <button
+          type="button"
+          class="iss-option"
+          role="option"
+          [class.active]="i === activeIndex()"
+          [attr.aria-selected]="fiche.id === selectedId()"
+          (click)="select(fiche)"
+          (mouseenter)="activeIndex.set(i)">
+          <span class="iss-option-name">{{ fiche.name }}</span>
+          <span class="iss-option-meta">
+            {{ fiche.servings }} portions@if (fiche.category) { · {{ fiche.category.name }} }
+          </span>
+        </button>
+      }
+      @if (moreCount() > 0) {
+        <p class="iss-more">+{{ moreCount() }} autres résultats — affinez la recherche</p>
+      }
+    }
+  </div>
+}

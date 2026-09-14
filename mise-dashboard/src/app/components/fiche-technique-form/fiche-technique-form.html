@@ -192,15 +192,11 @@
                   </div>
                 } @else {
                   <div class="form-field">
-                    <select
-                      class="form-select"
+                    <app-fiche-technique-search-select
+                      [fiches]="availableComponentFiches()"
                       [formControl]="row.controls.component_fiche_technique_id"
                       [class.has-error]="row.controls.component_fiche_technique_id.invalid && row.controls.component_fiche_technique_id.touched">
-                      <option [ngValue]="null">— Choisir une fiche —</option>
-                      @for (candidate of availableComponentFiches(); track candidate.id) {
-                        <option [ngValue]="candidate.id">{{ candidate.name }} ({{ candidate.servings }} portions)</option>
-                      }
-                    </select>
+                    </app-fiche-technique-search-select>
                   </div>
                   <div class="form-field qty-field">
                     <input

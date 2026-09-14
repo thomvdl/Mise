@@ -14,6 +14,7 @@ import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
 import { smallUnitFor } from '../../core/utils/format-quantity';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
+import { FicheTechniqueSearchSelect } from '../fiche-technique-search-select/fiche-technique-search-select';
 
 type RowKind = 'ingredient' | 'fiche';
 
@@ -45,7 +46,7 @@ type StepRow = FormGroup<{
 
 @Component({
   selector: 'app-fiche-technique-form',
-  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect],
+  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect, FicheTechniqueSearchSelect],
   templateUrl: './fiche-technique-form.html',
   styleUrl: './fiche-technique-form.css',
 })
