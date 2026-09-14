@@ -31,6 +31,16 @@ export interface FicheTechnique {
   ingredients?: FicheTechniqueIngredient[];
   steps?: Step[];
   pictures?: Picture[];
+  /** Sous-recettes utilisées par cette fiche (ex. "Fond brun" dans un "Bœuf bourguignon"). */
+  components?: FicheTechniqueComponent[];
+  /** Autres fiches qui utilisent celle-ci comme composant — pour savoir où une recette de base sert. */
+  used_in?: FicheTechniqueComponent[];
+}
+
+/** Une fiche utilisée comme composant d'une autre. `pivot.quantity` est une fraction/un multiple
+ * de la recette de base du composant (0.5 = une demi-préparation), pas une masse/un volume absolu. */
+export interface FicheTechniqueComponent extends FicheTechnique {
+  pivot: { quantity: string; group_label: string | null };
 }
 
 /** Payload shape expected by POST/PATCH /api/fiche-techniques. */
@@ -50,4 +60,5 @@ export interface FicheTechniquePayload {
   conservation: string | null;
   ingredients: { ingredient_id: number; quantity: number; group_label: string | null }[];
   steps: StepPayload[];
+  components: { component_fiche_technique_id: number; quantity: number; group_label: string | null }[];
 }

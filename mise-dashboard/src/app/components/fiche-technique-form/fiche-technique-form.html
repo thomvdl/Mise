@@ -118,7 +118,9 @@
     <div class="section-title">Ingrédients</div>
     <p class="form-hint">
       Regroupez les ingrédients par sous-recette (ex. « Pâte », « Sauce », « Divers ») en nommant chaque groupe, ou
-      laissez le nom vide pour une simple liste.
+      laissez le nom vide pour une simple liste. Une ligne peut aussi pointer vers une autre fiche technique utilisée
+      comme composant (ex. « Fond brun » dans un « Bœuf bourguignon ») — la quantité est alors une fraction ou un
+      multiple de sa recette de base (1 = une préparation complète).
     </p>
     <div class="ingredient-groups">
       @for (group of ingredientGroups.controls; track $index; let groupIndex = $index) {
@@ -141,43 +143,82 @@
           <div class="editable-list">
             @for (row of group.controls.rows.controls; track $index) {
               <div class="editable-row">
-                <div class="form-field">
-                  <app-ingredient-search-select
-                    [ingredients]="ingredients()"
-                    [formControl]="row.controls.ingredient_id"
-                    [class.has-error]="row.controls.ingredient_id.invalid && row.controls.ingredient_id.touched">
-                  </app-ingredient-search-select>
+                <div class="row-kind-toggle">
+                  <button
+                    type="button"
+                    [class.active]="row.controls.kind.value === 'ingredient'"
+                    (click)="setRowKind(row, 'ingredient')"
+                    aria-label="Ingrédient">Ingr.</button>
+                  <button
+                    type="button"
+                    [class.active]="row.controls.kind.value === 'fiche'"
+                    (click)="setRowKind(row, 'fiche')"
+                    aria-label="Fiche technique">Fiche</button>
                 </div>
-                <div class="form-field qty-field">
-                  <input
-                    class="form-input"
-                    type="number"
-                    [step]="quantityStep(row)"
-                    min="0"
-                    [formControl]="row.controls.quantity"
-                    placeholder="Quantité"
-                    [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
-                </div>
-                <div class="unit-field">
-                  @if (unitOptions(row); as opts) {
-                    <div class="unit-toggle">
-                      <button
-                        type="button"
-                        [class.active]="row.controls.input_unit.value === opts.base"
-                        (click)="setInputUnit(row, opts.base)">{{ opts.base }}</button>
-                      <button
-                        type="button"
-                        [class.active]="row.controls.input_unit.value === opts.small"
-                        (click)="setInputUnit(row, opts.small)">{{ opts.small }}</button>
-                    </div>
-                  } @else if (row.controls.input_unit.value) {
-                    <span class="unit-label">{{ row.controls.input_unit.value }}</span>
-                  }
-                </div>
+
+                @if (row.controls.kind.value === 'ingredient') {
+                  <div class="form-field">
+                    <app-ingredient-search-select
+                      [ingredients]="ingredients()"
+                      [formControl]="row.controls.ingredient_id"
+                      [class.has-error]="row.controls.ingredient_id.invalid && row.controls.ingredient_id.touched">
+                    </app-ingredient-search-select>
+                  </div>
+                  <div class="form-field qty-field">
+                    <input
+                      class="form-input"
+                      type="number"
+                      [step]="quantityStep(row)"
+                      min="0"
+                      [formControl]="row.controls.quantity"
+                      placeholder="Quantité"
+                      [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
+                  </div>
+                  <div class="unit-field">
+                    @if (unitOptions(row); as opts) {
+                      <div class="unit-toggle">
+                        <button
+                          type="button"
+                          [class.active]="row.controls.input_unit.value === opts.base"
+                          (click)="setInputUnit(row, opts.base)">{{ opts.base }}</button>
+                        <button
+                          type="button"
+                          [class.active]="row.controls.input_unit.value === opts.small"
+                          (click)="setInputUnit(row, opts.small)">{{ opts.small }}</button>
+                      </div>
+                    } @else if (row.controls.input_unit.value) {
+                      <span class="unit-label">{{ row.controls.input_unit.value }}</span>
+                    }
+                  </div>
+                } @else {
+                  <div class="form-field">
+                    <select
+                      class="form-select"
+                      [formControl]="row.controls.component_fiche_technique_id"
+                      [class.has-error]="row.controls.component_fiche_technique_id.invalid && row.controls.component_fiche_technique_id.touched">
+                      <option [ngValue]="null">— Choisir une fiche —</option>
+                      @for (candidate of availableComponentFiches(); track candidate.id) {
+                        <option [ngValue]="candidate.id">{{ candidate.name }} ({{ candidate.servings }} portions)</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="form-field qty-field">
+                    <input
+                      class="form-input"
+                      type="number"
+                      step="0.001"
+                      min="0.001"
+                      [formControl]="row.controls.quantity"
+                      placeholder="× recette"
+                      [class.has-error]="row.controls.quantity.invalid && row.controls.quantity.touched" />
+                  </div>
+                  <span class="unit-label">× recette</span>
+                }
+
                 <button type="button" class="row-remove" (click)="removeIngredientRow(groupIndex, $index)" aria-label="Retirer">×</button>
               </div>
             }
-            <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addIngredientRow(groupIndex)">+ Ajouter un ingrédient</button>
+            <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addIngredientRow(groupIndex)">+ Ajouter une ligne</button>
           </div>
         </div>
       }
@@ -234,6 +275,18 @@
       }
     </p>
   </div>
+
+  @if (usedIn().length) {
+    <div class="section">
+      <div class="section-title">Utilisée dans</div>
+      <p class="form-hint">Cette fiche est utilisée comme composant dans :</p>
+      <ul class="used-in-list">
+        @for (parent of usedIn(); track parent.id) {
+          <li><a [routerLink]="['..', parent.id]">{{ parent.name }}</a></li>
+        }
+      </ul>
+    </div>
+  }
 
   @if (errorMessage()) {
     <p class="form-error">{{ errorMessage() }}</p>

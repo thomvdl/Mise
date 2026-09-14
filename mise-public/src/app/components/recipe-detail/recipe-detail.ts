@@ -2,7 +2,7 @@ import { Component, DestroyRef, ElementRef, effect, inject, input, signal, compu
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-import { FicheTechnique, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
+import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 
@@ -18,9 +18,17 @@ interface ScaledIngredientLine {
   lineCost: number | null;
 }
 
+/** Une fiche technique utilisée comme composant, affichée telle quelle (lien + multiplicateur) —
+ * pas de recalcul récursif vers ses propres ingrédients, ça n'entre pas dans le coût matière. */
+interface ScaledComponentLine {
+  component: FicheTechniqueComponent;
+  quantity: number;
+}
+
 interface IngredientGroup {
   label: string | null;
   lines: ScaledIngredientLine[];
+  componentLines: ScaledComponentLine[];
 }
 
 const DIAL_RADIUS = 46;
@@ -54,6 +62,8 @@ export class RecipeDetail {
     return fiche ? uniqueAllergens(fiche) : [];
   });
 
+  usedIn = computed(() => this.fiche()?.used_in ?? []);
+
   scaleFactor = computed(() => {
     const fiche = this.fiche();
     return fiche && fiche.servings > 0 ? this.servings() / fiche.servings : 1;
@@ -74,21 +84,38 @@ export class RecipeDetail {
     });
   });
 
-  /** Ingredients clustered by their sub-recipe group (pivot.group_label), in first-seen order. */
+  /** Multiplicateur mis à l'échelle des portions, tel quel — pas de recalcul récursif. */
+  scaledComponents = computed<ScaledComponentLine[]>(() => {
+    const factor = this.scaleFactor();
+
+    return (this.fiche()?.components ?? []).map((component) => ({
+      component,
+      quantity: Number(component.pivot.quantity) * factor,
+    }));
+  });
+
+  /** Ingrédients ET composants regroupés par sous-recette (pivot.group_label), dans l'ordre de
+   * première apparition — un composant s'affiche comme une ligne de plus dans le même tableau. */
   groupedIngredients = computed<IngredientGroup[]>(() => {
     const groups: IngredientGroup[] = [];
     const byKey = new Map<string, IngredientGroup>();
 
-    for (const line of this.scaledIngredients()) {
-      const label = line.ingredient.pivot.group_label;
+    const ensureGroup = (label: string | null): IngredientGroup => {
       const key = label ?? '';
       let group = byKey.get(key);
       if (!group) {
-        group = { label, lines: [] };
+        group = { label, lines: [], componentLines: [] };
         byKey.set(key, group);
         groups.push(group);
       }
-      group.lines.push(line);
+      return group;
+    };
+
+    for (const line of this.scaledIngredients()) {
+      ensureGroup(line.ingredient.pivot.group_label).lines.push(line);
+    }
+    for (const line of this.scaledComponents()) {
+      ensureGroup(line.component.pivot.group_label).componentLines.push(line);
     }
 
     return groups;

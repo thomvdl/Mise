@@ -101,6 +101,16 @@
               </td>
             </tr>
           }
+          @for (line of group.componentLines; track line.component.id) {
+            <tr>
+              <td class="ing-name">
+                <a [routerLink]="['/fiche-techniques', line.component.id, 'imprimer']">{{ line.component.name }}</a>
+                <span class="ing-source">fiche technique</span>
+              </td>
+              <td class="ing-qty">× {{ line.quantity | number: '1.0-2' }}</td>
+              <td class="ing-cost"></td>
+            </tr>
+          }
         }
       </tbody>
     </table>
@@ -120,6 +130,17 @@
       }
     </div>
   </div>
+
+  @if (usedIn().length) {
+    <div class="section no-print">
+      <div class="section-title">Utilisée dans</div>
+      <ul class="used-in-list">
+        @for (parent of usedIn(); track parent.id) {
+          <li><a [routerLink]="['/fiche-techniques', parent.id, 'imprimer']">{{ parent.name }}</a></li>
+        }
+      </ul>
+    </div>
+  }
 
   @if (fiche.mise_en_place) {
     <div class="section">

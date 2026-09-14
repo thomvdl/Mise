@@ -237,6 +237,7 @@ export class FicheTechniqueImport {
         group_label: line.group,
       })),
       steps: fiche.steps.map((step) => ({ instruction: step.instruction, timer_minutes: step.timerMinutes })),
+      components: [],
     };
   }
 }

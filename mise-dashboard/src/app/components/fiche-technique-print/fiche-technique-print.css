@@ -223,6 +223,20 @@
 .ing-name {
   font-weight: 600;
 }
+.ing-name a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+.ing-name a:hover {
+  text-decoration: underline;
+}
+.ing-source {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--text-faint);
+}
 .ing-qty {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -407,6 +421,23 @@
 
 .only-print {
   display: none;
+}
+
+.used-in-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.used-in-list a {
+  color: var(--accent-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.used-in-list a:hover {
+  text-decoration: underline;
 }
 
 /* La mise en page d'impression commune (en-tête/pied de page, noir et blanc, tenue sur une

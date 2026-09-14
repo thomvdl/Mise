@@ -9,17 +9,27 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { Category } from '../../core/models/category.model';
 import { Station } from '../../core/models/station.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { Difficulty, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
+import { Difficulty, FicheTechnique, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
 import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
 import { smallUnitFor } from '../../core/utils/format-quantity';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
 
+type RowKind = 'ingredient' | 'fiche';
+
+/**
+ * Une ligne de la liste "Ingrédients" pointe soit vers un ingrédient, soit vers une autre fiche
+ * technique utilisée comme composant (ex. "Fond brun" dans un "Bœuf bourguignon") — `kind`
+ * détermine lequel des deux champs id est actif ; l'autre reste null et sans validateur.
+ */
 type IngredientRow = FormGroup<{
+  kind: FormControl<RowKind>;
   ingredient_id: FormControl<number | null>;
+  component_fiche_technique_id: FormControl<number | null>;
   quantity: FormControl<number | null>;
   /** Unité dans laquelle `quantity` est actuellement saisie (kg OU g pour un ingrédient en kg,
-   * jamais autre chose) — convertie vers l'unité de base de l'ingrédient à l'enregistrement. */
+   * jamais autre chose) — convertie vers l'unité de base de l'ingrédient à l'enregistrement.
+   * Sans objet (chaîne vide) pour une ligne de type "fiche". */
   input_unit: FormControl<string>;
 }>;
 
@@ -62,9 +72,14 @@ export class FicheTechniqueForm implements OnInit {
   categories = signal<Category[]>([]);
   stations = signal<Station[]>([]);
   ingredients = signal<Ingredient[]>([]);
+  fiches = signal<FicheTechnique[]>([]);
   linkedPictures = signal<Picture[]>([]);
+  usedIn = signal<FicheTechnique[]>([]);
 
   isEdit = computed(() => this.editingId() !== null);
+
+  /** Une fiche ne peut pas se référencer elle-même comme composant (revérifié côté serveur). */
+  availableComponentFiches = computed(() => this.fiches().filter((f) => f.id !== this.editingId()));
 
   form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -89,6 +104,7 @@ export class FicheTechniqueForm implements OnInit {
     this.categoryService.list().subscribe((items) => this.categories.set(items));
     this.stationService.list().subscribe((items) => this.stations.set(items));
     this.ingredientService.list().subscribe((items) => this.ingredients.set(items));
+    this.ficheTechniqueService.list().subscribe((items) => this.fiches.set(items));
 
     this.form.controls.name.valueChanges.subscribe((name) => {
       if (!this.slugTouched()) {
@@ -122,19 +138,29 @@ export class FicheTechniqueForm implements OnInit {
           this.equipment.push(new FormControl(item, { nonNullable: true, validators: [Validators.required] }));
         }
         this.linkedPictures.set(fiche.pictures ?? []);
+        this.usedIn.set(fiche.used_in ?? []);
 
         const groupsByLabel = new Map<string, IngredientGroup>();
-        for (const ingredient of fiche.ingredients ?? []) {
-          const label = ingredient.pivot.group_label ?? '';
+        const ensureGroup = (label: string): IngredientGroup => {
           let group = groupsByLabel.get(label);
           if (!group) {
             group = this.buildIngredientGroup(label);
             groupsByLabel.set(label, group);
             this.ingredientGroups.push(group);
           }
+          return group;
+        };
+
+        for (const ingredient of fiche.ingredients ?? []) {
+          const group = ensureGroup(ingredient.pivot.group_label ?? '');
           group.controls.rows.push(
             this.buildIngredientRow(ingredient.id, Number(ingredient.pivot.quantity), ingredient.unit),
           );
+        }
+
+        for (const component of fiche.components ?? []) {
+          const group = ensureGroup(component.pivot.group_label ?? '');
+          group.controls.rows.push(this.buildFicheRow(component.id, Number(component.pivot.quantity)));
         }
 
         for (const step of fiche.steps ?? []) {
@@ -173,7 +199,9 @@ export class FicheTechniqueForm implements OnInit {
     const useSmallUnit = conversion !== null && quantity !== null && Math.abs(quantity) < 1;
 
     const row = new FormGroup({
+      kind: new FormControl<RowKind>('ingredient', { nonNullable: true }),
       ingredient_id: new FormControl<number | null>(ingredientId, { validators: [Validators.required] }),
+      component_fiche_technique_id: new FormControl<number | null>(null),
       quantity: new FormControl<number | null>(
         useSmallUnit ? this.round(quantity! * conversion!.factor, 0) : quantity,
         { validators: [Validators.required, Validators.min(0)] },
@@ -190,6 +218,44 @@ export class FicheTechniqueForm implements OnInit {
     });
 
     return row;
+  }
+
+  /** `quantity` est une fraction/un multiple de la recette de base du composant (1 = une
+   * préparation complète), pas une masse/un volume — pas d'unité, donc pas de sélecteur g/mL. */
+  private buildFicheRow(componentId: number | null, quantity: number | null): IngredientRow {
+    return new FormGroup({
+      kind: new FormControl<RowKind>('fiche', { nonNullable: true }),
+      ingredient_id: new FormControl<number | null>(null),
+      component_fiche_technique_id: new FormControl<number | null>(componentId, { validators: [Validators.required] }),
+      quantity: new FormControl<number | null>(quantity, { validators: [Validators.required, Validators.min(0.001)] }),
+      input_unit: new FormControl('', { nonNullable: true }),
+    });
+  }
+
+  /** Bascule une ligne entre "ingrédient" et "fiche technique" — remet à zéro les deux champs id
+   * (une ligne ne peut représenter qu'un seul des deux) et réattache les validateurs du bon champ. */
+  setRowKind(row: IngredientRow, kind: RowKind): void {
+    if (row.controls.kind.value === kind) return;
+
+    row.controls.kind.setValue(kind);
+    row.controls.ingredient_id.setValue(null);
+    row.controls.component_fiche_technique_id.setValue(null);
+    row.controls.quantity.setValue(null);
+    row.controls.input_unit.setValue('');
+
+    if (kind === 'ingredient') {
+      row.controls.ingredient_id.setValidators([Validators.required]);
+      row.controls.component_fiche_technique_id.clearValidators();
+      row.controls.quantity.setValidators([Validators.required, Validators.min(0)]);
+    } else {
+      row.controls.ingredient_id.clearValidators();
+      row.controls.component_fiche_technique_id.setValidators([Validators.required]);
+      row.controls.quantity.setValidators([Validators.required, Validators.min(0.001)]);
+    }
+
+    row.controls.ingredient_id.updateValueAndValidity();
+    row.controls.component_fiche_technique_id.updateValueAndValidity();
+    row.controls.quantity.updateValueAndValidity();
   }
 
   /** Unité de base + sous-unité de l'ingrédient sélectionné sur cette ligne, ou null si non
@@ -309,20 +375,32 @@ export class FicheTechniqueForm implements OnInit {
       conservation: value.conservation || null,
       ingredients: this.ingredientGroups.controls.flatMap((group) => {
         const label = group.controls.label.value.trim() || null;
-        return group.controls.rows.controls.map((row) => {
-          const opts = this.unitOptions(row);
-          const rawQuantity = row.controls.quantity.value as number;
-          // La quantité est saisie dans `input_unit` (base ou sous-unité) — on la reconvertit
-          // vers l'unité de base de l'ingrédient, seule unité que l'API accepte.
-          const quantity =
-            opts && row.controls.input_unit.value === opts.small ? rawQuantity / opts.factor : rawQuantity;
+        return group.controls.rows.controls
+          .filter((row) => row.controls.kind.value === 'ingredient')
+          .map((row) => {
+            const opts = this.unitOptions(row);
+            const rawQuantity = row.controls.quantity.value as number;
+            // La quantité est saisie dans `input_unit` (base ou sous-unité) — on la reconvertit
+            // vers l'unité de base de l'ingrédient, seule unité que l'API accepte.
+            const quantity =
+              opts && row.controls.input_unit.value === opts.small ? rawQuantity / opts.factor : rawQuantity;
 
-          return {
-            ingredient_id: row.controls.ingredient_id.value as number,
-            quantity,
+            return {
+              ingredient_id: row.controls.ingredient_id.value as number,
+              quantity,
+              group_label: label,
+            };
+          });
+      }),
+      components: this.ingredientGroups.controls.flatMap((group) => {
+        const label = group.controls.label.value.trim() || null;
+        return group.controls.rows.controls
+          .filter((row) => row.controls.kind.value === 'fiche')
+          .map((row) => ({
+            component_fiche_technique_id: row.controls.component_fiche_technique_id.value as number,
+            quantity: row.controls.quantity.value as number,
             group_label: label,
-          };
-        });
+          }));
       }),
       steps: this.stepRows.controls.map((row) => ({
         instruction: row.controls.instruction.value,
