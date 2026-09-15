@@ -37,12 +37,14 @@ export class FicheTechniqueList implements OnInit {
     const categoryId = this.selectedCategoryId();
     const stationId = this.selectedStationId();
 
-    return this.items().filter((item) => {
-      const matchesQuery = !query || item.name.toLowerCase().includes(query);
-      const matchesCategory = categoryId === null || item.category?.id === categoryId;
-      const matchesStation = stationId === null || item.station?.id === stationId;
-      return matchesQuery && matchesCategory && matchesStation;
-    });
+    return this.items()
+      .filter((item) => {
+        const matchesQuery = !query || item.name.toLowerCase().includes(query);
+        const matchesCategory = categoryId === null || item.category?.id === categoryId;
+        const matchesStation = stationId === null || item.station?.id === stationId;
+        return matchesQuery && matchesCategory && matchesStation;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
   });
 
   /** Coché seulement si toutes les lignes actuellement visibles (filtrées par la recherche) le sont. */
