@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { map } from 'rxjs';
 
@@ -70,6 +70,7 @@ const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 })
 export class FicheTechniquePrint {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
@@ -91,6 +92,28 @@ export class FicheTechniquePrint {
     ),
     { initialValue: new Map<number, Ingredient>() },
   );
+
+  /** Même tri que la liste (`fiche-technique-list`) pour que précédent/suivant suivent l'ordre
+   * dans lequel le chef parcourt le tableau, plutôt que l'ordre de création. */
+  private readonly orderedFiches = toSignal(
+    this.ficheTechniqueService
+      .list()
+      .pipe(map((items) => [...items].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })))),
+    { initialValue: [] as FicheTechnique[] },
+  );
+
+  private readonly currentIndex = computed(() => this.orderedFiches().findIndex((f) => f.id === this.ficheId()));
+
+  previousFiche = computed(() => {
+    const index = this.currentIndex();
+    return index > 0 ? this.orderedFiches()[index - 1] : null;
+  });
+
+  nextFiche = computed(() => {
+    const index = this.currentIndex();
+    const list = this.orderedFiches();
+    return index >= 0 && index < list.length - 1 ? list[index + 1] : null;
+  });
 
   /** `FicheTechniqueController` n'eager-load pas ingredients.allergens — voir enrichFicheTechnique. */
   fiche = computed(() => {
@@ -298,6 +321,10 @@ export class FicheTechniquePrint {
 
   print(): void {
     window.print();
+  }
+
+  goToFiche(id: number): void {
+    this.router.navigate(['/fiche-techniques', id, 'imprimer']);
   }
 
   generatedAt(): string {

@@ -2,6 +2,22 @@
   <h1 class="page-title">Fiche technique</h1>
   <div class="page-actions">
     <a class="btn btn-ghost" routerLink="/fiche-techniques">Retour</a>
+    <button
+      type="button"
+      class="btn btn-ghost"
+      [disabled]="!previousFiche()"
+      [title]="previousFiche()?.name ?? ''"
+      (click)="goToFiche(previousFiche()!.id)">
+      ‹ Précédent
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost"
+      [disabled]="!nextFiche()"
+      [title]="nextFiche()?.name ?? ''"
+      (click)="goToFiche(nextFiche()!.id)">
+      Suivant ›
+    </button>
   </div>
 </div>
 
