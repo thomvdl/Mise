@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 
 import { EventService } from '../../core/services/event.service';
 import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.model';
@@ -9,7 +10,7 @@ const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 @Component({
   selector: 'app-calendrier',
-  imports: [RouterLink],
+  imports: [RouterLink, DatePipe],
   templateUrl: './calendrier.html',
   styleUrl: './calendrier.css',
 })
@@ -20,6 +21,8 @@ export class Calendrier implements OnInit {
 
   currentYear = signal(new Date().getFullYear());
   currentMonth = signal(new Date().getMonth() + 1);
+
+  viewMode = signal<'calendar' | 'list'>('calendar');
 
   events = signal<CalendarEvent[]>([]);
 

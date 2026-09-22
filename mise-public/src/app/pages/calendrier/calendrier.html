@@ -4,31 +4,73 @@
     <p class="page-sub">Événements et menus à venir.</p>
   </div>
 
-  <div class="calendar-nav">
-    <button type="button" class="nav-btn" (click)="prevMonth()">‹ Précédent</button>
-    <span class="month-label">{{ monthLabel() }}</span>
-    <button type="button" class="nav-btn" (click)="nextMonth()">Suivant ›</button>
-  </div>
-  <button type="button" class="today-btn" (click)="goToday()">Aujourd'hui</button>
+  <div class="calendar-toolbar">
+    <button type="button" class="today-btn" (click)="goToday()">Aujourd'hui</button>
 
-  <div class="calendar-grid">
-    @for (label of weekdayLabels; track label) {
-      <div class="weekday">{{ label }}</div>
-    }
-    @for (cell of grid(); track cell.iso) {
-      <div class="day-cell" [class.other-month]="!cell.inCurrentMonth" [class.today]="cell.isToday">
-        <span class="day-number">{{ cell.date.getDate() }}</span>
-        @for (event of eventsOn(cell.iso); track event.id) {
-          <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openDetail(event)">
-            <span class="event-chip-name">{{ event.name }}</span>
-            @if (event.couverts) {
-              <span class="event-chip-covers">{{ event.couverts }}</span>
-            }
-          </button>
-        }
-      </div>
-    }
+    <div class="calendar-nav">
+      <button type="button" class="nav-btn" (click)="prevMonth()">‹ Précédent</button>
+      <span class="month-label">{{ monthLabel() }}</span>
+      <button type="button" class="nav-btn" (click)="nextMonth()">Suivant ›</button>
+    </div>
+
+    <div class="view-toggle">
+      <button type="button" class="view-tab" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')">
+        Calendrier
+      </button>
+      <button type="button" class="view-tab" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')">
+        Liste
+      </button>
+    </div>
   </div>
+
+  @if (viewMode() === 'calendar') {
+    <div class="calendar-grid">
+      @for (label of weekdayLabels; track label) {
+        <div class="weekday">{{ label }}</div>
+      }
+      @for (cell of grid(); track cell.iso) {
+        <div class="day-cell" [class.other-month]="!cell.inCurrentMonth" [class.today]="cell.isToday">
+          <span class="day-number">{{ cell.date.getDate() }}</span>
+          @for (event of eventsOn(cell.iso); track event.id) {
+            <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openDetail(event)">
+              <span class="event-chip-name">{{ event.name }}</span>
+              @if (event.couverts) {
+                <span class="event-chip-covers">{{ event.couverts }}</span>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="event-list">
+      @if (events().length === 0) {
+        <p class="form-hint">Aucun événement ce mois-ci.</p>
+      }
+      @for (event of events(); track event.id) {
+        <button type="button" class="event-row" [attr.data-type]="event.type" (click)="openDetail(event)">
+          <span class="event-row-dates">
+            {{ event.start_date | date: 'dd/MM/yyyy' }}
+            @if (event.end_date !== event.start_date) {
+              <span class="event-row-arrow">→ {{ event.end_date | date: 'dd/MM/yyyy' }}</span>
+            }
+          </span>
+          <span class="event-row-name">{{ event.name }}</span>
+          <span class="event-row-meta">
+            @if (event.couverts) {
+              <span class="event-row-tag">{{ event.couverts }} couverts</span>
+            }
+            @if (event.horaire) {
+              <span class="event-row-tag">{{ event.horaire }}</span>
+            }
+            @if (event.menu) {
+              <span class="event-row-tag">{{ event.menu.name }}</span>
+            }
+          </span>
+        </button>
+      }
+    </div>
+  }
 </div>
 
 @if (selectedEvent(); as event) {
@@ -40,7 +82,10 @@
         }
         <h2 class="detail-title">{{ event.name }}</h2>
         <p class="detail-dates">
-          {{ event.start_date }}@if (event.end_date !== event.start_date) { – {{ event.end_date }} }
+          {{ event.start_date | date: 'dd/MM/yyyy' }}
+          @if (event.end_date !== event.start_date) {
+            – {{ event.end_date | date: 'dd/MM/yyyy' }}
+          }
         </p>
       </div>
 

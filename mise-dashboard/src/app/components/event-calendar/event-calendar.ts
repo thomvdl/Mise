@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 
 import { EventService } from '../../core/services/event.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -13,7 +14,7 @@ const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 @Component({
   selector: 'app-event-calendar',
-  imports: [FormsModule, ConfirmDialog, DatetimePicker],
+  imports: [FormsModule, DatePipe, ConfirmDialog, DatetimePicker],
   templateUrl: './event-calendar.html',
   styleUrl: './event-calendar.css',
 })
@@ -26,6 +27,8 @@ export class EventCalendar implements OnInit {
 
   currentYear = signal(new Date().getFullYear());
   currentMonth = signal(new Date().getMonth() + 1);
+
+  viewMode = signal<'calendar' | 'list'>('calendar');
 
   events = signal<CalendarEvent[]>([]);
   menus = signal<Menu[]>([]);
