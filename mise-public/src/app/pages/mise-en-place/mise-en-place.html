@@ -76,7 +76,7 @@
                 <td>
                   <span class="station-badge" [style.--card-color]="item.station.color">{{ item.station.name }}</span>
                 </td>
-                <td>{{ item.deadline ? (item.deadline | date: 'short') : '—' }}</td>
+                <td>{{ item.deadline ? (item.deadline | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                 <td>
                   <span class="urgency-badge" [class]="'urgency-' + item.urgency">
                     {{ item.urgency === 'urgente' ? 'Urgente' : item.urgency === 'moyenne' ? 'Moyenne' : 'Faible' }}
