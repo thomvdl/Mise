@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, computed, forwardRef, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, forwardRef, inject, input, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 interface CalendarDay {
@@ -20,6 +20,9 @@ interface CalendarDay {
   imports: [],
   templateUrl: './datetime-picker.html',
   styleUrl: './datetime-picker.css',
+  host: {
+    '[class.dt-full-width]': 'fullWidth()',
+  },
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -30,6 +33,12 @@ interface CalendarDay {
 })
 export class DatetimePicker implements ControlValueAccessor {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+
+  /** false = sélecteur de date seule ("YYYY-MM-DD", pas de ligne heure) — ex. début/fin d'événement. */
+  showTime = input(true);
+  placeholder = input('Choisir une échéance…');
+  /** Étire le déclencheur sur toute la largeur du conteneur, pour remplacer un input pleine largeur dans un formulaire. */
+  fullWidth = input(false);
 
   readonly weekdays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
@@ -50,7 +59,8 @@ export class DatetimePicker implements ControlValueAccessor {
   readonly displayLabel = computed(() => {
     const v = this.value();
     if (!v) return '';
-    return `${this.pad(v.getDate())}/${this.pad(v.getMonth() + 1)}/${v.getFullYear()} à ${this.pad(v.getHours())}:${this.pad(v.getMinutes())}`;
+    const datePart = `${this.pad(v.getDate())}/${this.pad(v.getMonth() + 1)}/${v.getFullYear()}`;
+    return this.showTime() ? `${datePart} à ${this.pad(v.getHours())}:${this.pad(v.getMinutes())}` : datePart;
   });
 
   readonly days = computed<CalendarDay[]>(() => {
@@ -118,6 +128,16 @@ export class DatetimePicker implements ControlValueAccessor {
   }
 
   selectDay(day: CalendarDay): void {
+    if (!this.showTime()) {
+      const next = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+      this.value.set(next);
+      this.viewDate.set(next);
+      this.emit();
+      // Pas d'heure à ajuster ensuite : choisir le jour termine l'interaction, comme un input natif.
+      this.close();
+      return;
+    }
+
     const [hours, minutes] = this.timeValue().split(':').map(Number);
     const next = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate(), hours || 0, minutes || 0);
     this.value.set(next);
@@ -164,14 +184,15 @@ export class DatetimePicker implements ControlValueAccessor {
   }
 
   private formatValue(date: Date): string {
-    return `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}T${this.pad(date.getHours())}:${this.pad(date.getMinutes())}`;
+    const datePart = `${date.getFullYear()}-${this.pad(date.getMonth() + 1)}-${this.pad(date.getDate())}`;
+    return this.showTime() ? `${datePart}T${this.pad(date.getHours())}:${this.pad(date.getMinutes())}` : datePart;
   }
 
   private parseValue(value: string | null): Date | null {
     if (!value) return null;
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);
     if (!match) return null;
-    const [year, month, day, hours, minutes] = match.slice(1).map(Number);
+    const [year, month, day, hours, minutes] = match.slice(1).map((part) => Number(part) || 0);
     return new Date(year, month - 1, day, hours, minutes);
   }
 }

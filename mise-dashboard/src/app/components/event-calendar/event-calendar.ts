@@ -7,12 +7,13 @@ import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.mod
 import { Menu } from '../../core/models/menu.model';
 import { buildMonthGrid, eventsOnDay, toIsoDate } from '../../core/utils/calendar-grid';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
+import { DatetimePicker } from '../datetime-picker/datetime-picker';
 
 const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 @Component({
   selector: 'app-event-calendar',
-  imports: [FormsModule, ConfirmDialog],
+  imports: [FormsModule, ConfirmDialog, DatetimePicker],
   templateUrl: './event-calendar.html',
   styleUrl: './event-calendar.css',
 })

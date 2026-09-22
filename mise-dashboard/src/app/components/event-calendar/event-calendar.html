@@ -58,11 +58,13 @@
       <div class="form-grid">
         <div class="form-field">
           <label class="form-label">Date de début</label>
-          <input class="form-input" type="date" [(ngModel)]="formStartDate" />
+          <app-datetime-picker [showTime]="false" [fullWidth]="true" placeholder="Choisir une date…" [(ngModel)]="formStartDate">
+          </app-datetime-picker>
         </div>
         <div class="form-field">
           <label class="form-label">Date de fin</label>
-          <input class="form-input" type="date" [(ngModel)]="formEndDate" />
+          <app-datetime-picker [showTime]="false" [fullWidth]="true" placeholder="Choisir une date…" [(ngModel)]="formEndDate">
+          </app-datetime-picker>
         </div>
       </div>
 

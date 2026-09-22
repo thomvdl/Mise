@@ -2,6 +2,9 @@
   position: relative;
   display: inline-block;
 }
+:host(.dt-full-width) {
+  display: block;
+}
 
 .dt-trigger {
   display: flex;
@@ -17,6 +20,10 @@
   cursor: pointer;
   transition: border-color 0.15s ease;
   white-space: nowrap;
+}
+:host(.dt-full-width) .dt-trigger {
+  width: 100%;
+  justify-content: space-between;
 }
 .dt-trigger:hover:not(:disabled) {
   border-color: var(--accent-blue);
@@ -128,6 +135,9 @@
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+.dt-time-row.no-time {
+  justify-content: flex-end;
 }
 .dt-time-label {
   display: flex;
