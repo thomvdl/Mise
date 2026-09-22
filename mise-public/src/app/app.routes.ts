@@ -15,6 +15,7 @@ export const routes: Routes = [
             { path: 'ingredients', loadComponent: () => import('./pages/ingredients/ingredients').then((m) => m.Ingredients) },
             { path: 'etiquettes', loadComponent: () => import('./pages/labels/labels').then((m) => m.Labels) },
             { path: 'discussion', loadComponent: () => import('./pages/discussion/discussion').then((m) => m.Discussion) },
+            { path: 'notes', loadComponent: () => import('./pages/notes/notes').then((m) => m.Notes) },
             { path: 'courses', loadComponent: () => import('./pages/courses/courses').then((m) => m.Courses) },
             { path: 'mise-en-place', loadComponent: () => import('./pages/mise-en-place/mise-en-place').then((m) => m.MiseEnPlace) },
             { path: 'calendrier', loadComponent: () => import('./pages/calendrier/calendrier').then((m) => m.Calendrier) },

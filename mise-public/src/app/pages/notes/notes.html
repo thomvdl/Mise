@@ -1,0 +1,143 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Notes</h1>
+    <p class="page-sub">Pages et sous-pages libres en markdown, partagées avec toute l'équipe.</p>
+  </div>
+
+  <div class="new-root-row">
+    <button type="button" class="add-btn" (click)="createRootPage()">+ Nouvelle page</button>
+  </div>
+
+  @if (deleteError()) {
+    <p class="form-error">{{ deleteError() }}</p>
+  }
+
+  @if (notes().length === 0) {
+    <p class="form-hint">Aucune page pour l'instant. Créez-en une pour commencer.</p>
+  } @else {
+    <div class="notes-layout">
+      <aside class="notes-sidebar">
+        @for (note of notes(); track note.id) {
+          <button type="button" class="note-item" [class.active]="activeId() === note.id" (click)="select(note.id)">
+            <span class="note-title">{{ note.title }}</span>
+            <span class="note-item-actions">
+              <span class="note-add-child" (click)="quickAddChild(note, $event)" title="Ajouter une sous-page">+</span>
+              @if (note.children.length === 0) {
+                <span class="note-delete" (click)="confirmDelete(note, $event)" title="Supprimer la page">✕</span>
+              }
+            </span>
+          </button>
+
+          @if (note.children.length > 0) {
+            <div class="note-children">
+              @for (child of note.children; track child.id) {
+                <button
+                  type="button"
+                  class="note-item note-child"
+                  [class.active]="activeId() === child.id"
+                  (click)="select(child.id)">
+                  <span class="note-title">{{ child.title }}</span>
+                  <span class="note-item-actions">
+                    <span class="note-delete" (click)="confirmDelete(child, $event)" title="Supprimer la sous-page">✕</span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        }
+      </aside>
+
+      <div class="note-panel">
+        @if (activeNote(); as note) {
+          <div class="note-doc">
+            @if (note.parent) {
+              <div class="note-breadcrumb">{{ note.parent.title }}</div>
+            }
+
+            <input
+              #titleInput
+              class="note-title-input"
+              type="text"
+              [ngModel]="title()"
+              (ngModelChange)="onTitleChange($event)"
+              (keydown)="onEditorKeydown($event)"
+              placeholder="Sans titre" />
+
+            <div class="note-toolbar-row">
+              <div class="view-toggle">
+                <button type="button" class="view-tab" [class.active]="viewMode() === 'edit'" (click)="setViewMode('edit')">
+                  Markdown
+                </button>
+                <button
+                  type="button"
+                  class="view-tab"
+                  [class.active]="viewMode() === 'preview'"
+                  (click)="setViewMode('preview')">
+                  Aperçu
+                </button>
+              </div>
+
+              <div class="note-toolbar-right">
+                <span class="save-status" [class.visible]="saveStatus() !== 'idle'">
+                  {{ saveStatus() === 'saving' ? 'Enregistrement…' : 'Enregistré' }}
+                </span>
+                @if (canHaveChildren()) {
+                  <button type="button" class="cancel-btn btn-sm" (click)="createChildPage()">+ Sous-page</button>
+                }
+              </div>
+            </div>
+
+            <p class="note-meta">
+              Par {{ note.user.name }} · modifié le {{ note.updated_at | date: 'dd/MM/yyyy HH:mm' }}
+            </p>
+
+            @if (viewMode() === 'edit') {
+              <div class="note-toolbar">
+                <button type="button" class="toolbar-btn" title="Titre" (click)="prefixLines('## ')">H</button>
+                <button type="button" class="toolbar-btn tb-bold" title="Gras" (click)="wrapSelection('**')">G</button>
+                <button type="button" class="toolbar-btn tb-italic" title="Italique" (click)="wrapSelection('*')">I</button>
+                <span class="toolbar-sep"></span>
+                <button type="button" class="toolbar-btn" title="Liste à puces" (click)="prefixLines('- ')">•</button>
+                <button type="button" class="toolbar-btn" title="Liste numérotée" (click)="prefixLines('1. ')">1.</button>
+                <button type="button" class="toolbar-btn" title="Citation" (click)="prefixLines('> ')">"</button>
+                <span class="toolbar-sep"></span>
+                <button type="button" class="toolbar-btn tb-code" title="Code" (click)="wrapSelection('`')">&lt;/&gt;</button>
+                <button type="button" class="toolbar-btn" title="Lien" (click)="insertLink()">🔗</button>
+                <span class="toolbar-sep"></span>
+                <button type="button" class="toolbar-btn" title="Tableau" (click)="insertTable()">▦</button>
+              </div>
+              <textarea
+                #textarea
+                class="text-input note-textarea"
+                [ngModel]="content()"
+                (ngModelChange)="onContentChange($event)"
+                (keydown)="onEditorKeydown($event)"
+                placeholder="Écrivez en Markdown… (# titres, **gras**, - listes, etc.)"></textarea>
+            } @else {
+              @if (content().trim()) {
+                <div class="note-preview markdown-content" [innerHTML]="previewHtml()"></div>
+              } @else {
+                <div class="note-empty-state">
+                  <p>Cette page est vide.</p>
+                  <button type="button" class="add-btn btn-sm" (click)="setViewMode('edit')">Commencer à écrire</button>
+                </div>
+              }
+            }
+          </div>
+        } @else {
+          <div class="note-panel-empty">
+            <p class="form-hint">Sélectionnez une page dans la liste, ou créez-en une nouvelle.</p>
+            <button type="button" class="add-btn btn-sm" (click)="createRootPage()">+ Nouvelle page</button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <app-confirm-dialog
+    [open]="pendingDelete() !== null"
+    [message]="'Supprimer la page « ' + (pendingDelete()?.title ?? '') + ' » ?'"
+    (confirm)="deleteConfirmed()"
+    (cancel)="cancelDelete()">
+  </app-confirm-dialog>
+</div>

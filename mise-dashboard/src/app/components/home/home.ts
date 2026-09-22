@@ -79,6 +79,12 @@ export class Home {
       icon: 'message',
     },
     {
+      label: 'Notes',
+      description: 'Pages et sous-pages libres en markdown.',
+      path: '/notes',
+      icon: 'edit',
+    },
+    {
       label: 'Mise en place',
       description: 'Todo par station avant le service.',
       path: '/mise-en-place',

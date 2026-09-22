@@ -286,6 +286,43 @@ html[data-theme="light"] .form-select{
 ::-webkit-scrollbar-thumb{ background:var(--surface-3); border-radius:6px; }
 ::-webkit-scrollbar-track{ background:transparent; }
 
+/* ---------- MARKDOWN CONTENT (notes, et tout futur rendu markdown) ----------
+   Appliqué via [innerHTML] sur du HTML généré par `marked` — reste global (pas de style de
+   composant) car Angular n'applique pas l'encapsulation scoped aux nœuds injectés dynamiquement. */
+.markdown-content{ font-size:13.5px; line-height:1.6; color:var(--text); }
+.markdown-content > *:first-child{ margin-top:0; }
+.markdown-content > *:last-child{ margin-bottom:0; }
+.markdown-content h1,.markdown-content h2,.markdown-content h3,.markdown-content h4{
+  font-family:var(--font-display); line-height:1.25; margin:20px 0 10px;
+}
+.markdown-content h1{ font-size:22px; }
+.markdown-content h2{ font-size:18px; }
+.markdown-content h3{ font-size:15px; }
+.markdown-content h4{ font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); }
+.markdown-content p{ margin:0 0 12px; }
+.markdown-content ul,.markdown-content ol{ margin:0 0 12px; padding-left:22px; }
+.markdown-content li{ margin-bottom:4px; }
+.markdown-content a{ color:var(--accent-blue); }
+.markdown-content strong{ color:var(--text); }
+.markdown-content code{
+  font-family:var(--font-mono); font-size:12px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:4px; padding:1px 5px;
+}
+.markdown-content pre{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+  padding:12px 14px; overflow-x:auto; margin:0 0 12px;
+}
+.markdown-content pre code{ background:none; border:none; padding:0; }
+.markdown-content blockquote{
+  margin:0 0 12px; padding:2px 14px; border-left:3px solid var(--accent-blue-dim);
+  color:var(--text-dim);
+}
+.markdown-content hr{ border:none; border-top:1px solid var(--border); margin:18px 0; }
+.markdown-content table{ display:block; overflow-x:auto; border-collapse:collapse; margin:0 0 12px; width:100%; }
+.markdown-content th,.markdown-content td{ border:1px solid var(--border); padding:6px 10px; text-align:left; }
+.markdown-content thead th{ background:var(--surface-3); font-weight:700; }
+.markdown-content img{ max-width:100%; border-radius:8px; }
+
 @media (max-width: 880px){
   /* nav-links is fixed/off-canvas now so it no longer reserves flex space — on narrow
      screens brand + theme-toggle + user-badge can still be too wide for one row, so let

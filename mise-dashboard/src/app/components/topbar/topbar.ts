@@ -28,6 +28,7 @@ export class Topbar {
     { label: 'Ingrédients', path: '/ingredients' },
     { label: 'Photos', path: '/photos' },
     { label: 'Discussion', path: '/discussion' },
+    { label: 'Notes', path: '/notes' },
     { label: 'Mise en place', path: '/mise-en-place' },
     { label: 'Liste de courses', path: '/courses' },
     { label: 'Calendrier', path: '/calendrier' },

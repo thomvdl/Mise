@@ -90,5 +90,11 @@ export class Accueil {
       path: '/discussion',
       icon: 'message',
     },
+    {
+      label: 'Notes',
+      description: 'Pages et sous-pages libres en markdown.',
+      path: '/notes',
+      icon: 'edit',
+    },
   ];
 }
