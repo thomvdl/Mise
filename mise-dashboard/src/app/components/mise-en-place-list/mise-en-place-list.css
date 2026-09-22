@@ -1,5 +1,5 @@
 .add-item-row{
-  display:flex; flex-wrap:wrap; gap:12px; max-width:820px; align-items:center;
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
 }
 .add-item-row .form-input{ flex:1; min-width:160px; }
 
