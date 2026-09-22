@@ -14,6 +14,7 @@ use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PictureController;
 use App\Http\Controllers\PrintedLabelController;
 use App\Http\Controllers\SettingController;
@@ -84,6 +85,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // réservée à l'admin (groupe role:admin plus bas).
     Route::apiResource('events', EventController::class)->only(['index'])
         ->parameters(['events' => 'event']);
+
+    // Notes libres (pages/sous-pages en markdown) — CRUD complet ouvert à tout utilisateur
+    // connecté (user ou admin), côté dashboard comme côté public : pas de notion de
+    // propriétaire exclusif, user_id ne sert qu'à afficher l'auteur d'origine.
+    Route::apiResource('notes', NoteController::class);
 
     // Tout le reste (édition du référentiel + gestion des utilisateurs) est réservé au dashboard/admin.
     Route::middleware('role:admin')->group(function () {
