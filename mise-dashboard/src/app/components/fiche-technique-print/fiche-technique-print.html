@@ -2,6 +2,9 @@
   <h1 class="page-title">Fiche technique</h1>
   <div class="page-actions">
     <a class="btn btn-ghost" routerLink="/fiche-techniques">Retour</a>
+    @if (fiche(); as fiche) {
+      <a class="btn btn-ghost" [routerLink]="['/fiche-techniques', fiche.id]">Modifier</a>
+    }
     <button
       type="button"
       class="btn btn-ghost"

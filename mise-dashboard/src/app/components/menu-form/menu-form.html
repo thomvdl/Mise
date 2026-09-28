@@ -111,6 +111,20 @@
                       placeholder="Nom du plat"
                       [class.has-error]="plat.controls.name.invalid && plat.controls.name.touched" />
                   </div>
+                  <div class="section-order">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      (click)="movePlat(sectionIndex, platIndex, -1)"
+                      [disabled]="platIndex === 0"
+                      aria-label="Monter ce plat">↑</button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      (click)="movePlat(sectionIndex, platIndex, 1)"
+                      [disabled]="platIndex === section.controls.plats.controls.length - 1"
+                      aria-label="Descendre ce plat">↓</button>
+                  </div>
                   <button
                     type="button"
                     class="row-remove"

@@ -151,6 +151,16 @@ export class MenuForm implements OnInit {
     this.sections.at(sectionIndex).controls.plats.removeAt(platIndex);
   }
 
+  movePlat(sectionIndex: number, platIndex: number, direction: -1 | 1): void {
+    const plats = this.sections.at(sectionIndex).controls.plats;
+    const newIndex = platIndex + direction;
+    if (newIndex < 0 || newIndex >= plats.length) return;
+
+    const control = plats.at(platIndex);
+    plats.removeAt(platIndex);
+    plats.insert(newIndex, control);
+  }
+
   isFicheTechniqueSelected(sectionIndex: number, platIndex: number, ficheId: number): boolean {
     const control = this.sections.at(sectionIndex).controls.plats.at(platIndex).controls.fiche_technique_ids;
     return control.value.includes(ficheId);

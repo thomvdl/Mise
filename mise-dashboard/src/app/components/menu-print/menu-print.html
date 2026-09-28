@@ -2,6 +2,9 @@
   <h1 class="page-title">Menu</h1>
   <div class="page-actions">
     <a class="btn btn-ghost" routerLink="/menus">Retour</a>
+    @if (menu(); as menu) {
+      <a class="btn btn-ghost" [routerLink]="['/menus', menu.id]">Modifier</a>
+    }
     <button type="button" class="btn btn-primary" [disabled]="!menu()" (click)="print()">Imprimer</button>
   </div>
 </div>
