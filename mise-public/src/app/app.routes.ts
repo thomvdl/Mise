@@ -12,6 +12,8 @@ export const routes: Routes = [
             { path: 'fiches', loadComponent: () => import('./pages/fiches-list/fiches-list').then((m) => m.FichesList) },
             { path: 'fiches/recherche', loadComponent: () => import('./pages/home/home').then((m) => m.Home) },
             { path: 'menus', loadComponent: () => import('./pages/menus/menus').then((m) => m.Menus) },
+            { path: 'menus/recherche', loadComponent: () => import('./pages/menu-detail/menu-detail').then((m) => m.MenuDetail) },
+            { path: 'menus/allergenes', loadComponent: () => import('./pages/menu-allergenes/menu-allergenes').then((m) => m.MenuAllergenesPage) },
             { path: 'ingredients', loadComponent: () => import('./pages/ingredients/ingredients').then((m) => m.Ingredients) },
             { path: 'etiquettes', loadComponent: () => import('./pages/labels/labels').then((m) => m.Labels) },
             { path: 'discussion', loadComponent: () => import('./pages/discussion/discussion').then((m) => m.Discussion) },

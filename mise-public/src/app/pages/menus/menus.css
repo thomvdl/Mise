@@ -1,3 +1,117 @@
 :host {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 28px 36px 24px;
+}
+
+.list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.list-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  margin: 0 0 4px;
+}
+
+.list-count {
+  margin: 0;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.list-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* table */
+.table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.menus-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.menus-table th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.menus-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+.menus-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.menus-table tbody tr:hover {
+  background: var(--surface-2);
+}
+.menus-table .col-name {
+  font-weight: 600;
+}
+.menus-table .col-actions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+.menus-table .empty-row td {
+  text-align: center;
+  color: var(--text-faint);
+  padding: 32px 16px;
+}
+
+.view-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-copper);
+  text-decoration: none;
+  white-space: nowrap;
+  margin-left: 16px;
+}
+.view-link:first-child {
+  margin-left: 0;
+}
+.view-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 880px) {
+  :host {
+    padding: 18px 18px 24px;
+  }
+  .menus-table th:nth-child(2),
+  .menus-table td:nth-child(2) {
+    display: none;
+  }
 }

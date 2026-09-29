@@ -1,19 +1,16 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Menu } from '../../core/models/menu.model';
-import { MenuAllergenGrid } from '../menu-allergen-grid/menu-allergen-grid';
 
 @Component({
   selector: 'app-menu-tree',
-  imports: [RouterLink, MenuAllergenGrid],
+  imports: [RouterLink],
   templateUrl: './menu-tree.html',
   styleUrl: './menu-tree.css',
 })
 export class MenuTree {
   menu = input<Menu | null>(null);
-
-  showAllergenGrid = signal(false);
 
   dateLabel(menu: Menu): string | null {
     if (!menu.starts_at) return null;

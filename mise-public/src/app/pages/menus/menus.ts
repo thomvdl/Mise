@@ -1,44 +1,55 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { MenuService } from '../../core/services/menu.service';
-import { MenuList } from '../../components/menu-list/menu-list';
-import { MenuTree } from '../../components/menu-tree/menu-tree';
+import { Menu } from '../../core/models/menu.model';
 
+/**
+ * Tableau des menus — consultation seule (recherche par nom), sur le même modèle que le tableau
+ * des fiches techniques (`/fiches`). La sélection d'un menu ne se fait plus dans une barre
+ * latérale : chaque ligne pointe vers la vue détail (`/menus/recherche?id=`) ou la grille
+ * allergènes (`/menus/allergenes?id=`) via `?id=`.
+ */
 @Component({
   selector: 'app-menus',
-  imports: [MenuList, MenuTree],
+  imports: [RouterLink],
   templateUrl: './menus.html',
   styleUrl: './menus.css',
 })
 export class Menus {
   private readonly menuService = inject(MenuService);
-  private readonly route = inject(ActivatedRoute);
 
-  menus = toSignal(this.menuService.list(), { initialValue: [] });
+  menus = toSignal(this.menuService.list(), { initialValue: [] as Menu[] });
 
-  /** Pre-selects the menu linked from another page (e.g. the calendar's "Voir le menu" button). */
-  private readonly queryMenuId = (() => {
-    const raw = this.route.snapshot.queryParamMap.get('menu');
-    return raw ? Number(raw) : null;
-  })();
+  search = signal('');
 
-  selectedId = signal<number | null>(this.queryMenuId);
+  filteredMenus = computed(() => {
+    const query = this.search().trim().toLowerCase();
 
-  /** Most recently created menu first. */
-  sortedMenus = computed(() =>
-    [...this.menus()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-  );
+    return this.menus()
+      .filter((menu) => !query || menu.name.toLowerCase().includes(query))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  });
 
-  selectedMenu = computed(() => this.sortedMenus().find((menu) => menu.id === this.selectedId()) ?? null);
+  totalCount = computed(() => this.filteredMenus().length);
 
-  constructor() {
-    effect(() => {
-      const list = this.sortedMenus();
-      if (this.selectedId() === null && list.length > 0) {
-        this.selectedId.set(list[0].id);
-      }
-    });
+  onSearchInput(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  dateLabel(menu: Menu): string | null {
+    if (!menu.starts_at) return null;
+    if (menu.ends_at === menu.starts_at) return menu.starts_at;
+    if (!menu.ends_at) return `À partir du ${menu.starts_at}`;
+    return `${menu.starts_at} → ${menu.ends_at}`;
+  }
+
+  sectionCount(menu: Menu): number {
+    return (menu.sections ?? []).length;
+  }
+
+  platCount(menu: Menu): number {
+    return (menu.sections ?? []).reduce((sum, section) => sum + (section.plats?.length ?? 0), 0);
   }
 }

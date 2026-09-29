@@ -1,0 +1,11 @@
+@if (menu(); as m) {
+  <div class="detail">
+    <a class="back-link" routerLink="/menus">← Retour aux menus</a>
+    <h1 class="page-title">{{ m.name }}</h1>
+    <app-menu-allergen-grid [menu]="m" />
+  </div>
+} @else {
+  <div class="empty-state">
+    <p>Choisissez un menu depuis <a routerLink="/menus">le tableau des menus</a>.</p>
+  </div>
+}

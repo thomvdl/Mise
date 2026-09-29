@@ -11,4 +11,8 @@ export class MenuService {
   list() {
     return this.http.get<Menu[]>(`${environment.apiUrl}/menus`);
   }
+
+  get(id: number) {
+    return this.http.get<Menu>(`${environment.apiUrl}/menus/${id}`);
+  }
 }

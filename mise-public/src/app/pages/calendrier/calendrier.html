@@ -101,7 +101,7 @@
           <div class="detail-section">
             <span class="detail-label">Menu lié</span>
             <p class="detail-text">{{ menu.name }}</p>
-            <a class="menu-link-btn" [routerLink]="['/menus']" [queryParams]="{ menu: menu.id }" (click)="closeDetail()">
+            <a class="menu-link-btn" [routerLink]="['/menus/recherche']" [queryParams]="{ id: menu.id }" (click)="closeDetail()">
               Voir le menu
             </a>
           </div>

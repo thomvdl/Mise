@@ -6,6 +6,7 @@
 
   <div class="detail-header">
     <div class="dh-left">
+      <a class="back-link no-print" routerLink="/menus">← Retour aux menus</a>
       @if (dateLabel(m); as label) {
         <div class="dh-station">{{ label }}</div>
       }
@@ -15,9 +16,7 @@
       }
       <div class="dh-actions no-print">
         <button type="button" class="print-label-link" (click)="print()">Imprimer le menu</button>
-        <button type="button" class="print-label-link" (click)="showAllergenGrid.set(!showAllergenGrid())">
-          {{ showAllergenGrid() ? 'Masquer la grille allergènes' : 'Grille allergènes' }}
-        </button>
+        <a class="print-label-link" routerLink="/menus/allergenes" [queryParams]="{ id: m.id }">Grille allergènes</a>
       </div>
     </div>
   </div>
@@ -47,10 +46,6 @@
     </div>
   } @empty {
     <p class="list-heading">Aucune section dans ce menu.</p>
-  }
-
-  @if (showAllergenGrid()) {
-    <app-menu-allergen-grid [menu]="m" />
   }
 
   <p class="report-print-footer only-print">MISE.</p>

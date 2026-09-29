@@ -1,0 +1,9 @@
+@if (menu(); as m) {
+  <div class="detail">
+    <app-menu-tree [menu]="m"></app-menu-tree>
+  </div>
+} @else {
+  <div class="empty-state">
+    <p>Choisissez un menu depuis <a routerLink="/menus">le tableau des menus</a>.</p>
+  </div>
+}
