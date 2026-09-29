@@ -68,6 +68,18 @@
         }
       </div>
     </div>
+
+    <div class="quick-entry no-print">
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="savingChange()" (click)="requestAddChange()">
+        {{ savingChange() ? 'Enregistrement…' : "Marquer l'huile changée aujourd'hui" }}
+      </button>
+      @if (changeError()) {
+        <span class="form-error">{{ changeError() }}</span>
+      }
+      @if (changeSuccess()) {
+        <span class="form-success">{{ changeSuccess() }}</span>
+      }
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -93,3 +105,12 @@
 
   <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
 }
+
+<app-confirm-dialog
+  [open]="confirmChangeOpen()"
+  title="Confirmer le changement d'huile"
+  [message]="confirmChangeMessage()"
+  confirmLabel="Marquer changée"
+  (confirm)="confirmAddChange()"
+  (cancel)="cancelAddChange()">
+</app-confirm-dialog>

@@ -74,6 +74,16 @@ export class TemperatureReport {
   releves = signal<TemperatureReleve[]>([]);
   loading = signal(false);
 
+  newTemperature = signal('');
+  savingReading = signal(false);
+  readingError = signal<string | null>(null);
+  readingSuccess = signal<string | null>(null);
+
+  canAddReading = computed(() => {
+    const value = parseFloat(this.newTemperature());
+    return this.selectedAppareilId() !== null && !Number.isNaN(value) && !this.savingReading();
+  });
+
   selectedAppareil = computed(() => this.appareils().find((a) => a.id === this.selectedAppareilId()) ?? null);
 
   periodLabel = computed(() => {
@@ -155,29 +165,59 @@ export class TemperatureReport {
     });
 
     effect(() => {
-      const appareilId = this.selectedAppareilId();
-      const currentPeriod = this.period();
-      const month = this.selectedMonth();
-      const year = this.selectedYear();
-      if (!appareilId) {
-        this.releves.set([]);
-        return;
-      }
+      this.loadReleves();
+    });
+  }
 
-      const { from, to } =
-        currentPeriod === 'mois'
-          ? monthRange(month)
-          : currentPeriod === 'annee'
-            ? yearRange(year)
-            : { from: rangeStart('semaine'), to: new Date() };
+  private loadReleves(): void {
+    const appareilId = this.selectedAppareilId();
+    const currentPeriod = this.period();
+    const month = this.selectedMonth();
+    const year = this.selectedYear();
+    if (!appareilId) {
+      this.releves.set([]);
+      return;
+    }
 
-      this.loading.set(true);
-      this.temperatureReleveService
-        .list({ appareilId, from: toIsoDate(from), to: toIsoDate(to) })
-        .subscribe((data) => {
-          this.releves.set(data);
-          this.loading.set(false);
-        });
+    const { from, to } =
+      currentPeriod === 'mois'
+        ? monthRange(month)
+        : currentPeriod === 'annee'
+          ? yearRange(year)
+          : { from: rangeStart('semaine'), to: new Date() };
+
+    this.loading.set(true);
+    this.temperatureReleveService.list({ appareilId, from: toIsoDate(from), to: toIsoDate(to) }).subscribe((data) => {
+      this.releves.set(data);
+      this.loading.set(false);
+    });
+  }
+
+  onNewTemperatureInput(event: Event): void {
+    this.newTemperature.set((event.target as HTMLInputElement).value);
+    this.readingSuccess.set(null);
+  }
+
+  addReading(): void {
+    const appareilId = this.selectedAppareilId();
+    const temperature = parseFloat(this.newTemperature());
+    if (appareilId === null || Number.isNaN(temperature)) return;
+
+    this.savingReading.set(true);
+    this.readingError.set(null);
+    this.readingSuccess.set(null);
+
+    this.temperatureReleveService.create({ appareil_id: appareilId, temperature }).subscribe({
+      next: () => {
+        this.savingReading.set(false);
+        this.newTemperature.set('');
+        this.readingSuccess.set('Relevé enregistré.');
+        this.loadReleves();
+      },
+      error: () => {
+        this.savingReading.set(false);
+        this.readingError.set("Une erreur est survenue lors de l'enregistrement.");
+      },
     });
   }
 

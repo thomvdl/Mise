@@ -8,6 +8,7 @@ import { ChangementHuile } from '../../core/models/changement-huile.model';
 import { ChangementHuileService } from '../../core/services/changement-huile.service';
 import { nextChangeDate } from '../../core/utils/friteuse-schedule';
 import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
+import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
 type Period = 'semaine' | 'mois' | 'annee';
 
@@ -46,7 +47,7 @@ function rangeStart(period: 'semaine'): Date {
 
 @Component({
   selector: 'app-huile-report',
-  imports: [DatePipe],
+  imports: [DatePipe, ConfirmDialog],
   templateUrl: './huile-report.html',
   styleUrl: './huile-report.css',
 })
@@ -71,6 +72,21 @@ export class HuileReport {
   availableYears = signal<number[]>([]);
   changements = signal<ChangementHuile[]>([]);
   loading = signal(false);
+
+  /** Toujours aujourd'hui — même règle que côté public, pour ne pas pouvoir antidater/postdater
+   * un changement depuis ce raccourci. */
+  readonly today = toIsoDate(new Date());
+  savingChange = signal(false);
+  changeError = signal<string | null>(null);
+  changeSuccess = signal<string | null>(null);
+  confirmChangeOpen = signal(false);
+
+  confirmChangeMessage = computed(() => {
+    const friteuse = this.selectedFriteuse();
+    return friteuse
+      ? `Marquer l'huile de « ${friteuse.name} » comme changée aujourd'hui (${this.formatDate(this.today)}) ?`
+      : '';
+  });
 
   selectedFriteuse = computed(() => this.friteuses().find((f) => f.id === this.selectedFriteuseId()) ?? null);
 
@@ -124,29 +140,62 @@ export class HuileReport {
     });
 
     effect(() => {
-      const friteuseId = this.selectedFriteuseId();
-      const currentPeriod = this.period();
-      const month = this.selectedMonth();
-      const year = this.selectedYear();
-      if (!friteuseId) {
-        this.changements.set([]);
-        return;
-      }
+      this.loadChangements();
+    });
+  }
 
-      const { from, to } =
-        currentPeriod === 'mois'
-          ? monthRange(month)
-          : currentPeriod === 'annee'
-            ? yearRange(year)
-            : { from: rangeStart('semaine'), to: new Date() };
+  private loadChangements(): void {
+    const friteuseId = this.selectedFriteuseId();
+    const currentPeriod = this.period();
+    const month = this.selectedMonth();
+    const year = this.selectedYear();
+    if (!friteuseId) {
+      this.changements.set([]);
+      return;
+    }
 
-      this.loading.set(true);
-      this.changementHuileService
-        .list({ friteuseId, from: toIsoDate(from), to: toIsoDate(to) })
-        .subscribe((data) => {
-          this.changements.set(data);
-          this.loading.set(false);
-        });
+    const { from, to } =
+      currentPeriod === 'mois'
+        ? monthRange(month)
+        : currentPeriod === 'annee'
+          ? yearRange(year)
+          : { from: rangeStart('semaine'), to: new Date() };
+
+    this.loading.set(true);
+    this.changementHuileService.list({ friteuseId, from: toIsoDate(from), to: toIsoDate(to) }).subscribe((data) => {
+      this.changements.set(data);
+      this.loading.set(false);
+    });
+  }
+
+  requestAddChange(): void {
+    if (!this.selectedFriteuse()) return;
+    this.confirmChangeOpen.set(true);
+  }
+
+  cancelAddChange(): void {
+    this.confirmChangeOpen.set(false);
+  }
+
+  confirmAddChange(): void {
+    const friteuse = this.selectedFriteuse();
+    this.confirmChangeOpen.set(false);
+    if (!friteuse) return;
+
+    this.savingChange.set(true);
+    this.changeError.set(null);
+    this.changeSuccess.set(null);
+
+    this.changementHuileService.create({ friteuse_id: friteuse.id, date_changement: this.today }).subscribe({
+      next: () => {
+        this.savingChange.set(false);
+        this.changeSuccess.set(`Changement enregistré pour ${friteuse.name}.`);
+        this.loadChangements();
+      },
+      error: () => {
+        this.savingChange.set(false);
+        this.changeError.set("Une erreur est survenue lors de l'enregistrement.");
+      },
     });
   }
 

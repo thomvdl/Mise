@@ -15,6 +15,36 @@
   color: var(--text-faint);
 }
 
+.quick-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.quick-entry-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.quick-entry-row .form-input {
+  width: 120px;
+}
+
+.form-success {
+  font-size: 12.5px;
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.quick-entry .form-error,
+.quick-entry .form-success {
+  display: block;
+  margin-top: 0.5rem;
+}
+
 .report-card {
   background: var(--surface);
   border: 1px solid var(--border);

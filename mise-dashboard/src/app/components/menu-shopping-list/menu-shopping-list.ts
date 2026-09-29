@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
@@ -11,14 +12,14 @@ import { Menu } from '../../core/models/menu.model';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
-import { ShoppingListGroupBy, buildShoppingList } from '../../core/utils/menu-shopping-list';
+import { ShoppingListGroupBy, buildShoppingList, buildShoppingListCost } from '../../core/utils/menu-shopping-list';
 import { useReportTitle } from '../../core/utils/report-title';
 
 const DEFAULT_COVERS = 10;
 
 @Component({
   selector: 'app-menu-shopping-list',
-  imports: [RouterLink],
+  imports: [RouterLink, DecimalPipe],
   templateUrl: './menu-shopping-list.html',
   styleUrl: './menu-shopping-list.css',
 })
@@ -48,8 +49,16 @@ export class MenuShoppingList {
     { initialValue: new Map<number, Ingredient>() },
   );
 
-  covers = signal(DEFAULT_COVERS);
+  /** Préremplissage depuis `?couverts=` (ex. lien "Voir la liste de courses" d'un événement du
+   * calendrier) — lu une seule fois au chargement (snapshot), le champ reste ensuite modifiable
+   * librement sans se refaire écraser si l'URL ne change pas. */
+  covers = signal(this.readCoversFromQuery() ?? DEFAULT_COVERS);
   groupBy = signal<ShoppingListGroupBy>('categorie');
+  /** Le coût total n'a de sens que si tout le menu part effectivement en cuisine pour le nombre
+   * de couverts saisi — sur un menu à choix multiples (plusieurs propositions par section), la
+   * somme surestime largement puisqu'un convive ne prend qu'une option, pas toutes. Désactivable
+   * plutôt que masqué d'office : reste utile par défaut sur un menu sans choix. */
+  showCost = signal(true);
 
   /** Cases cochées pendant les courses — état purement local, jamais persisté. */
   private readonly checked = signal<Set<number>>(new Set());
@@ -61,6 +70,18 @@ export class MenuShoppingList {
   );
 
   isEmpty = computed(() => this.groups().every((group) => group.lines.length === 0) && this.menu() !== null);
+
+  cost = computed(() =>
+    this.menu()
+      ? buildShoppingListCost(this.menu()!, this.fichesById(), this.ingredientsById(), this.covers())
+      : null,
+  );
+
+  costPerCover = computed(() => {
+    const cost = this.cost();
+    const covers = this.covers();
+    return cost && covers > 0 ? cost.totalCost / covers : null;
+  });
 
   constructor() {
     effect(() => {
@@ -77,6 +98,11 @@ export class MenuShoppingList {
     });
   }
 
+  private readCoversFromQuery(): number | null {
+    const raw = Number(this.route.snapshot.queryParamMap.get('couverts'));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }
+
   onCoversInput(event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
     if (value > 0) this.covers.set(value);
@@ -84,6 +110,10 @@ export class MenuShoppingList {
 
   onGroupByInput(event: Event): void {
     this.groupBy.set((event.target as HTMLSelectElement).value as ShoppingListGroupBy);
+  }
+
+  onShowCostInput(event: Event): void {
+    this.showCost.set((event.target as HTMLInputElement).checked);
   }
 
   isChecked(ingredientId: number): boolean {

@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 import { EventService } from '../../core/services/event.service';
 import { MenuService } from '../../core/services/menu.service';
@@ -14,7 +15,7 @@ const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 @Component({
   selector: 'app-event-calendar',
-  imports: [FormsModule, DatePipe, ConfirmDialog, DatetimePicker],
+  imports: [FormsModule, DatePipe, RouterLink, ConfirmDialog, DatetimePicker],
   templateUrl: './event-calendar.html',
   styleUrl: './event-calendar.css',
 })
@@ -134,6 +135,13 @@ export class EventCalendar implements OnInit {
 
   closeForm(): void {
     this.showForm.set(false);
+  }
+
+  /** Query params du lien "Voir la liste de courses" — `couverts` omis si non renseigné plutôt
+   * que de passer `null` dans l'URL. */
+  shoppingListQueryParams(): Record<string, number> {
+    const couverts = this.formCouverts();
+    return couverts ? { couverts } : {};
   }
 
   saveEvent(): void {

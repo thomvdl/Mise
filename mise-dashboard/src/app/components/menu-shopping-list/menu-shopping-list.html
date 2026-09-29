@@ -26,6 +26,11 @@
       <option value="fiche-technique">Fiche technique</option>
     </select>
   </div>
+
+  <label class="checkbox-chip" [class.checked]="showCost()">
+    <input type="checkbox" [checked]="showCost()" (change)="onShowCostInput($event)" />
+    Afficher le coût
+  </label>
 </div>
 
 @if (menu(); as menu) {
@@ -40,6 +45,24 @@
     <div class="report-card-header">
       <h2 class="no-print">{{ menu.name }} — {{ covers() }} couverts</h2>
     </div>
+
+    @if (showCost() && cost(); as cost) {
+      <div class="cost-footer">
+        @if (cost.costIncomplete) {
+          <span class="cf-note">Coût incomplet — certains ingrédients n'ont pas de prix renseigné.</span>
+        }
+        <div class="cf-item">
+          <span class="cf-label">Coût matière total</span>
+          <span class="cf-value">{{ cost.costIncomplete ? '≥ ' : '' }}{{ cost.totalCost | number: '1.2-2' }} €</span>
+        </div>
+        @if (costPerCover(); as perCover) {
+          <div class="cf-item">
+            <span class="cf-label">Prix / couvert</span>
+            <span class="cf-value">{{ cost.costIncomplete ? '≥ ' : '' }}{{ perCover | number: '1.2-2' }} €</span>
+          </div>
+        }
+      </div>
+    }
 
     @if (isEmpty()) {
       <p class="report-empty">Aucune fiche technique liée aux plats de ce menu.</p>

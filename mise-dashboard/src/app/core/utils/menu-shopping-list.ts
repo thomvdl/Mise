@@ -136,3 +136,45 @@ export function buildShoppingList(
 ): ShoppingListGroup[] {
   return aggregate(collectContributions(menu, fichesById, ingredientsById, covers), groupBy);
 }
+
+export interface ShoppingListCost {
+  totalCost: number;
+  costIncomplete: boolean;
+}
+
+/**
+ * Coût matière total du menu pour un nombre de couverts donné — indépendant du `groupBy` affiché
+ * à l'écran : additionne chaque ingrédient une seule fois (`quantityByIngredient`), jamais par
+ * groupe, sinon un ingrédient qui apparaît dans plusieurs postes/fiches serait compté plusieurs
+ * fois. Un ingrédient sans prix renseigné est ignoré dans la somme (traité comme 0) mais fait
+ * passer `costIncomplete` à `true`, sur le même principe que le `≥` de `fiche-technique-print`.
+ */
+export function buildShoppingListCost(
+  menu: Menu,
+  fichesById: Map<number, FicheTechnique>,
+  ingredientsById: Map<number, Ingredient>,
+  covers: number,
+): ShoppingListCost {
+  const quantityByIngredient = new Map<number, number>();
+
+  for (const contribution of collectContributions(menu, fichesById, ingredientsById, covers)) {
+    quantityByIngredient.set(
+      contribution.ingredientId,
+      (quantityByIngredient.get(contribution.ingredientId) ?? 0) + contribution.quantity,
+    );
+  }
+
+  let totalCost = 0;
+  let costIncomplete = false;
+
+  for (const [ingredientId, quantity] of quantityByIngredient) {
+    const price = ingredientsById.get(ingredientId)?.price ?? null;
+    if (price === null) {
+      costIncomplete = true;
+      continue;
+    }
+    totalCost += Number(price) * quantity;
+  }
+
+  return { totalCost, costIncomplete };
+}

@@ -134,6 +134,15 @@
             <option [ngValue]="menu.id">{{ menu.name }}</option>
           }
         </select>
+        @if (formMenuId(); as menuId) {
+          <a
+            class="btn btn-ghost btn-sm"
+            [routerLink]="['/menus', menuId, 'liste-courses']"
+            [queryParams]="shoppingListQueryParams()"
+            (click)="closeForm()">
+            Voir la liste de courses{{ formCouverts() ? ' (' + formCouverts() + ' couverts)' : '' }}
+          </a>
+        }
       </div>
 
       @if (formError()) {
