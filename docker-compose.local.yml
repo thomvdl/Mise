@@ -1,0 +1,123 @@
+# Configuration Docker Compose pour un hébergement LOCAL — mini PC en cuisine, sur le réseau de
+# l'hôtel uniquement, jamais exposé sur internet. Voir DEPLOY.md.
+#
+# Identique à docker-compose.prod.yml sauf le service caddy : au lieu de l'image caddy:2-alpine
+# officielle (HTTP-01, qui exige d'être joignable depuis internet), on construit une image Caddy
+# avec les modules DNS OVH/Hostinger (./caddy/Dockerfile) pour valider les certificats par
+# DNS-01 — possible même sans aucune exposition publique.
+#
+# Usage : docker compose -f docker-compose.local.yml up -d --build
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mise_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  api:
+    build: ./mise-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - mise_api_storage:/var/www/html/storage/app/public
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://localhost/') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  dashboard:
+    build: ./mise-dashboard
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  public:
+    build: ./mise-public
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Reverse proxy + HTTPS via DNS-01 (OVH ou Hostinger selon Caddyfile.local, voir DEPLOY.md).
+  # Seul service accessible depuis le reste du réseau de l'hôtel.
+  caddy:
+    build: ./caddy
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+      - public
+      - api
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  mise_db_data:
+  mise_api_storage:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,41 @@
+# Reverse proxy pour un hébergement LOCAL (mini PC en cuisine, non exposé sur internet) — variante
+# domaine chez Hostinger. À copier en "Caddyfile.local" avant de démarrer (voir DEPLOY.md).
+#
+# Contrairement au Caddyfile de la variante VPS (validation HTTP-01, qui exige un serveur
+# joignable depuis internet sur le port 80), ce fichier valide le certificat par DNS-01 : Caddy
+# prouve la possession du domaine via une entrée DNS chez Hostinger, sans jamais avoir besoin
+# d'être joignable depuis l'extérieur. Le domaine peut donc pointer vers l'IP locale du mini PC.
+#
+# Jeton API à créer depuis https://hpanel.hostinger.com/profile/api — voir DEPLOY.md.
+# `dns_ttl 300s` est nécessaire : l'API Hostinger refuse le TTL par défaut de Caddy (voir
+# https://github.com/sbrunk/caddy-dns-hostinger/issues/1).
+{
+	email {$ACME_EMAIL}
+}
+
+(dns_hostinger) {
+	tls {
+		dns hostinger {$HOSTINGER_API_TOKEN}
+		dns_ttl 300s
+	}
+}
+
+# mise-public — l'app de la brigade au quotidien (fiches, étiquettes, PWA).
+{$MISE_PUBLIC_DOMAIN} {
+	import dns_hostinger
+	reverse_proxy public:80
+}
+
+# mise-dashboard — back-office du chef (réservé au rôle admin).
+{$MISE_DASHBOARD_DOMAIN} {
+	import dns_hostinger
+	reverse_proxy dashboard:80
+}
+
+# mise-api — exposée directement car Laravel génère les URLs des photos uploadées à partir
+# d'APP_URL (Storage::disk('public')->url(...)) ; sans ce domaine joignable, les images des
+# fiches techniques/ingrédients seraient cassées.
+{$MISE_API_DOMAIN} {
+	import dns_hostinger
+	reverse_proxy api:80
+}
