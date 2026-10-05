@@ -66,7 +66,12 @@
   }
 
   .only-print {
-    display: block;
+    /* !important nécessaire pour la même raison que .no-print ci-dessus : chaque composant
+       déclare son propre `.only-print { display: none; }` pour le masquer à l'écran, et
+       l'encapsulation Angular (attribut _ngcontent ajouté aux sélecteurs du composant) rend
+       cette règle plus spécifique que celle-ci — sans !important, l'écran gagnait aussi en
+       impression et l'en-tête restait invisible sur le papier. */
+    display: block !important;
   }
 
   /* ---------- EN-TÊTE (façon papier à en-tête) ---------- */
