@@ -1,0 +1,33 @@
+# Pont ZPL pour une imprimante Zebra branchée en USB sur un hôte LINUX — voir
+# zpl-bridge/README.md pour l'équivalent Windows (nécessaire là-bas, car Docker Desktop sur
+# Windows ne passe pas les périphériques USB aux conteneurs). Sur Linux, Docker y accède
+# directement : pas besoin d'un service natif hors Docker, un simple pont socat suffit.
+#
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.linux-usb-printer.yml up -d
+#
+# Avant de démarrer, vérifiez le chemin réel du périphérique une fois l'imprimante branchée :
+#   ls -la /dev/usb/
+# C'est généralement /dev/usb/lp0 pour la première imprimante USB détectée par le noyau (module
+# usblp, chargé automatiquement sur la plupart des distributions) — ajustez "devices:" ci-dessous
+# si ce n'est pas le cas chez vous. Si le périphérique n'apparaît pas du tout, vérifiez `lsusb`
+# (l'imprimante est-elle détectée ?) et qu'aucun service CUPS local n'a déjà capté le périphérique
+# en exclusivité.
+#
+# Côté dashboard, Paramètres -> Impression d'étiquettes : adresse imprimante = `zpl-bridge` (le
+# nom de ce service, joignable directement par les autres conteneurs sur le réseau compose — même
+# principe que `db` pour MySQL).
+
+services:
+  zpl-bridge:
+    image: alpine/socat
+    restart: unless-stopped
+    command: TCP4-LISTEN:9100,fork,reuseaddr /dev/usb/lp0
+    devices:
+      - "/dev/usb/lp0:/dev/usb/lp0"
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

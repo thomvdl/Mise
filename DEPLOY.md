@@ -97,10 +97,13 @@ en réseau (Ethernet/Wi-Fi) : réglez juste son IP dans le dashboard, Paramètre
 d'étiquettes.
 
 **Si l'imprimante est branchée en USB sur le mini PC** (pas en réseau), voir
-[zpl-bridge/README.md](./zpl-bridge/README.md) — sur Windows, Docker Desktop n'a pas d'accès
-direct aux périphériques USB du hôte, donc un petit pont tourne nativement hors Docker et relaie
-le port 9100 vers l'imprimante. Côté dashboard, l'adresse à renseigner devient alors
-`host.docker.internal` au lieu d'une IP.
+[zpl-bridge/README.md](./zpl-bridge/README.md) pour la procédure complète — ça diffère selon
+l'OS du mini PC :
+- **Linux** : un conteneur `socat` suffit (`docker-compose.linux-usb-printer.yml`), Docker y
+  accède directement au périphérique USB. Adresse à renseigner : `zpl-bridge`.
+- **Windows** : Docker Desktop n'a pas d'accès direct aux périphériques USB du hôte, donc un
+  petit pont (`zpl-bridge/zpl_bridge.py`) tourne nativement hors Docker. Adresse à renseigner :
+  `host.docker.internal`.
 
 ## 6. Alimentation
 
