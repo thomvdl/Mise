@@ -43,12 +43,12 @@ function rangeStart(period: 'semaine'): Date {
 }
 
 @Component({
-  selector: 'app-printed-label-report',
+  selector: 'app-label-history',
   imports: [],
-  templateUrl: './printed-label-report.html',
-  styleUrl: './printed-label-report.css',
+  templateUrl: './label-history.html',
+  styleUrl: './label-history.css',
 })
-export class PrintedLabelReport {
+export class LabelHistory {
   private readonly printedLabelService = inject(PrintedLabelService);
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 

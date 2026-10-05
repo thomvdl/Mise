@@ -1,0 +1,223 @@
+<div class="page">
+  <div class="intro">
+    <a class="back-link" routerLink="/etiquettes">← Retour aux étiquettes</a>
+    <h1 class="page-title">Listes d'étiquettes</h1>
+    <p class="page-sub">Enregistrez une sélection de produits réutilisable, puis imprimez-la en tout ou en partie.</p>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  @if (editingId() !== 'new') {
+    <button type="button" class="add-btn new-list-btn" (click)="startCreate()">+ Nouvelle liste</button>
+  }
+
+  @if (editingId() === 'new') {
+    <div class="list-card edit-card">
+      <div class="form-block">
+        <label class="form-label" for="list-name">Nom de la liste</label>
+        <input id="list-name" class="text-input" type="text" placeholder="Ex. Mise en place du lundi" [value]="editName()" (input)="onListNameInput($event)" />
+      </div>
+
+      <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
+
+      @if (saveError()) {
+        <p class="form-error">{{ saveError() }}</p>
+      }
+
+      <div class="edit-actions">
+        <button type="button" class="btn-ghost" (click)="cancelEdit()">Annuler</button>
+        <button type="button" class="add-btn" [disabled]="!canSave() || saving()" (click)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer la liste' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="form-hint">Chargement…</p>
+  } @else if (lists().length === 0 && editingId() !== 'new') {
+    <p class="form-hint">Aucune liste enregistrée pour l'instant.</p>
+  }
+
+  <div class="list-grid">
+    @for (list of lists(); track list.id) {
+      <div class="list-card">
+        <div class="list-header">
+          <div>
+            <div class="list-name">{{ list.name }}</div>
+            <div class="list-count">{{ list.items.length }} produit{{ list.items.length > 1 ? 's' : '' }}</div>
+          </div>
+          <div class="list-actions">
+            <button type="button" class="btn-ghost" (click)="toggleExpand(list)">
+              {{ expandedId() === list.id ? 'Fermer' : 'Imprimer' }}
+            </button>
+            <button type="button" class="btn-ghost" (click)="startEdit(list)">Modifier</button>
+            <button type="button" class="btn-ghost danger" (click)="confirmDelete(list)">Supprimer</button>
+          </div>
+        </div>
+
+        @if (editingId() === list.id) {
+          <div class="form-block">
+            <label class="form-label" for="list-name-edit-{{ list.id }}">Nom de la liste</label>
+            <input
+              id="list-name-edit-{{ list.id }}"
+              class="text-input"
+              type="text"
+              [value]="editName()"
+              (input)="onListNameInput($event)" />
+          </div>
+
+          <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
+
+          @if (saveError()) {
+            <p class="form-error">{{ saveError() }}</p>
+          }
+
+          <div class="edit-actions">
+            <button type="button" class="btn-ghost" (click)="cancelEdit()">Annuler</button>
+            <button type="button" class="add-btn" [disabled]="!canSave() || saving()" (click)="save()">
+              {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        }
+
+        @if (expandedId() === list.id) {
+          <div class="selection-bar">
+            <span class="selection-count">{{ selectedCount() }} / {{ list.items.length }} sélectionné{{ selectedCount() > 1 ? 's' : '' }}</span>
+            <div class="selection-actions">
+              <button type="button" class="btn-ghost" (click)="selectAll(list)">Tout cocher</button>
+              <button type="button" class="btn-ghost" (click)="selectNone()">Tout décocher</button>
+            </div>
+          </div>
+
+          <ul class="item-list">
+            @for (item of list.items; track $index) {
+              <li class="item-row">
+                <label class="item-check">
+                  <input type="checkbox" [checked]="isSelected($index)" (change)="toggleSelected($index)" />
+                  <span class="item-swatch" [attr.data-type]="item.type_key"></span>
+                  <span class="item-text">
+                    <strong>{{ itemTypeTitle(item.type_key) }}</strong> — {{ item.product_name }}
+                    <span class="item-dlc">· {{ offsetLabel(item.use_by_offset_days) }}</span>
+                    @if (item.quantity > 1) {
+                      <span class="item-qty">×{{ item.quantity }}</span>
+                    }
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+
+          <button type="button" class="add-btn" [disabled]="selectedCount() === 0" (click)="addSelectionToQueue(list)">
+            Imprimer la sélection ({{ selectedCount() }})
+          </button>
+          <p class="form-hint">Ajoute la sélection à la file d'impression (page Étiquettes), avec la date du jour.</p>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<ng-template #itemEditor>
+  <div class="form-block">
+    <span class="form-label">Type d'étiquette</span>
+    <div class="type-choices">
+      @for (type of labelTypes; track type.key) {
+        <button
+          type="button"
+          class="type-chip"
+          [attr.data-type]="type.key"
+          [class.active]="newItemType().key === type.key"
+          (click)="selectNewItemType(type)">
+          {{ type.title }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="form-block">
+    <label class="form-label" for="new-item-name">Produit</label>
+    <input
+      id="new-item-name"
+      class="text-input"
+      type="text"
+      list="list-product-suggestions"
+      placeholder="Nom du produit…"
+      [attr.maxlength]="productNameMaxLength"
+      [value]="newItemName()"
+      (input)="onNewItemNameInput($event)"
+      (keydown.enter)="addEditItem()" />
+    <datalist id="list-product-suggestions">
+      @for (name of suggestions(); track name) {
+        <option [value]="name"></option>
+      }
+    </datalist>
+  </div>
+
+  <div class="form-block">
+    <span class="form-label">DLC (à l'impression)</span>
+    <div class="date-quick-choices">
+      <button
+        type="button"
+        class="date-chip"
+        [class.active]="newItemOffset() === null"
+        (click)="selectNewItemOffset(null)">
+        Défaut du type
+      </button>
+      @for (offset of dateOffsets; track offset) {
+        <button
+          type="button"
+          class="date-chip"
+          [class.active]="newItemOffset() === offset"
+          (click)="selectNewItemOffset(offset)">
+          {{ offset === 0 ? "Aujourd'hui" : 'J+' + offset }}
+        </button>
+      }
+    </div>
+    <p class="form-hint">Date du jour d'impression + ce décalage. "Défaut du type" suit la règle du type d'étiquette.</p>
+  </div>
+
+  <div class="form-block">
+    <span class="form-label">Quantité</span>
+    <div class="qty-stepper">
+      <button type="button" class="qty-btn" [disabled]="newItemQty() <= 1" (click)="decrementNewItemQty()" aria-label="Diminuer la quantité">−</button>
+      <span class="qty-value">{{ newItemQty() }}</span>
+      <button type="button" class="qty-btn" [disabled]="newItemQty() >= 10" (click)="incrementNewItemQty()" aria-label="Augmenter la quantité">+</button>
+    </div>
+  </div>
+
+  <button type="button" class="btn-ghost add-item-btn" [disabled]="!newItemName().trim()" (click)="addEditItem()">
+    + Ajouter ce produit à la liste
+  </button>
+
+  @if (editItems().length > 0) {
+    <ul class="item-list">
+      @for (item of editItems(); track $index) {
+        <li class="item-row">
+          <span class="item-swatch" [attr.data-type]="item.type_key"></span>
+          <span class="item-text">
+            <strong>{{ itemTypeTitle(item.type_key) }}</strong> — {{ item.product_name }}
+            <span class="item-dlc">· {{ offsetLabel(item.use_by_offset_days) }}</span>
+            @if (item.quantity > 1) {
+              <span class="item-qty">×{{ item.quantity }}</span>
+            }
+          </span>
+          <button type="button" class="item-remove" (click)="removeEditItem($index)" aria-label="Retirer ce produit">×</button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="form-hint">Ajoutez au moins un produit à cette liste.</p>
+  }
+</ng-template>
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  title="Supprimer la liste"
+  [message]="'Supprimer « ' + (pendingDelete()?.name ?? '') + ' » ? Cette action est définitive.'"
+  confirmLabel="Supprimer"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

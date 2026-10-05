@@ -26,6 +26,7 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+.intro-links { display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
 .lists-link { flex-shrink: 0; white-space: nowrap; }
 
 /* stretch (défaut) plutôt que align-items:start : les deux colonnes prennent toute la hauteur

@@ -68,8 +68,14 @@ export class Home {
     },
     {
       label: 'Étiquettes',
-      description: "Historique d'impression des étiquettes (traçabilité HACCP).",
+      description: "Composer et imprimer des étiquettes, ou piocher dans une liste enregistrée.",
       path: '/etiquettes',
+      icon: 'report',
+    },
+    {
+      label: 'Historique des étiquettes',
+      description: "Historique d'impression des étiquettes (traçabilité HACCP).",
+      path: '/etiquettes/historique',
       icon: 'report',
     },
     {

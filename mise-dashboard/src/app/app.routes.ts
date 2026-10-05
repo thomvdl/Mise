@@ -187,8 +187,17 @@ export const routes: Routes = [
 
       {
         path: 'etiquettes',
-        loadComponent: () =>
-          import('./components/printed-label-report/printed-label-report').then((m) => m.PrintedLabelReport),
+        loadComponent: () => import('./components/labels/labels').then((m) => m.Labels),
+      },
+
+      {
+        path: 'etiquettes/listes',
+        loadComponent: () => import('./components/label-lists/label-lists').then((m) => m.LabelLists),
+      },
+
+      {
+        path: 'etiquettes/historique',
+        loadComponent: () => import('./components/label-history/label-history').then((m) => m.LabelHistory),
       },
 
       {

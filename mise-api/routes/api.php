@@ -12,6 +12,7 @@ use App\Http\Controllers\FriteuseController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IngredientCategoryController;
 use App\Http\Controllers\IngredientController;
+use App\Http\Controllers\LabelListController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
@@ -66,6 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // ci-dessus : n'importe qui peut imprimer une étiquette depuis mise-public.
     Route::post('printed-labels/print-zebra', [PrintedLabelController::class, 'printZebra']);
 
+    // Listes nommées et réutilisables de produits à étiqueter (ex. "Mise en place du lundi") —
+    // n'importe qui peut créer/modifier une liste partagée ; seule la suppression est réservée
+    // à l'admin (groupe role:admin plus bas), pour éviter qu'une liste disparaisse par erreur.
+    Route::apiResource('label-lists', LabelListController::class)->only(['index', 'show', 'store', 'update'])
+        ->parameters(['label-lists' => 'label_list']);
+
     // Chanel de discussion — lecture et écriture de messages ouvertes à tout utilisateur
     // connecté (user ou admin), seule la création/suppression de chanels et la suppression
     // de messages sont réservées à l'admin (groupe role:admin plus bas).
@@ -117,6 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['mise-en-place-items' => 'mise_en_place_item']);
         Route::apiResource('events', EventController::class)->only(['store', 'update', 'destroy'])
             ->parameters(['events' => 'event']);
+        Route::apiResource('label-lists', LabelListController::class)->only(['destroy'])
+            ->parameters(['label-lists' => 'label_list']);
 
         // Config globale de l'app (ex. IP de l'imprimante d'étiquettes) — dashboard uniquement,
         // mise-public n'y a jamais accès directement (voir PrintedLabelController::printZebra).

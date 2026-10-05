@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { environment } from '../../../environments/environment';
-import { PrintedLabel } from '../models/printed-label.model';
+import { PrintedLabel, PrintedLabelPayload, ZebraPrintPayload } from '../models/printed-label.model';
 
 export interface PrintedLabelFilters {
   typeKey?: string;
@@ -22,5 +22,14 @@ export class PrintedLabelService {
     if (filters.to) params = params.set('to', filters.to);
 
     return this.http.get<PrintedLabel[]>(this.baseUrl, { params });
+  }
+
+  create(payload: PrintedLabelPayload) {
+    return this.http.post(this.baseUrl, payload);
+  }
+
+  /** Imprime réellement sur la Zebra réseau (le serveur ouvre le socket) puis journalise — voir PrintedLabelController::printZebra. */
+  printZebra(payload: ZebraPrintPayload) {
+    return this.http.post(`${this.baseUrl}/print-zebra`, payload);
   }
 }

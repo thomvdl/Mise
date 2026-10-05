@@ -16,6 +16,10 @@ export const routes: Routes = [
             { path: 'menus/allergenes', loadComponent: () => import('./pages/menu-allergenes/menu-allergenes').then((m) => m.MenuAllergenesPage) },
             { path: 'ingredients', loadComponent: () => import('./pages/ingredients/ingredients').then((m) => m.Ingredients) },
             { path: 'etiquettes', loadComponent: () => import('./pages/labels/labels').then((m) => m.Labels) },
+            {
+              path: 'etiquettes/listes',
+              loadComponent: () => import('./pages/label-lists/label-lists').then((m) => m.LabelLists),
+            },
             { path: 'discussion', loadComponent: () => import('./pages/discussion/discussion').then((m) => m.Discussion) },
             { path: 'notes', loadComponent: () => import('./pages/notes/notes').then((m) => m.Notes) },
             { path: 'courses', loadComponent: () => import('./pages/courses/courses').then((m) => m.Courses) },
