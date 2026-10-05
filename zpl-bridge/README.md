@@ -89,8 +89,27 @@ Windows (contourne toute réinterprétation par le pilote).
 
 ### Démarrage automatique
 
-Pour que le pont tourne en permanence, y compris après un redémarrage et sans session utilisateur
-ouverte, créez une tâche planifiée Windows :
+Deux façons de faire, selon si le mini PC reste connecté sur une session Windows en permanence
+ou doit pouvoir démarrer le pont même sans personne connecté.
+
+#### Option A — dossier Démarrage (simple, demande qu'une session soit ouverte)
+
+1. Ouvrez `start-zpl-bridge.bat` (ce dossier) dans un éditeur de texte (clic droit → Modifier) et
+   remplacez `Nom exact de l'imprimante` par le nom réel, visible dans Windows → Imprimantes.
+   Enregistrez.
+2. Testez-le d'abord en double-cliquant dessus — il doit se lancer sans erreur (pas de fenêtre
+   qui s'ouvre, c'est normal avec `pythonw`).
+3. Pour qu'il se lance tout seul à chaque ouverture de session : touche **Windows + R**, tapez
+   `shell:startup`, Entrée — ça ouvre le dossier Démarrage. Faites un clic droit sur
+   `start-zpl-bridge.bat` → **Créer un raccourci**, puis glissez ce raccourci dans le dossier
+   Démarrage qui vient de s'ouvrir.
+4. Redémarrez le PC (ou déconnectez/reconnectez la session) pour vérifier que le pont démarre
+   bien tout seul — testez une impression depuis la page Étiquettes.
+
+#### Option B — tâche planifiée (survit sans session ouverte)
+
+Pour que le pont tourne même si personne n'est connecté sur Windows (redémarrage automatique
+après coupure de courant, par exemple) :
 
 1. Planificateur de tâches → Créer une tâche.
 2. Déclencheur : **Au démarrage de l'ordinateur**.
