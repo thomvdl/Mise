@@ -40,7 +40,7 @@ export class Accueil {
    * cette constante (ou taper la nouvelle URL dans le champ, mémorisée en localStorage et
    * prioritaire sur ce défaut).
    */
-  private static readonly DEFAULT_URL = 'https://spotlight-dentists-customise-customise.trycloudflare.com';
+  private static readonly DEFAULT_URL = 'https://genealogy-morris-sensitivity-styles.trycloudflare.com';
   connectionUrl = signal(this.loadSavedUrl() ?? Accueil.DEFAULT_URL);
   showConnect = signal(false);
   qrDataUrl = signal<string | null>(null);

@@ -40,7 +40,7 @@ export class Home {
    * du conteneur : si ça arrive, mettre à jour cette constante (ou taper la nouvelle URL dans le
    * champ, qui la mémorise alors en localStorage et prend le pas sur ce défaut).
    */
-  private static readonly DEFAULT_URL = 'https://bottles-princess-ambien-folks.trycloudflare.com';
+  private static readonly DEFAULT_URL = 'https://breeds-equations-commentary-veterans.trycloudflare.com';
   connectionUrl = signal(this.loadSavedUrl() ?? Home.DEFAULT_URL);
   showConnect = signal(false);
   qrDataUrl = signal<string | null>(null);

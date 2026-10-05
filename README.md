@@ -57,7 +57,13 @@ Au premier démarrage, un compte administrateur est créé automatiquement à pa
 `ADMIN_NAME`/`ADMIN_PASSWORD` — changez son mot de passe depuis la gestion des utilisateurs du
 dashboard une fois connecté. Les migrations et le seed du référentiel (catégories, stations,
 allergènes...) tournent automatiquement à chaque démarrage du conteneur `api` (sans danger,
-idempotent).
+idempotent). Une sauvegarde quotidienne de la base (compressée, rotation automatique) tourne
+aussi toute seule via le conteneur `db-backup`.
+
+Deux conteneurs `cloudflared-*` ouvrent chacun un tunnel Cloudflare vers le dashboard et vers
+l'app publique, pour y accéder depuis l'extérieur du réseau local sans rien ouvrir sur un
+routeur — voir [DEPLOY.md](./DEPLOY.md) pour la procédure d'hébergement complète (pensée pour un
+mini PC en cuisine, restant sur le réseau local).
 
 ## Développement
 

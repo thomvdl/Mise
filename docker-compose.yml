@@ -1,3 +1,14 @@
+# Déploiement de référence du projet — hébergement local (mini PC en cuisine ou tout poste avec
+# Docker) + accès extérieur via tunnel Cloudflare (cloudflared-dashboard/cloudflared-public plus
+# bas), voir DEPLOY.md pour la procédure complète. Limites mémoire et rotation des logs sur
+# chaque service, pour qu'un conteneur qui dérape ne mette pas à genoux le reste ni ne remplisse
+# le disque au fil des mois — pensées pour un mini PC, pas pour un gros serveur.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   db:
     image: mysql:8.4
@@ -19,6 +30,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    mem_limit: 1g
+    logging: *default-logging
 
   # Sauvegarde automatique de la base (mysqldump quotidien, compressé, rotation sur les 14
   # derniers jours) — voir mise_db_backups ci-dessous pour où ils atterrissent.
@@ -38,6 +51,8 @@ services:
       CRON_TIME: "0 3 * * *"
     volumes:
       - mise_db_backups:/backup
+    mem_limit: 128m
+    logging: *default-logging
 
   api:
     build: ./mise-api
@@ -55,6 +70,8 @@ services:
       - mise_api_storage:/var/www/html/storage/app/public
     ports:
       - "8000:80"
+    mem_limit: 512m
+    logging: *default-logging
 
   adminer:
     image: adminer:latest
@@ -66,6 +83,8 @@ services:
       ADMINER_DEFAULT_SERVER: db
     ports:
       - "8083:8080"
+    mem_limit: 128m
+    logging: *default-logging
 
   dashboard:
     build: ./mise-dashboard
@@ -74,6 +93,8 @@ services:
       - api
     ports:
       - "8081:80"
+    mem_limit: 128m
+    logging: *default-logging
 
   public:
     build: ./mise-public
@@ -82,18 +103,22 @@ services:
       - api
     ports:
       - "8082:80"
+    mem_limit: 128m
+    logging: *default-logging
 
-  # Tunnels Cloudflare "quick tunnel" — à l'essai : aucun compte/domaine Cloudflare requis, juste
-  # une URL https://xxxx.trycloudflare.com générée à chaque démarrage (voir les logs du conteneur
-  # pour la récupérer). Accès extérieur temporaire, sans toucher au réseau local ni au routeur de
-  # l'hôtel. Pas de port à publier : cloudflared rejoint le réseau compose et atteint directement
-  # dashboard:80 / public:80 par leur nom de service.
+  # Tunnels Cloudflare "quick tunnel" : aucun compte/domaine Cloudflare requis, juste une URL
+  # https://xxxx.trycloudflare.com générée à chaque démarrage (voir les logs du conteneur pour la
+  # récupérer — elle change à chaque redémarrage, c'est la limite de ce mode). Accès extérieur
+  # sans toucher au réseau local ni au routeur. Pas de port à publier : cloudflared rejoint le
+  # réseau compose et atteint directement dashboard:80 / public:80 par leur nom de service.
   cloudflared-dashboard:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate --url http://dashboard:80
     depends_on:
       - dashboard
+    mem_limit: 128m
+    logging: *default-logging
 
   cloudflared-public:
     image: cloudflare/cloudflared:latest
@@ -101,6 +126,8 @@ services:
     command: tunnel --no-autoupdate --url http://public:80
     depends_on:
       - public
+    mem_limit: 128m
+    logging: *default-logging
 
 volumes:
   mise_db_data:
