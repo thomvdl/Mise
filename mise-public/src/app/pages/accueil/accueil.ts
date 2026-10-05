@@ -33,11 +33,15 @@ export class Accueil {
   });
 
   /**
-   * Adresse à encoder dans le QR. Part de l'origine courante, mais reste éditable : pour un
-   * accès depuis l'extérieur du réseau, on y colle plutôt l'URL du tunnel Cloudflare (voir le
-   * conteneur cloudflared-public — même principe que côté dashboard). Mémorisée en localStorage.
+   * Adresse à encoder dans le QR. Par défaut, l'URL du tunnel Cloudflare actuel (voir
+   * cloudflared-public dans docker-compose.yml) plutôt que `window.location.origin`, qui ne
+   * donne une adresse utile que si la page a été ouverte via l'IP réseau de la machine. Un
+   * "quick tunnel" change d'URL à chaque redémarrage du conteneur : si ça arrive, mettre à jour
+   * cette constante (ou taper la nouvelle URL dans le champ, mémorisée en localStorage et
+   * prioritaire sur ce défaut).
    */
-  connectionUrl = signal(this.loadSavedUrl() ?? window.location.origin);
+  private static readonly DEFAULT_URL = 'https://spotlight-dentists-customise-customise.trycloudflare.com';
+  connectionUrl = signal(this.loadSavedUrl() ?? Accueil.DEFAULT_URL);
   showConnect = signal(false);
   qrDataUrl = signal<string | null>(null);
 
