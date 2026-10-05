@@ -134,11 +134,14 @@
       <p class="form-error">{{ labelQueue.zebraError() }}</p>
     }
 
-    <div class="fallback-row">
-      <button type="button" class="btn-ghost" (click)="labelQueue.printQueueViaBrowser()">
-        Imprimer via le navigateur (secours)
-      </button>
-    </div>
+    @if (false) {
+      <!-- Masqué pour l'instant — fallback navigateur désactivé temporairement, voir labelQueue.printQueueViaBrowser(). -->
+      <div class="fallback-row">
+        <button type="button" class="btn-ghost" (click)="labelQueue.printQueueViaBrowser()">
+          Imprimer via le navigateur (secours)
+        </button>
+      </div>
+    }
 
     <ul class="queue-list">
       @for (item of labelQueue.queue(); track item.id) {
