@@ -15,20 +15,21 @@
     <div class="connect-text">
       <h2 class="connect-title">Connexion rapide</h2>
       <p class="connect-desc">
-        Scannez ce code avec un téléphone ou une tablette connecté au même réseau pour ouvrir le
-        dashboard directement, sans retaper l'adresse.
+        Scannez ce code pour ouvrir le dashboard directement, sans retaper l'adresse — depuis un
+        appareil sur le même réseau, ou depuis l'extérieur via un tunnel Cloudflare.
       </p>
-      <label class="connect-label" for="connect-url">Adresse réseau de ce PC</label>
+      <label class="connect-label" for="connect-url">Adresse de connexion</label>
       <input
         id="connect-url"
         class="connect-input"
         type="text"
-        placeholder="ex. 192.168.1.23:8081"
+        placeholder="ex. https://xxxx.trycloudflare.com ou 192.168.1.23:8081"
         [value]="connectionUrl()"
         (input)="onUrlInput($event)" />
       <p class="connect-hint">
-        Si ce PC a été ouvert via « localhost », remplacez par son adresse IP sur le réseau (port
-        inclus) — sinon le téléphone scannerait vers lui-même.
+        Par défaut, l'adresse de cette page. Pour un accès depuis l'extérieur du réseau, collez
+        plutôt l'URL du tunnel Cloudflare (voir les logs du conteneur cloudflared-dashboard) — pour
+        un accès local, l'IP réseau de ce PC (port inclus) si la page a été ouverte via « localhost ».
       </p>
     </div>
   </div>

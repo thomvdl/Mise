@@ -83,6 +83,25 @@ services:
     ports:
       - "8082:80"
 
+  # Tunnels Cloudflare "quick tunnel" — à l'essai : aucun compte/domaine Cloudflare requis, juste
+  # une URL https://xxxx.trycloudflare.com générée à chaque démarrage (voir les logs du conteneur
+  # pour la récupérer). Accès extérieur temporaire, sans toucher au réseau local ni au routeur de
+  # l'hôtel. Pas de port à publier : cloudflared rejoint le réseau compose et atteint directement
+  # dashboard:80 / public:80 par leur nom de service.
+  cloudflared-dashboard:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://dashboard:80
+    depends_on:
+      - dashboard
+
+  cloudflared-public:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://public:80
+    depends_on:
+      - public
+
 volumes:
   mise_db_data:
   mise_api_storage:

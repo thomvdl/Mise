@@ -12,6 +12,13 @@
 .intro {
   margin-bottom: 28px;
 }
+.intro-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
 .page-title {
   font-family: var(--font-display);
@@ -26,6 +33,94 @@
   font-size: 13.5px;
   line-height: 1.5;
   margin: 0;
+}
+
+.btn-ghost {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 9px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.connect-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.connect-qr {
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
+.connect-text {
+  min-width: 0;
+}
+
+.connect-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+
+.connect-desc {
+  color: var(--text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  max-width: 440px;
+}
+
+.connect-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+.connect-input {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent-blue);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+}
+.connect-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.connect-hint {
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 400px;
 }
 
 .tile-grid {
