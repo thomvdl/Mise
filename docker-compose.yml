@@ -104,26 +104,18 @@ services:
     mem_limit: 128m
     logging: *default-logging
 
-  # Tunnels Cloudflare "quick tunnel" : aucun compte/domaine Cloudflare requis, juste une URL
+  # Tunnel Cloudflare "quick tunnel" pour le dashboard uniquement (pas pour public, laissé
+  # purement local pour l'instant) : aucun compte/domaine Cloudflare requis, juste une URL
   # https://xxxx.trycloudflare.com générée à chaque démarrage (voir les logs du conteneur pour la
   # récupérer — elle change à chaque redémarrage, c'est la limite de ce mode). Accès extérieur
   # sans toucher au réseau local ni au routeur. Pas de port à publier : cloudflared rejoint le
-  # réseau compose et atteint directement dashboard:80 / public:80 par leur nom de service.
+  # réseau compose et atteint directement dashboard:80 par son nom de service.
   cloudflared-dashboard:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate --url http://dashboard:80
     depends_on:
       - dashboard
-    mem_limit: 128m
-    logging: *default-logging
-
-  cloudflared-public:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel --no-autoupdate --url http://public:80
-    depends_on:
-      - public
     mem_limit: 128m
     logging: *default-logging
 

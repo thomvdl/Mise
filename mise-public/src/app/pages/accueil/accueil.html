@@ -19,21 +19,21 @@
       <div class="connect-text">
         <h2 class="connect-title">Connexion rapide</h2>
         <p class="connect-desc">
-          Scannez ce code pour ouvrir l'app directement, sans retaper l'adresse — depuis un
-          appareil sur le même réseau, ou depuis l'extérieur via un tunnel Cloudflare.
+          Scannez ce code pour ouvrir l'app directement sur un autre appareil du même réseau,
+          sans retaper l'adresse.
         </p>
         <label class="connect-label" for="connect-url">Adresse de connexion</label>
         <input
           id="connect-url"
           class="connect-input"
           type="text"
-          placeholder="ex. https://xxxx.trycloudflare.com ou 192.168.1.23:8082"
+          placeholder="ex. 192.168.1.23:8082"
           [value]="connectionUrl()"
           (input)="onUrlInput($event)" />
         <p class="connect-hint">
-          Par défaut, l'adresse de cette page. Pour un accès depuis l'extérieur du réseau, collez
-          plutôt l'URL du tunnel Cloudflare (voir les logs du conteneur cloudflared-public) — pour
-          un accès local, l'IP réseau de ce PC (port inclus) si la page a été ouverte via « localhost ».
+          Par défaut, l'adresse de cette page. Si elle a été ouverte via « localhost », remplacez
+          par l'IP réseau de ce PC (port inclus) — sinon l'appareil qui scanne se connecterait à
+          lui-même.
         </p>
       </div>
     </div>

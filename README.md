@@ -73,10 +73,10 @@ allergènes...) tournent automatiquement à chaque démarrage du conteneur `api`
 idempotent). Une sauvegarde quotidienne de la base (compressée, rotation automatique) tourne
 aussi toute seule via le conteneur `db-backup`.
 
-Deux conteneurs `cloudflared-*` ouvrent chacun un tunnel Cloudflare vers le dashboard et vers
-l'app publique, pour y accéder depuis l'extérieur du réseau local sans rien ouvrir sur un
-routeur — voir [DEPLOY.md](./DEPLOY.md) pour la procédure d'hébergement complète (pensée pour un
-mini PC en cuisine, restant sur le réseau local).
+Le conteneur `cloudflared-dashboard` ouvre un tunnel Cloudflare vers le dashboard, pour y accéder
+depuis l'extérieur du réseau local sans rien ouvrir sur un routeur (l'app publique reste
+volontairement purement locale) — voir [DEPLOY.md](./DEPLOY.md) pour la procédure d'hébergement
+complète (pensée pour un mini PC en cuisine, restant sur le réseau local).
 
 ## Développement
 

@@ -33,15 +33,12 @@ export class Accueil {
   });
 
   /**
-   * Adresse à encoder dans le QR. Par défaut, l'URL du tunnel Cloudflare actuel (voir
-   * cloudflared-public dans docker-compose.yml) plutôt que `window.location.origin`, qui ne
-   * donne une adresse utile que si la page a été ouverte via l'IP réseau de la machine. Un
-   * "quick tunnel" change d'URL à chaque redémarrage du conteneur : si ça arrive, mettre à jour
-   * cette constante (ou taper la nouvelle URL dans le champ, mémorisée en localStorage et
-   * prioritaire sur ce défaut).
+   * Adresse à encoder dans le QR. Pas de tunnel Cloudflare pour l'app publique (volontairement
+   * laissée purement locale, voir docker-compose.yml) — on part donc de l'origine courante, utile
+   * si la page a été ouverte via l'IP réseau de la machine. Reste éditable (mémorisé en
+   * localStorage) pour couvrir le cas où elle a été ouverte via `localhost`.
    */
-  private static readonly DEFAULT_URL = 'https://genealogy-morris-sensitivity-styles.trycloudflare.com';
-  connectionUrl = signal(this.loadSavedUrl() ?? Accueil.DEFAULT_URL);
+  connectionUrl = signal(this.loadSavedUrl() ?? window.location.origin);
   showConnect = signal(false);
   qrDataUrl = signal<string | null>(null);
 

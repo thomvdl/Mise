@@ -60,35 +60,37 @@ N'importe quel appareil sur le même réseau atteint directement `http://<IP-loc
 place. Chaque app propose un bouton **"Connecter un appareil"** sur son écran d'accueil, qui
 affiche un QR code de l'adresse à utiliser (pratique pour un téléphone/tablette en cuisine).
 
-## 4. Accès depuis l'extérieur du réseau (tunnel Cloudflare)
+## 4. Accès depuis l'extérieur du réseau (tunnel Cloudflare — dashboard uniquement)
 
-Deux conteneurs `cloudflared-dashboard` et `cloudflared-public` (voir `docker-compose.yml`)
-ouvrent chacun un tunnel Cloudflare "quick tunnel" vers `dashboard:80` et `public:80` — aucun
-compte, aucun domaine, aucune configuration DNS nécessaire. Ils démarrent avec le reste :
+Un seul conteneur, `cloudflared-dashboard` (voir `docker-compose.yml`), ouvre un tunnel
+Cloudflare "quick tunnel" vers `dashboard:80` — aucun compte, aucun domaine, aucune configuration
+DNS nécessaire. Il démarre avec le reste :
 
 ```bash
 docker compose up -d
 ```
+
+L'app publique (`mise-public`) reste volontairement purement locale, sans tunnel — accessible
+uniquement sur le réseau de l'hôtel.
 
 Récupérez l'URL publique générée (change à chaque redémarrage du conteneur — c'est la limite du
 mode "quick tunnel") :
 
 ```bash
 docker compose logs cloudflared-dashboard | grep trycloudflare.com
-docker compose logs cloudflared-public    | grep trycloudflare.com
 ```
 
-Chacune ressemble à `https://mots-aleatoires.trycloudflare.com`. Collez-la dans le champ du
-bouton "Connecter un appareil" de l'app correspondante pour que son QR code pointe vers cette
-adresse plutôt que vers l'adresse locale — pratique pour que quelqu'un hors du réseau scanne et
-se connecte directement.
+Ça ressemble à `https://mots-aleatoires.trycloudflare.com`. Collez-la dans le champ du bouton
+"Connecter un appareil" du dashboard pour que son QR code pointe vers cette adresse plutôt que
+vers l'adresse locale — pratique pour que quelqu'un hors du réseau scanne et se connecte
+directement.
 
-**Important — ces URLs sont publiques sur internet.** Le "quick tunnel" ne protège l'accès par
+**Important — cette URL est publique sur internet.** Le "quick tunnel" ne protège l'accès par
 rien d'autre que le login de l'application elle-même. Pour un usage ponctuel/de test, ça suffit.
 Pour laisser ça tourner durablement, ajoutez une couche d'authentification devant via [Cloudflare
 Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (gratuit jusqu'à 50
 utilisateurs) — ou passez à un tunnel nommé avec un domaine Cloudflare pour une URL fixe plutôt
-qu'aléatoire à chaque redémarrage.
+qu'aléatoire à chaque redémarrage (nécessite d'acheter un domaine — prévu, pas encore fait).
 
 ## 5. Imprimante d'étiquettes (ZPL)
 
