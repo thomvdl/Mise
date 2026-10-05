@@ -25,16 +25,29 @@ workspace partagé) :
 Les deux frontends consomment la même API via des services HTTP, chacun avec ses propres modèles
 TypeScript (pas de package partagé entre les deux).
 
+Côté hébergement, toute la stack tourne en Docker Compose sur une seule machine restée sur le
+réseau local (mini PC en cuisine ou poste de dev) — MySQL, l'API, les deux frontends, une
+sauvegarde automatique de la base, et deux tunnels Cloudflare pour l'accès depuis l'extérieur du
+réseau sans domaine ni certificat à gérer soi-même. Détail complet dans
+[DEPLOY.md](./DEPLOY.md).
+
 ## Fonctionnalités
 
-- **Fiches techniques** : ingrédients (avec sous-groupes), étapes, matériel, HACCP, conservation, photos, coût matière (food cost) et mise à l'échelle des portions.
+- **Fiches techniques** : ingrédients (avec sous-groupes), étapes chronométrées, matériel,
+  HACCP, conservation, astuces de chef, photos, coût matière (food cost) et mise à l'échelle des
+  portions. Une fiche peut aussi utiliser une autre fiche comme composant (ex. une sauce de base
+  réutilisée dans plusieurs plats), et inclure un **schéma de dressage visuel** (éléments
+  positionnés sur une représentation de l'assiette, édité dans le dashboard et affiché en lecture
+  côté public).
 - **Menus** composés de sections et de plats, un plat pouvant combiner plusieurs fiches techniques.
 - **Import/export markdown** des fiches techniques (coller plusieurs fiches d'un coup, généré par exemple par une IA).
-- **Impression d'étiquettes HACCP** (Ouvert le / Produit le / Congelé le / Décongelé le / Jeter le), avec intégration imprimante thermique Brother QL directement depuis le navigateur.
+- **Mise en place** : tâches à faire avant le service, classées par station, par groupe (sous-équipe de la brigade) ou par événement à venir, avec confirmation avant de marquer une tâche comme faite.
+- **Étiquettes HACCP** (Ouvert le / Produit le / Congelé le / Décongelé le / Jeter le) : composition et impression directe depuis le navigateur (imprimante thermique Zebra réseau ou navigateur en secours), **listes d'étiquettes enregistrées et réutilisables** (avec DLC par défaut du type ou personnalisée en J+N par produit), et historique d'impression consultable pour la traçabilité.
 - **Suivi de température** des appareils (frigos, chambres froides...) avec courbes et rapports.
-- **Suivi du changement d'huile** des friteuses.
-- **Discussion interne**, **liste de courses** partagée et **calendrier d'événements**.
+- **Suivi du changement d'huile** des friteuses, avec rapport imprimable par appareil et période.
+- **Discussion interne**, **liste de courses** partagée, **calendrier d'événements** et **notes** libres en markdown.
 - **Authentification par rôles** (`user` / `admin`) via Laravel Sanctum.
+- **Connexion rapide par QR code** sur l'écran d'accueil du dashboard et de l'app publique — scanner pour ouvrir l'app sur un autre appareil sans retaper l'adresse, en local ou via un tunnel Cloudflare.
 
 Le détail de chaque fonctionnalité est documenté dans le README de l'application concernée.
 
@@ -51,7 +64,7 @@ docker compose up -d --build
 | API | http://localhost:8000 |
 | Dashboard (back-office) | http://localhost:8081 |
 | Public (brigade) | http://localhost:8082 |
-| phpMyAdmin | http://localhost:8083 |
+| Adminer | http://localhost:8083 |
 
 Au premier démarrage, un compte administrateur est créé automatiquement à partir de
 `ADMIN_NAME`/`ADMIN_PASSWORD` — changez son mot de passe depuis la gestion des utilisateurs du
