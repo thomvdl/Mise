@@ -90,13 +90,25 @@ Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (grat
 utilisateurs) — ou passez à un tunnel nommé avec un domaine Cloudflare pour une URL fixe plutôt
 qu'aléatoire à chaque redémarrage.
 
-## 5. Alimentation
+## 5. Imprimante d'étiquettes (ZPL)
+
+`mise-api` parle en ZPL brut sur le port 9100 (JetDirect) — ça marche nativement pour une Zebra
+en réseau (Ethernet/Wi-Fi) : réglez juste son IP dans le dashboard, Paramètres → Impression
+d'étiquettes.
+
+**Si l'imprimante est branchée en USB sur le mini PC** (pas en réseau), voir
+[zpl-bridge/README.md](./zpl-bridge/README.md) — sur Windows, Docker Desktop n'a pas d'accès
+direct aux périphériques USB du hôte, donc un petit pont tourne nativement hors Docker et relaie
+le port 9100 vers l'imprimante. Côté dashboard, l'adresse à renseigner devient alors
+`host.docker.internal` au lieu d'une IP.
+
+## 6. Alimentation
 
 Un mini PC en cuisine est plus exposé aux coupures de courant qu'un serveur en datacenter
 (disjoncteur, coupure générale...). Un onduleur (UPS), même modeste, réduit fortement le risque
 de corruption de données lors d'une coupure brutale.
 
-## 6. Sauvegardes
+## 7. Sauvegardes
 
 Automatiques : le conteneur `db-backup` (maison, voir `backup/`) fait un `mysqldump` quotidien
 (3h du matin, plus une sauvegarde immédiate à chaque démarrage), compressé, avec rotation sur les
@@ -124,7 +136,7 @@ gunzip -c mise-backup-2026-XX-XX.sql.gz | \
   docker compose exec -T db mysql -uroot -p"$DB_ROOT_PASSWORD" mise
 ```
 
-## 7. Mettre à jour (redéploiement)
+## 8. Mettre à jour (redéploiement)
 
 ```bash
 cd mise
@@ -150,7 +162,7 @@ docker compose up -d --build
 Si la mise à jour incluait une migration ayant modifié des données, il faut aussi restaurer le
 dump SQL fait juste avant — revenir sur le code seul ne défait pas une migration déjà appliquée.
 
-## 8. Logs et supervision
+## 9. Logs et supervision
 
 ```bash
 docker compose logs -f              # tous les services

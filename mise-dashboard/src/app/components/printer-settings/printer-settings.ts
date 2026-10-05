@@ -1,11 +1,21 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { SettingService } from '../../core/services/setting.service';
 
 const IPV4_PATTERN = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+// Autorise aussi un nom d'hôte (ex. `host.docker.internal`, le nom spécial que Docker Desktop
+// résout vers la machine hôte — utile pour un pont ZPL natif tournant hors Docker sur Windows,
+// voir zpl-bridge/README.md) en plus d'une IPv4 classique pour une Zebra réseau.
+const HOSTNAME_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+function ipv4OrHostnameValidator(control: AbstractControl): ValidationErrors | null {
+  const value = (control.value ?? '').trim();
+  if (!value) return null;
+  return IPV4_PATTERN.test(value) || HOSTNAME_PATTERN.test(value) ? null : { ipv4OrHostname: true };
+}
 
 @Component({
   selector: 'app-printer-settings',
@@ -23,7 +33,7 @@ export class PrinterSettings implements OnInit {
   form = new FormGroup({
     printer_ip: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.pattern(IPV4_PATTERN)],
+      validators: [ipv4OrHostnameValidator],
     }),
     printer_dpi: new FormControl('203', { nonNullable: true, validators: [Validators.required] }),
     label_width_mm: new FormControl(57, {

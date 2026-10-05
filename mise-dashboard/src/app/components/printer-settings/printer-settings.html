@@ -5,20 +5,22 @@
 <form class="form-card" [formGroup]="form" (ngSubmit)="save()">
   <div class="form-grid">
     <div class="form-field">
-      <label class="form-label" for="printer_ip">Adresse IP de l'imprimante</label>
+      <label class="form-label" for="printer_ip">Adresse de l'imprimante</label>
       <input
         id="printer_ip"
         class="form-input"
         type="text"
         formControlName="printer_ip"
-        placeholder="Ex. 192.168.1.50"
+        placeholder="Ex. 192.168.1.50 ou host.docker.internal"
         [class.has-error]="form.controls.printer_ip.invalid && form.controls.printer_ip.touched" />
       @if (form.controls.printer_ip.invalid && form.controls.printer_ip.touched) {
-        <span class="form-error">Adresse IPv4 invalide (ex. 192.168.1.50).</span>
+        <span class="form-error">Adresse IPv4 ou nom d'hôte invalide.</span>
       }
       <p class="form-hint">
-        Imprimante Zebra en réseau (Ethernet/Wi-Fi), écoute en ZPL sur le port 9100 — n'importe
-        quel modèle Zebra convient. Laisser vide pour désactiver l'impression réseau — la page
+        Toujours le port 9100 (ZPL/JetDirect). Pour une Zebra en réseau (Ethernet/Wi-Fi) : son IP
+        (ex. 192.168.1.50). Pour une Zebra en USB sur ce PC (via le pont zpl-bridge, voir
+        zpl-bridge/README.md) : <code>host.docker.internal</code>, l'adresse spéciale que Docker
+        résout vers cette machine. Laisser vide pour désactiver l'impression directe — la page
         Étiquettes proposera alors uniquement le fallback navigateur.
       </p>
     </div>
