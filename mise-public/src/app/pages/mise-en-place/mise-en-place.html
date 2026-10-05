@@ -1,7 +1,7 @@
 <div class="page">
   <div class="intro">
     <h1 class="page-title">Mise en place</h1>
-    <p class="page-sub">Todo par station avant le service.</p>
+    <p class="page-sub">Todo par station, groupe ou événement avant le service.</p>
   </div>
 
   <div class="section">
@@ -13,10 +13,43 @@
         placeholder="Ajouter une tâche…"
         [(ngModel)]="newItemName"
         (keydown.enter)="addItem()" />
-      <select class="station-select" (change)="onNewItemStationChange($event)">
-        <option value="" [selected]="newItemStationId() === null">Choisir une station…</option>
-        @for (station of stations(); track station.id) {
-          <option [value]="station.id" [selected]="newItemStationId() === station.id">{{ station.name }}</option>
+      <select class="station-select" (change)="onNewItemClassificationChange($event)">
+        <option value="" [selected]="newItemClassification() === ''">Station, groupe ou événement…</option>
+        @if (stations().length) {
+          <optgroup label="Stations">
+            @for (station of stations(); track station.id) {
+              <option
+                [value]="encodeClassification('station', station.id)"
+                [selected]="newItemClassification() === encodeClassification('station', station.id)"
+              >
+                {{ station.name }}
+              </option>
+            }
+          </optgroup>
+        }
+        @if (groups().length) {
+          <optgroup label="Groupes">
+            @for (group of groups(); track group.id) {
+              <option
+                [value]="encodeClassification('group', group.id)"
+                [selected]="newItemClassification() === encodeClassification('group', group.id)"
+              >
+                {{ group.name }}
+              </option>
+            }
+          </optgroup>
+        }
+        @if (upcomingEvents().length) {
+          <optgroup label="Événements">
+            @for (event of upcomingEvents(); track event.id) {
+              <option
+                [value]="encodeClassification('event', event.id)"
+                [selected]="newItemClassification() === encodeClassification('event', event.id)"
+              >
+                {{ event.name }}
+              </option>
+            }
+          </optgroup>
         }
       </select>
       <app-datetime-picker [(ngModel)]="newItemDeadline"></app-datetime-picker>
@@ -33,10 +66,43 @@
     <div class="section-title">Tâches ({{ filteredItems().length }})</div>
 
     <div class="filter-row">
-      <select class="station-select" (change)="onFilterStationChange($event)">
-        <option value="" [selected]="filterStationId() === null">Toutes les stations</option>
-        @for (station of stations(); track station.id) {
-          <option [value]="station.id" [selected]="filterStationId() === station.id">{{ station.name }}</option>
+      <select class="station-select" (change)="onFilterClassificationChange($event)">
+        <option value="" [selected]="filterClassification() === ''">Tout (stations, groupes, événements)</option>
+        @if (stations().length) {
+          <optgroup label="Stations">
+            @for (station of stations(); track station.id) {
+              <option
+                [value]="encodeClassification('station', station.id)"
+                [selected]="filterClassification() === encodeClassification('station', station.id)"
+              >
+                {{ station.name }}
+              </option>
+            }
+          </optgroup>
+        }
+        @if (groups().length) {
+          <optgroup label="Groupes">
+            @for (group of groups(); track group.id) {
+              <option
+                [value]="encodeClassification('group', group.id)"
+                [selected]="filterClassification() === encodeClassification('group', group.id)"
+              >
+                {{ group.name }}
+              </option>
+            }
+          </optgroup>
+        }
+        @if (upcomingEvents().length) {
+          <optgroup label="Événements">
+            @for (event of upcomingEvents(); track event.id) {
+              <option
+                [value]="encodeClassification('event', event.id)"
+                [selected]="filterClassification() === encodeClassification('event', event.id)"
+              >
+                {{ event.name }}
+              </option>
+            }
+          </optgroup>
         }
       </select>
       <select class="station-select" (change)="onFilterStatusChange($event)">
@@ -55,7 +121,7 @@
             <tr>
               <th class="col-check"></th>
               <th>Tâche</th>
-              <th>Station</th>
+              <th>Classification</th>
               <th>Échéance</th>
               <th>Urgence</th>
               <th>Ajouté par</th>
@@ -66,7 +132,7 @@
               <tr [class.done]="item.status === 'done'" [class.overdue]="isOverdue(item)">
                 <td class="col-check">
                   <label class="check">
-                    <input type="checkbox" [checked]="item.status === 'done'" (change)="toggleDone(item, $event)" />
+                    <input type="checkbox" [checked]="item.status === 'done'" (change)="onToggleDoneChange(item, $event)" />
                     <span class="check-box">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>
                     </span>
@@ -74,7 +140,11 @@
                 </td>
                 <td class="task-name">{{ item.name }}</td>
                 <td>
-                  <span class="station-badge" [style.--card-color]="item.station.color">{{ item.station.name }}</span>
+                  @if (item.event) {
+                    {{ item.event.name }}
+                  } @else {
+                    <span class="station-badge" [style.--card-color]="classificationColor(item)">{{ classificationLabel(item) }}</span>
+                  }
                 </td>
                 <td>{{ item.deadline ? (item.deadline | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                 <td>
@@ -91,3 +161,12 @@
     }
   </div>
 </div>
+
+<app-confirm-dialog
+  [open]="pendingComplete() !== null"
+  title="Marquer comme faite"
+  [message]="'Marquer « ' + (pendingComplete()?.name ?? '') + ' » comme faite ? Elle quittera la liste.'"
+  confirmLabel="Marquer fait"
+  (confirm)="completeConfirmed()"
+  (cancel)="cancelComplete()">
+</app-confirm-dialog>

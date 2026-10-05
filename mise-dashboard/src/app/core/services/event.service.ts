@@ -14,6 +14,12 @@ export class EventService {
     return this.http.get<CalendarEvent[]>(this.baseUrl, { params });
   }
 
+  /** Sans filtre mois/année, l'API renvoie tous les événements — utilisé par le sélecteur
+   * d'événement de la mise en place, qui n'est pas cantonné à un mois précis. */
+  listAll() {
+    return this.http.get<CalendarEvent[]>(this.baseUrl);
+  }
+
   create(payload: CalendarEventPayload) {
     return this.http.post<CalendarEvent>(this.baseUrl, payload);
   }

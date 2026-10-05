@@ -9,6 +9,7 @@ use App\Http\Controllers\ChannelController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FicheTechniqueController;
 use App\Http\Controllers\FriteuseController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IngredientCategoryController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MenuController;
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // consomme mise-public pour parcourir fiches/menus/ingrédients/appareils.
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
     Route::apiResource('stations', StationController::class)->only(['index', 'show']);
+    Route::apiResource('groups', GroupController::class)->only(['index', 'show']);
     Route::apiResource('allergens', AllergenController::class)->only(['index', 'show']);
     Route::apiResource('ingredient-categories', IngredientCategoryController::class)->only(['index', 'show']);
     Route::apiResource('ingredients', IngredientController::class)->only(['index', 'show']);
@@ -75,9 +77,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('shopping-items', ShoppingItemController::class)->only(['index', 'store'])
         ->parameters(['shopping-items' => 'shopping_item']);
 
-    // Mise en place — n'importe qui peut ajouter une tâche (rattachée obligatoirement à une
-    // station) et cocher/décocher son statut (à faire/fait) depuis la case côté public ; seule
-    // la suppression est réservée à l'admin (groupe role:admin plus bas).
+    // Mise en place — n'importe qui peut ajouter une tâche (rattachée à une station, un groupe ou
+    // un événement — un seul des trois, voir MiseEnPlaceItemController::rules) et cocher/décocher
+    // son statut (à faire/fait) depuis la case côté public ; seule la suppression est réservée à
+    // l'admin (groupe role:admin plus bas).
     Route::apiResource('mise-en-place-items', MiseEnPlaceItemController::class)->only(['index', 'store', 'update'])
         ->parameters(['mise-en-place-items' => 'mise_en_place_item']);
 
@@ -95,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
         Route::apiResource('stations', StationController::class)->except(['index', 'show']);
+        Route::apiResource('groups', GroupController::class)->except(['index', 'show']);
         Route::apiResource('allergens', AllergenController::class)->except(['index', 'show']);
         Route::apiResource('ingredient-categories', IngredientCategoryController::class)->except(['index', 'show']);
         Route::apiResource('ingredients', IngredientController::class)->except(['index', 'show']);

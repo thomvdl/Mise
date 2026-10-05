@@ -12,4 +12,10 @@ export class EventService {
     const params = new HttpParams().set('month', month).set('year', year);
     return this.http.get<CalendarEvent[]>(`${environment.apiUrl}/events`, { params });
   }
+
+  /** Sans filtre mois/année, l'API renvoie tous les événements — utilisé par le sélecteur
+   * d'événement de la mise en place, qui n'est pas cantonné à un mois précis. */
+  listAll() {
+    return this.http.get<CalendarEvent[]>(`${environment.apiUrl}/events`);
+  }
 }

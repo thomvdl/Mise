@@ -8,12 +8,14 @@ use Illuminate\Validation\Rule;
 
 class MiseEnPlaceItemController extends Controller
 {
+    private const RELATIONS = ['user:id,name', 'station', 'group', 'event'];
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return MiseEnPlaceItem::query()->with(['user:id,name', 'station'])->orderBy('created_at')->get();
+        return MiseEnPlaceItem::query()->with(self::RELATIONS)->orderBy('created_at')->get();
     }
 
     /**
@@ -23,16 +25,30 @@ class MiseEnPlaceItemController extends Controller
      */
     public function store(Request $request)
     {
+        // Une tâche se rattache à une station, un groupe ou un événement — jamais zéro, jamais
+        // plusieurs : `required_without_all` impose au moins un des trois, `prohibits` interdit
+        // d'en cocher un second dès que l'un est renseigné.
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'station_id' => ['required', 'integer', 'exists:stations,id'],
-            'deadline' => ['required', 'date'],
+            'station_id' => [
+                'nullable', 'integer', 'exists:stations,id',
+                'required_without_all:group_id,event_id', 'prohibits:group_id,event_id',
+            ],
+            'group_id' => [
+                'nullable', 'integer', 'exists:groups,id',
+                'required_without_all:station_id,event_id', 'prohibits:station_id,event_id',
+            ],
+            'event_id' => [
+                'nullable', 'integer', 'exists:events,id',
+                'required_without_all:station_id,group_id', 'prohibits:station_id,group_id',
+            ],
+            'deadline' => ['nullable', 'date'],
             'urgency' => ['required', Rule::in(['faible', 'moyenne', 'urgente'])],
         ]);
 
         $item = MiseEnPlaceItem::create([...$validated, 'user_id' => $request->user()->id, 'status' => 'todo']);
 
-        return response()->json($item->load(['user:id,name', 'station']), 201);
+        return response()->json($item->load(self::RELATIONS), 201);
     }
 
     /**
@@ -49,7 +65,7 @@ class MiseEnPlaceItemController extends Controller
 
         $miseEnPlaceItem->update($validated);
 
-        return $miseEnPlaceItem->load(['user:id,name', 'station']);
+        return $miseEnPlaceItem->load(self::RELATIONS);
     }
 
     /**

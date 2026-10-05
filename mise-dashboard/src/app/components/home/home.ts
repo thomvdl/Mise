@@ -86,7 +86,7 @@ export class Home {
     },
     {
       label: 'Mise en place',
-      description: 'Todo par station avant le service.',
+      description: 'Todo par station, groupe ou événement avant le service.',
       path: '/mise-en-place',
       icon: 'check',
     },

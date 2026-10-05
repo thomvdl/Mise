@@ -32,6 +32,13 @@ export const stationConfig: SimpleEntityConfig = {
   fields: NAME_SLUG_COLOR_FIELDS,
 };
 
+export const groupConfig: SimpleEntityConfig = {
+  resource: 'groups',
+  label: 'Groupes',
+  singularLabel: 'ce groupe',
+  fields: NAME_SLUG_COLOR_FIELDS,
+};
+
 export const ingredientCategoryConfig: SimpleEntityConfig = {
   resource: 'ingredient-categories',
   label: "Catégories d'ingrédients",

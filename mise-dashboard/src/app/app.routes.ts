@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 import {
   allergenConfig,
   categoryConfig,
+  groupConfig,
   ingredientCategoryConfig,
   stationConfig,
 } from './core/config/simple-entity.config';
@@ -128,6 +129,7 @@ export const routes: Routes = [
 
       simpleEntityRoutes('categories', categoryConfig),
       simpleEntityRoutes('stations', stationConfig),
+      simpleEntityRoutes('groupes', groupConfig),
       simpleEntityRoutes('allergenes', allergenConfig),
       simpleEntityRoutes('categories-ingredients', ingredientCategoryConfig),
 
