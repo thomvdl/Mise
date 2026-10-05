@@ -1,5 +1,4 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
 
@@ -47,7 +46,7 @@ function rangeStart(period: 'semaine'): Date {
 
 @Component({
   selector: 'app-huile-report',
-  imports: [DatePipe, ConfirmDialog],
+  imports: [ConfirmDialog],
   templateUrl: './huile-report.html',
   styleUrl: './huile-report.css',
 })
@@ -226,8 +225,9 @@ export class HuileReport {
     });
   }
 
-  formatDate(value: string): string {
-    return new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  formatDate(value: string | Date): string {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    return date.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   print(): void {

@@ -62,7 +62,7 @@
       <div class="report-stats">
         <span>Durée de vie <strong>{{ selectedFriteuse()!.duree_vie_jours }} jours</strong></span>
         @if (nextChange(); as next) {
-          <span>Prochain changement conseillé <strong>{{ next | date: 'dd/MM/yyyy' }}</strong></span>
+          <span>Prochain changement conseillé <strong>{{ formatDate(next) }}</strong></span>
         } @else {
           <span>Aucun changement enregistré</span>
         }

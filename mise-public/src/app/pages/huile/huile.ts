@@ -86,7 +86,7 @@ export class Huile implements OnInit {
             return new Date(year, month - 1, day);
           })()
         : value;
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   /** Ouvre la confirmation plutôt que d'enregistrer directement — un tap accidentel sur "Marquer changée" ne doit pas valider tout seul un changement d'huile. */
