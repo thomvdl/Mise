@@ -199,6 +199,13 @@
     </div>
   }
 
+  @if (fiche.plating_schema?.elements?.length) {
+    <div class="section">
+      <div class="section-title">Schéma de dressage</div>
+      <app-plating-schema-view [schema]="fiche.plating_schema" />
+    </div>
+  }
+
   @if (fiche.chef_tip) {
     <div class="section">
       <div class="chef-note">

@@ -1,0 +1,63 @@
+<div class="ps-view">
+  <svg class="ps-plate" viewBox="0 0 100 100">
+    @switch (plateShape()) {
+      @case ('round') {
+        <circle class="ps-rim" cx="50" cy="50" r="47" />
+        <circle class="ps-rim-inner" cx="50" cy="50" r="38" />
+      }
+      @case ('round-small') {
+        <circle class="ps-rim" cx="50" cy="50" r="36" />
+        <circle class="ps-rim-inner" cx="50" cy="50" r="29" />
+      }
+      @case ('oval') {
+        <ellipse class="ps-rim" cx="50" cy="50" rx="47" ry="32" />
+        <ellipse class="ps-rim-inner" cx="50" cy="50" rx="38" ry="25" />
+      }
+      @case ('square') {
+        <rect class="ps-rim" x="5" y="5" width="90" height="90" rx="6" />
+        <rect class="ps-rim-inner" x="14" y="14" width="72" height="72" rx="4" />
+      }
+      @case ('rect') {
+        <rect class="ps-rim" x="5" y="24" width="90" height="52" rx="8" />
+        <rect class="ps-rim-inner" x="14" y="31" width="72" height="38" rx="5" />
+      }
+    }
+
+    @for (el of elements(); track el.id) {
+      <g class="ps-element" [attr.transform]="'rotate(' + el.rotation + ' ' + el.x + ' ' + el.y + ')'">
+        @switch (el.shape) {
+          @case ('ellipse') {
+            <ellipse
+              [attr.cx]="el.x"
+              [attr.cy]="el.y"
+              [attr.rx]="el.width / 2"
+              [attr.ry]="el.height / 2"
+              [attr.fill]="el.color"
+            />
+          }
+          @case ('rect') {
+            <rect
+              [attr.x]="el.x - el.width / 2"
+              [attr.y]="el.y - el.height / 2"
+              [attr.width]="el.width"
+              [attr.height]="el.height"
+              rx="1.5"
+              [attr.fill]="el.color"
+            />
+          }
+        }
+      </g>
+    }
+  </svg>
+
+  @if (legend().length) {
+    <ul class="ps-legend">
+      @for (el of legend(); track el.id) {
+        <li>
+          <span class="ps-legend-swatch" [style.background]="el.color"></span>
+          {{ el.label }}
+        </li>
+      }
+    </ul>
+  }
+</div>

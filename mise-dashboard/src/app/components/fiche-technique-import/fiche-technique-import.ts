@@ -254,6 +254,7 @@ export class FicheTechniqueImport {
       equipment: fiche.equipment,
       mise_en_place: fiche.miseEnPlace,
       plating: fiche.plating,
+      plating_schema: null,
       chef_tip: fiche.chefTip,
       haccp: fiche.haccp,
       conservation: fiche.conservation,

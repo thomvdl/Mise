@@ -9,12 +9,13 @@ import { IngredientService } from '../../core/services/ingredient.service';
 import { Category } from '../../core/models/category.model';
 import { Station } from '../../core/models/station.model';
 import { Ingredient } from '../../core/models/ingredient.model';
-import { Difficulty, FicheTechnique, FicheTechniquePayload } from '../../core/models/fiche-technique.model';
+import { Difficulty, FicheTechnique, FicheTechniquePayload, PlatingSchema } from '../../core/models/fiche-technique.model';
 import { Picture } from '../../core/models/picture.model';
 import { slugify } from '../../core/utils/slugify';
 import { smallUnitFor } from '../../core/utils/format-quantity';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
 import { FicheTechniqueSearchSelect } from '../fiche-technique-search-select/fiche-technique-search-select';
+import { PlatingSchemaEditor } from '../plating-schema-editor/plating-schema-editor';
 
 type RowKind = 'ingredient' | 'fiche';
 
@@ -46,7 +47,7 @@ type StepRow = FormGroup<{
 
 @Component({
   selector: 'app-fiche-technique-form',
-  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect, FicheTechniqueSearchSelect],
+  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect, FicheTechniqueSearchSelect, PlatingSchemaEditor],
   templateUrl: './fiche-technique-form.html',
   styleUrl: './fiche-technique-form.css',
 })
@@ -92,6 +93,7 @@ export class FicheTechniqueForm implements OnInit {
     description: new FormControl(''),
     mise_en_place: new FormControl(''),
     plating: new FormControl(''),
+    plating_schema: new FormControl<PlatingSchema | null>(null),
     chef_tip: new FormControl(''),
     haccp: new FormControl(''),
     conservation: new FormControl(''),
@@ -130,6 +132,7 @@ export class FicheTechniqueForm implements OnInit {
           description: fiche.description ?? '',
           mise_en_place: fiche.mise_en_place ?? '',
           plating: fiche.plating ?? '',
+          plating_schema: fiche.plating_schema ?? null,
           chef_tip: fiche.chef_tip ?? '',
           haccp: fiche.haccp ?? '',
           conservation: fiche.conservation ?? '',
@@ -371,6 +374,7 @@ export class FicheTechniqueForm implements OnInit {
       equipment: this.equipment.controls.map((control) => control.value).filter((v) => v.trim().length > 0),
       mise_en_place: value.mise_en_place || null,
       plating: value.plating || null,
+      plating_schema: value.plating_schema && value.plating_schema.elements.length > 0 ? value.plating_schema : null,
       chef_tip: value.chef_tip || null,
       haccp: value.haccp || null,
       conservation: value.conservation || null,

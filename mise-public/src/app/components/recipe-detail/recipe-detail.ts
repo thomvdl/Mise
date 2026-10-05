@@ -6,6 +6,7 @@ import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } fro
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 import { componentCost } from '../../core/utils/component-cost';
+import { PlatingSchemaView } from '../plating-schema-view/plating-schema-view';
 
 interface TimerState {
   remainingSec: number;
@@ -42,7 +43,7 @@ const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 
 @Component({
   selector: 'app-recipe-detail',
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, PlatingSchemaView],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.css',
 })

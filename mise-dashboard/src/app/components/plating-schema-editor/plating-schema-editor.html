@@ -1,0 +1,294 @@
+<div class="ps-editor">
+  <div class="ps-toolbar">
+    @for (preset of presets; track preset.label) {
+      <button type="button" class="ps-preset-btn" (click)="addElement(preset)">
+        <span
+          class="ps-preset-swatch"
+          [class.shape-oval]="presetSwatchKind(preset) === 'oval'"
+          [class.shape-rect]="presetSwatchKind(preset) === 'rect'"
+          [style.background]="preset.color"
+        ></span>
+        {{ preset.label }}
+      </button>
+    }
+  </div>
+
+  <div class="ps-workspace">
+    <div class="ps-col ps-col-inspector">
+      @if (selectedElement(); as el) {
+        <div class="ps-inspector">
+          <input
+            class="form-input"
+            type="text"
+            placeholder="Légende (ex. Purée de céleri)"
+            [value]="el.label ?? ''"
+            (input)="onLabelInput($event)"
+          />
+
+          <div class="ps-colors">
+            @for (c of colorPresets; track c) {
+              <button
+                type="button"
+                class="ps-color-swatch"
+                [class.active]="el.color === c"
+                [style.background]="c"
+                (click)="updateSelected({ color: c })"
+                [attr.aria-label]="'Couleur ' + c"
+              ></button>
+            }
+            <input class="ps-color-free" type="color" [value]="el.color" (input)="onColorInput($event)" />
+          </div>
+
+          <label class="ps-slider">
+            Largeur
+            <input type="range" min="4" max="60" [value]="el.width" (input)="onWidthInput($event)" />
+          </label>
+
+          <label class="ps-slider">
+            Hauteur
+            <input type="range" min="4" max="60" [value]="el.height" (input)="onHeightInput($event)" />
+          </label>
+
+          <label class="ps-slider">
+            Rotation
+            <input
+              type="range"
+              min="-180"
+              max="180"
+              step="22.5"
+              [value]="el.rotation"
+              (input)="onRotationInput($event)"
+            />
+          </label>
+
+          <div class="ps-layer-actions">
+            <button type="button" class="btn btn-ghost btn-sm" [disabled]="isSelectedOnBottom()" (click)="sendToBack()">
+              ↓ Arrière-plan
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" [disabled]="isSelectedOnTop()" (click)="bringToFront()">
+              ↑ Premier plan
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-ghost btn-sm ps-remove" (click)="removeSelected()">Supprimer l'élément</button>
+        </div>
+      } @else {
+        <p class="ps-empty">Choisissez un élément dans la liste pour l'éditer.</p>
+      }
+    </div>
+
+    <div class="ps-col ps-col-plate">
+      <div class="ps-plate-shapes">
+        @for (p of plateShapes; track p.value) {
+          <button
+            type="button"
+            class="ps-plate-shape-btn"
+            [class.active]="plateShape() === p.value"
+            [title]="p.label"
+            [attr.aria-label]="p.label"
+            (click)="setPlateShape(p.value)"
+          >
+            <span class="ps-plate-shape-icon ps-plate-icon-{{ p.value }}"></span>
+          </button>
+        }
+      </div>
+
+      <svg #plate class="ps-plate" viewBox="0 0 100 100" (pointerdown)="deselect()">
+        @switch (plateShape()) {
+          @case ('round') {
+            <circle class="ps-rim" cx="50" cy="50" r="47" />
+            <circle class="ps-rim-inner" cx="50" cy="50" r="38" />
+          }
+          @case ('round-small') {
+            <circle class="ps-rim" cx="50" cy="50" r="36" />
+            <circle class="ps-rim-inner" cx="50" cy="50" r="29" />
+          }
+          @case ('oval') {
+            <ellipse class="ps-rim" cx="50" cy="50" rx="47" ry="32" />
+            <ellipse class="ps-rim-inner" cx="50" cy="50" rx="38" ry="25" />
+          }
+          @case ('square') {
+            <rect class="ps-rim" x="5" y="5" width="90" height="90" rx="6" />
+            <rect class="ps-rim-inner" x="14" y="14" width="72" height="72" rx="4" />
+          }
+          @case ('rect') {
+            <rect class="ps-rim" x="5" y="24" width="90" height="52" rx="8" />
+            <rect class="ps-rim-inner" x="14" y="31" width="72" height="38" rx="5" />
+          }
+        }
+
+        <!-- Grille d'accrochage : les éléments se calent sur ces points au déplacement. -->
+        @for (pt of gridPoints; track pt.x + '-' + pt.y) {
+          <circle class="ps-grid-dot" [attr.cx]="pt.x" [attr.cy]="pt.y" r="0.6" />
+        }
+
+        @for (el of elements(); track el.id) {
+          <g
+            class="ps-element"
+            [class.unselected]="el.id !== selectedId()"
+            [attr.transform]="'rotate(' + el.rotation + ' ' + el.x + ' ' + el.y + ')'"
+            (pointerdown)="onElementPointerDown($event, el.id)"
+            (pointermove)="onElementPointerMove($event)"
+            (pointerup)="onElementPointerUp($event)"
+          >
+            <circle
+              class="ps-hit"
+              [attr.cx]="el.x"
+              [attr.cy]="el.y"
+              [attr.r]="Math.max(el.width, el.height, 14) / 2 + 4"
+            />
+
+            @if (el.id === selectedId()) {
+              <circle
+                class="ps-selection-ring"
+                [attr.cx]="el.x"
+                [attr.cy]="el.y"
+                [attr.r]="Math.max(el.width, el.height) / 2 + 4"
+              />
+            }
+
+            @switch (el.shape) {
+              @case ('ellipse') {
+                <ellipse
+                  [attr.cx]="el.x"
+                  [attr.cy]="el.y"
+                  [attr.rx]="el.width / 2"
+                  [attr.ry]="el.height / 2"
+                  [attr.fill]="el.color"
+                />
+              }
+              @case ('rect') {
+                <rect
+                  [attr.x]="el.x - el.width / 2"
+                  [attr.y]="el.y - el.height / 2"
+                  [attr.width]="el.width"
+                  [attr.height]="el.height"
+                  rx="1.5"
+                  [attr.fill]="el.color"
+                />
+              }
+            }
+
+            @if (el.id === selectedId()) {
+              <!-- Poignée de rotation : tige + anneau au-dessus de l'élément, dans le même repère
+                   tourné que la forme (elle suit donc visuellement sa rotation courante). -->
+              <line
+                class="ps-handle-stem"
+                [attr.x1]="el.x"
+                [attr.y1]="el.y - el.height / 2 - 3"
+                [attr.x2]="el.x"
+                [attr.y2]="el.y - el.height / 2 - 14"
+              />
+              <circle
+                class="ps-handle ps-handle-rotate"
+                [attr.cx]="el.x"
+                [attr.cy]="el.y - el.height / 2 - 15"
+                r="4"
+                (pointerdown)="onHandlePointerDown($event, el.id, 'rotate')"
+                (pointermove)="onElementPointerMove($event)"
+                (pointerup)="onElementPointerUp($event)"
+              />
+              <!-- Icône flèche circulaire : arc + pointe, par-dessus l'anneau ci-dessus. -->
+              <g
+                class="ps-handle-icon"
+                [attr.transform]="'translate(' + el.x + ' ' + (el.y - el.height / 2 - 15) + ')'"
+              >
+                <path d="M 1.8,-2.3 A 2.6,2.6 0 1 0 2.6,0" />
+                <polyline points="-0.3,-3.4 1.8,-2.3 1.1,-0.2" />
+              </g>
+
+              <!-- Poignée de largeur : carré sur le bord droit (horizontal uniquement). -->
+              <rect
+                class="ps-handle ps-handle-width"
+                [attr.x]="el.x + el.width / 2 + 2"
+                [attr.y]="el.y - 4"
+                width="8"
+                height="8"
+                (pointerdown)="onHandlePointerDown($event, el.id, 'resize-width')"
+                (pointermove)="onElementPointerMove($event)"
+                (pointerup)="onElementPointerUp($event)"
+              />
+              <!-- Icône flèche double horizontale. -->
+              <g
+                class="ps-handle-icon"
+                [attr.transform]="'translate(' + (el.x + el.width / 2 + 6) + ' ' + el.y + ')'"
+              >
+                <line x1="-2.4" y1="0" x2="2.4" y2="0" />
+                <polyline points="-1,-1.3 -2.4,0 -1,1.3" />
+                <polyline points="1,-1.3 2.4,0 1,1.3" />
+              </g>
+
+              <!-- Poignée de hauteur : carré sur le bord bas (vertical uniquement). -->
+              <rect
+                class="ps-handle ps-handle-height"
+                [attr.x]="el.x - 4"
+                [attr.y]="el.y + el.height / 2 + 2"
+                width="8"
+                height="8"
+                (pointerdown)="onHandlePointerDown($event, el.id, 'resize-height')"
+                (pointermove)="onElementPointerMove($event)"
+                (pointerup)="onElementPointerUp($event)"
+              />
+              <!-- Icône flèche double verticale. -->
+              <g
+                class="ps-handle-icon"
+                [attr.transform]="'translate(' + el.x + ' ' + (el.y + el.height / 2 + 6) + ')'"
+              >
+                <line x1="0" y1="-2.4" x2="0" y2="2.4" />
+                <polyline points="-1.3,-1 0,-2.4 1.3,-1" />
+                <polyline points="-1.3,1 0,2.4 1.3,1" />
+              </g>
+
+              <!-- Poignée de coin : redimensionne largeur + hauteur ensemble, proportions
+                   conservées. -->
+              <rect
+                class="ps-handle ps-handle-scale"
+                [attr.x]="el.x + el.width / 2 + 2"
+                [attr.y]="el.y - el.height / 2 - 10"
+                width="8"
+                height="8"
+                (pointerdown)="onHandlePointerDown($event, el.id, 'scale')"
+                (pointermove)="onElementPointerMove($event)"
+                (pointerup)="onElementPointerUp($event)"
+              />
+              <!-- Icône flèche double diagonale. -->
+              <g
+                class="ps-handle-icon"
+                [attr.transform]="
+                  'translate(' + (el.x + el.width / 2 + 6) + ' ' + (el.y - el.height / 2 - 6) + ') rotate(-45)'
+                "
+              >
+                <line x1="-2.4" y1="0" x2="2.4" y2="0" />
+                <polyline points="-1,-1.3 -2.4,0 -1,1.3" />
+                <polyline points="1,-1.3 2.4,0 1,1.3" />
+              </g>
+            }
+          </g>
+        }
+      </svg>
+    </div>
+
+    <div class="ps-col ps-col-list">
+      @if (elements().length) {
+        <ul class="ps-list">
+          @for (el of elements(); track el.id) {
+            <li [class.selected]="el.id === selectedId()" (click)="select(el.id)">
+              <span class="ps-list-swatch" [style.background]="el.color"></span>
+              <span class="ps-list-label">{{ el.label || shapeLabel(el.shape) }}</span>
+              <button
+                type="button"
+                class="ps-list-remove"
+                (click)="removeElement(el.id); $event.stopPropagation()"
+                aria-label="Supprimer l'élément"
+              >
+                ×
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="ps-empty">Choisissez un élément ci-dessus pour commencer le dressage.</p>
+      }
+    </div>
+  </div>
+</div>

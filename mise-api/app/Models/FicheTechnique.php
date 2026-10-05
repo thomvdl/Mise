@@ -24,6 +24,7 @@ class FicheTechnique extends Model
         'equipment',
         'mise_en_place',
         'plating',
+        'plating_schema',
         'chef_tip',
         'haccp',
         'conservation',
@@ -31,6 +32,7 @@ class FicheTechnique extends Model
 
     protected $casts = [
         'equipment' => 'array',
+        'plating_schema' => 'array',
     ];
 
     public function category(): BelongsTo

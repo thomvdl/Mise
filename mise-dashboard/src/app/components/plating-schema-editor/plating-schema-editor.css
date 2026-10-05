@@ -1,0 +1,376 @@
+.ps-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ps-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ps-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.ps-preset-btn:hover {
+  background: var(--surface-3);
+}
+
+.ps-preset-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ps-preset-swatch.shape-oval {
+  width: 16px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.ps-preset-swatch.shape-rect {
+  width: 16px;
+  height: 7px;
+  border-radius: 2px;
+}
+
+.ps-workspace {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 380px) 1fr;
+  align-items: start;
+  gap: 24px;
+}
+
+@media (max-width: 760px) {
+  .ps-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ps-col-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.ps-plate-shapes {
+  display: flex;
+  gap: 6px;
+}
+
+.ps-plate-shape-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.ps-plate-shape-btn:hover {
+  background: var(--surface-3);
+}
+
+.ps-plate-shape-btn.active {
+  border-color: var(--accent-blue);
+  background: var(--surface-3);
+}
+
+.ps-plate-shape-icon {
+  display: block;
+  background: var(--text-dim);
+}
+
+.ps-plate-shape-btn.active .ps-plate-shape-icon {
+  background: var(--accent-blue);
+}
+
+.ps-plate-icon-round {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.ps-plate-icon-round-small {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.ps-plate-icon-oval {
+  width: 18px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.ps-plate-icon-square {
+  width: 15px;
+  height: 15px;
+  border-radius: 2px;
+}
+
+.ps-plate-icon-rect {
+  width: 18px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.ps-plate {
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1;
+  touch-action: none;
+}
+
+.ps-rim {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.ps-rim-inner {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 0.5;
+  opacity: 0.6;
+}
+
+.ps-grid-dot {
+  fill: var(--text-faint);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.ps-element {
+  cursor: grab;
+}
+
+.ps-element:active {
+  cursor: grabbing;
+}
+
+/* Seul l'élément sélectionné (via la liste) réagit au pointeur — des éléments superposés sur
+   l'assiette sont trop difficiles à viser individuellement au clic, donc le canevas ne sert plus
+   qu'à déplacer/redimensionner/pivoter celui déjà choisi, jamais à changer la sélection. */
+.ps-element.unselected {
+  pointer-events: none;
+}
+
+.ps-hit {
+  fill: transparent;
+}
+
+.ps-selection-ring {
+  fill: none;
+  stroke: var(--accent-blue);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 1.5;
+  pointer-events: none;
+}
+
+.ps-handle-stem {
+  stroke: var(--accent-blue);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.ps-handle {
+  fill: var(--surface);
+  stroke: var(--accent-blue);
+  stroke-width: 1.3;
+}
+
+.ps-handle-rotate {
+  cursor: grab;
+}
+
+.ps-handle-rotate:active {
+  cursor: grabbing;
+}
+
+.ps-handle-width {
+  cursor: ew-resize;
+  rx: 1.5;
+}
+
+.ps-handle-height {
+  cursor: ns-resize;
+  rx: 1.5;
+}
+
+.ps-handle-scale {
+  cursor: nwse-resize;
+  rx: 1.5;
+}
+
+.ps-handle-icon {
+  pointer-events: none;
+}
+
+.ps-handle-icon path,
+.ps-handle-icon line,
+.ps-handle-icon polyline {
+  fill: none;
+  stroke: var(--accent-blue);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ps-col-inspector,
+.ps-col-list {
+  min-width: 0;
+}
+
+.ps-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.ps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ps-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.ps-list li:last-child {
+  border-bottom: none;
+}
+
+.ps-list li:hover {
+  background: var(--surface-3);
+}
+
+.ps-list li.selected {
+  background: var(--surface-3);
+  box-shadow: inset 2px 0 0 var(--accent-blue);
+}
+
+.ps-list-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ps-list-label {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ps-list-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-faint);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ps-list-remove:hover {
+  background: var(--surface);
+  color: var(--accent-red);
+}
+
+.ps-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ps-colors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+}
+
+.ps-color-swatch.active {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+
+.ps-color-free {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.ps-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.ps-layer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ps-remove {
+  align-self: flex-start;
+}
