@@ -2,26 +2,7 @@
   <h1 class="page-title">
     {{ greeting() }}{{ currentUser() ? ', ' + currentUser()!.name : '' }}
   </h1>
-  <button type="button" class="btn btn-ghost" (click)="toggleConnect()">
-    {{ showConnect() ? 'Fermer' : 'Connecter un appareil' }}
-  </button>
 </div>
-
-@if (showConnect()) {
-  <div class="connect-card">
-    @if (qrDataUrl()) {
-      <img class="connect-qr" [src]="qrDataUrl()" alt="QR code de connexion au dashboard" width="150" height="150" />
-    }
-    <div class="connect-text">
-      <h2 class="connect-title">Connexion rapide</h2>
-      <p class="connect-desc">
-        Scannez ce code avec un téléphone ou une tablette connecté au même réseau pour ouvrir le
-        dashboard directement, sans retaper l'adresse.
-      </p>
-      <code class="connect-url">{{ connectionUrl }}</code>
-    </div>
-  </div>
-}
 
 <div class="tile-grid">
   @for (tile of tiles; track tile.path) {

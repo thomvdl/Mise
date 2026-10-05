@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import QRCode from 'qrcode';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -29,22 +28,6 @@ export class Home {
     if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
   });
-
-  /** Adresse actuellement utilisée pour joindre le dashboard — si on y est via l'IP locale du
-   *  réseau (cas du mini PC en cuisine, voir docker-compose.local.yml), c'est cette même adresse
-   *  qu'un téléphone sur le même réseau doit utiliser pour se connecter. */
-  readonly connectionUrl = window.location.origin;
-  showConnect = signal(false);
-  qrDataUrl = signal<string | null>(null);
-
-  toggleConnect(): void {
-    this.showConnect.update((shown) => !shown);
-    if (this.showConnect() && !this.qrDataUrl()) {
-      QRCode.toDataURL(this.connectionUrl, { width: 180, margin: 1 })
-        .then((dataUrl) => this.qrDataUrl.set(dataUrl))
-        .catch(() => this.qrDataUrl.set(null));
-    }
-  }
 
   readonly tiles: HomeTile[] = [
     {
