@@ -31,6 +31,31 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  # Sauvegarde automatique de la base (mysqldump quotidien, compressé, rotation sur les 14
+  # derniers jours) — voir mise_db_backups ci-dessous pour où ils atterrissent.
+  db-backup:
+    image: fradelg/mysql-cron-backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASS: ${DB_ROOT_PASSWORD}
+      MYSQL_DB: ${DB_DATABASE}
+      MAX_BACKUPS: 14
+      INIT_BACKUP: 1
+      CRON_TIME: "0 3 * * *"
+    volumes:
+      - mise_db_backups:/backup
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
   api:
     build: ./mise-api
     restart: unless-stopped
@@ -119,5 +144,6 @@ services:
 volumes:
   mise_db_data:
   mise_api_storage:
+  mise_db_backups:
   caddy_data:
   caddy_config:
