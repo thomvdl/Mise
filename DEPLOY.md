@@ -98,9 +98,10 @@ de corruption de données lors d'une coupure brutale.
 
 ## 6. Sauvegardes
 
-Automatiques : le conteneur `db-backup` (voir `docker-compose.yml`) fait un `mysqldump` quotidien
-(3h du matin), compressé, avec rotation sur les 14 dernières sauvegardes — rien à installer, rien
-à planifier soi-même. Les dumps vivent dans le volume Docker `mise_db_backups`.
+Automatiques : le conteneur `db-backup` (maison, voir `backup/`) fait un `mysqldump` quotidien
+(3h du matin, plus une sauvegarde immédiate à chaque démarrage), compressé, avec rotation sur les
+14 dernières sauvegardes — rien à installer, rien à planifier soi-même. Les dumps vivent dans le
+volume Docker `mise_db_backups`.
 
 Lister les sauvegardes disponibles :
 
@@ -113,7 +114,7 @@ qu'il sauvegarde — aucune protection en cas de panne disque, de vol, ou de dé
 cuisine) :
 
 ```bash
-docker compose cp db-backup:/backup/latest.mise.sql.gz ./mise-backup-$(date +%Y-%m-%d).sql.gz
+docker compose cp db-backup:/backup/latest.sql.gz ./mise-backup-$(date +%Y-%m-%d).sql.gz
 ```
 
 Restauration à partir d'un dump :
@@ -135,7 +136,7 @@ Les migrations et le seed tournent automatiquement au redémarrage du conteneur 
 une sauvegarde manuelle avant toute mise à jour qui touche à la base** (nouvelle migration) :
 
 ```bash
-docker compose cp db-backup:/backup/latest.mise.sql.gz ./avant-maj-$(date +%Y-%m-%d).sql.gz
+docker compose cp db-backup:/backup/latest.sql.gz ./avant-maj-$(date +%Y-%m-%d).sql.gz
 ```
 
 ### Revenir en arrière (rollback)

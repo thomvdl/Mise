@@ -34,21 +34,19 @@ services:
     logging: *default-logging
 
   # Sauvegarde automatique de la base (mysqldump quotidien, compressé, rotation sur les 14
-  # derniers jours) — voir mise_db_backups ci-dessous pour où ils atterrissent.
+  # derniers jours) — voir mise_db_backups ci-dessous pour où ils atterrissent. Conteneur maison
+  # (./backup) plutôt qu'une image tierce comme fradelg/mysql-cron-backup : c'est juste un
+  # mysqldump sur une boucle, pas besoin d'une dépendance externe pour ça.
   db-backup:
-    image: fradelg/mysql-cron-backup
+    build: ./backup
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
       MYSQL_HOST: db
-      MYSQL_USER: root
-      MYSQL_PASS: ${DB_ROOT_PASSWORD}
-      MYSQL_DB: ${DB_DATABASE}
-      MAX_BACKUPS: 14
-      INIT_BACKUP: 1
-      CRON_TIME: "0 3 * * *"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
     volumes:
       - mise_db_backups:/backup
     mem_limit: 128m
