@@ -89,6 +89,12 @@ export class HuileReport {
 
   selectedFriteuse = computed(() => this.friteuses().find((f) => f.id === this.selectedFriteuseId()) ?? null);
 
+  reportTitle = computed(() => {
+    const friteuse = this.selectedFriteuse();
+    if (!friteuse) return "Rapport de changement d'huile";
+    return `Rapport de changement d'huile - ${friteuse.name} - ${this.periodLabel()}`;
+  });
+
   periodLabel = computed(() => {
     if (this.period() === 'mois') {
       const { from } = monthRange(this.selectedMonth());
