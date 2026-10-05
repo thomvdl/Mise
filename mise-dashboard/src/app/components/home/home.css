@@ -36,38 +36,14 @@
   max-width: 440px;
 }
 
-.connect-label {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-dim);
-  margin-bottom: 5px;
-}
-
-.connect-input {
-  display: block;
-  width: 100%;
-  max-width: 320px;
+.connect-url {
+  display: inline-block;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--accent-blue);
   background: var(--surface-2);
-  border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 7px 10px;
-  margin-bottom: 8px;
-}
-.connect-input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-}
-
-.connect-hint {
-  color: var(--text-faint);
-  font-size: 11px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 400px;
+  padding: 4px 9px;
 }
 
 .tile-grid {

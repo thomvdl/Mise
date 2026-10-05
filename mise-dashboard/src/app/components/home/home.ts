@@ -1,10 +1,8 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
 
 import { AuthService } from '../../core/services/auth.service';
-
-const CONNECT_URL_STORAGE_KEY = 'mise-dashboard-connect-url';
 
 interface HomeTile {
   label: string;
@@ -32,49 +30,19 @@ export class Home {
     return 'Bonsoir';
   });
 
-  /**
-   * Adresse à encoder dans le QR. `window.location.origin` ne convient que si le dashboard a été
-   * ouvert via l'IP réseau de la machine — si on y est via `localhost` (le cas le plus courant
-   * sur la machine qui héberge le dashboard elle-même), le QR pointerait un téléphone vers son
-   * propre localhost, pas vers ce PC. On part donc de l'origine courante, mais ça reste
-   * éditable : l'admin tape une fois l'IP réseau réelle du PC (ex. 192.168.1.23:8081), et elle
-   * est mémorisée (localStorage) pour les prochaines fois.
-   */
-  connectionUrl = signal(this.loadSavedUrl() ?? window.location.origin);
+  /** Adresse actuellement utilisée pour joindre le dashboard — si on y est via l'IP locale du
+   *  réseau (cas du mini PC en cuisine, voir docker-compose.local.yml), c'est cette même adresse
+   *  qu'un téléphone sur le même réseau doit utiliser pour se connecter. */
+  readonly connectionUrl = window.location.origin;
   showConnect = signal(false);
   qrDataUrl = signal<string | null>(null);
 
-  constructor() {
-    effect(() => {
-      const url = this.connectionUrl();
-      if (!this.showConnect() || !url) return;
-
-      QRCode.toDataURL(url, { width: 180, margin: 1 })
-        .then((dataUrl) => this.qrDataUrl.set(dataUrl))
-        .catch(() => this.qrDataUrl.set(null));
-    });
-  }
-
   toggleConnect(): void {
     this.showConnect.update((shown) => !shown);
-  }
-
-  onUrlInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value.trim();
-    this.connectionUrl.set(value);
-    try {
-      localStorage.setItem(CONNECT_URL_STORAGE_KEY, value);
-    } catch {
-      // Stockage indisponible (navigation privée, site data bloqué…) — tant pis, l'URL reste
-      // utilisable pour cette session, juste pas mémorisée pour la prochaine.
-    }
-  }
-
-  private loadSavedUrl(): string | null {
-    try {
-      return localStorage.getItem(CONNECT_URL_STORAGE_KEY);
-    } catch {
-      return null;
+    if (this.showConnect() && !this.qrDataUrl()) {
+      QRCode.toDataURL(this.connectionUrl, { width: 180, margin: 1 })
+        .then((dataUrl) => this.qrDataUrl.set(dataUrl))
+        .catch(() => this.qrDataUrl.set(null));
     }
   }
 

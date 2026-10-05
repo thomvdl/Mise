@@ -18,18 +18,7 @@
         Scannez ce code avec un téléphone ou une tablette connecté au même réseau pour ouvrir le
         dashboard directement, sans retaper l'adresse.
       </p>
-      <label class="connect-label" for="connect-url">Adresse réseau de ce PC</label>
-      <input
-        id="connect-url"
-        class="connect-input"
-        type="text"
-        placeholder="ex. 192.168.1.23:8081"
-        [value]="connectionUrl()"
-        (input)="onUrlInput($event)" />
-      <p class="connect-hint">
-        Si ce PC a été ouvert via « localhost », remplacez par son adresse IP sur le réseau (port
-        inclus) — sinon le téléphone scannerait vers lui-même.
-      </p>
+      <code class="connect-url">{{ connectionUrl }}</code>
     </div>
   </div>
 }
