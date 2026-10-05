@@ -41,6 +41,30 @@
   margin: 0;
 }
 
+.section {
+  margin-top: 28px;
+}
+.section:first-child {
+  margin-top: 0;
+}
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .form-block {
   display: flex;
   flex-direction: column;

@@ -15,9 +15,12 @@
 
   @if (editingId() === 'new') {
     <div class="list-card edit-card">
-      <div class="form-block">
-        <label class="form-label" for="list-name">Nom de la liste</label>
-        <input id="list-name" class="text-input" type="text" placeholder="Ex. Mise en place du lundi" [value]="editName()" (input)="onListNameInput($event)" />
+      <div class="section">
+        <div class="section-title">Nom de la liste</div>
+        <div class="form-block">
+          <label class="form-label" for="list-name">Nom</label>
+          <input id="list-name" class="text-input" type="text" placeholder="Ex. Mise en place du lundi" [value]="editName()" (input)="onListNameInput($event)" />
+        </div>
       </div>
 
       <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
@@ -59,14 +62,17 @@
         </div>
 
         @if (editingId() === list.id) {
-          <div class="form-block">
-            <label class="form-label" for="list-name-edit-{{ list.id }}">Nom de la liste</label>
-            <input
-              id="list-name-edit-{{ list.id }}"
-              class="text-input"
-              type="text"
-              [value]="editName()"
-              (input)="onListNameInput($event)" />
+          <div class="section">
+            <div class="section-title">Nom de la liste</div>
+            <div class="form-block">
+              <label class="form-label" for="list-name-edit-{{ list.id }}">Nom</label>
+              <input
+                id="list-name-edit-{{ list.id }}"
+                class="text-input"
+                type="text"
+                [value]="editName()"
+                (input)="onListNameInput($event)" />
+            </div>
           </div>
 
           <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
@@ -121,96 +127,104 @@
 </div>
 
 <ng-template #itemEditor>
-  <div class="form-block">
-    <span class="form-label">Type d'étiquette</span>
-    <div class="type-choices">
-      @for (type of labelTypes; track type.key) {
-        <button
-          type="button"
-          class="type-chip"
-          [attr.data-type]="type.key"
-          [class.active]="newItemType().key === type.key"
-          (click)="selectNewItemType(type)">
-          {{ type.title }}
-        </button>
-      }
+  <div class="section">
+    <div class="section-title">Ajouter une étiquette</div>
+
+    <div class="form-block">
+      <span class="form-label">Type d'étiquette</span>
+      <div class="type-choices">
+        @for (type of labelTypes; track type.key) {
+          <button
+            type="button"
+            class="type-chip"
+            [attr.data-type]="type.key"
+            [class.active]="newItemType().key === type.key"
+            (click)="selectNewItemType(type)">
+            {{ type.title }}
+          </button>
+        }
+      </div>
     </div>
-  </div>
 
-  <div class="form-block">
-    <label class="form-label" for="new-item-name">Produit</label>
-    <input
-      id="new-item-name"
-      class="text-input"
-      type="text"
-      list="list-product-suggestions"
-      placeholder="Nom du produit…"
-      [attr.maxlength]="productNameMaxLength"
-      [value]="newItemName()"
-      (input)="onNewItemNameInput($event)"
-      (keydown.enter)="addEditItem()" />
-    <datalist id="list-product-suggestions">
-      @for (name of suggestions(); track name) {
-        <option [value]="name"></option>
-      }
-    </datalist>
-  </div>
+    <div class="form-block">
+      <label class="form-label" for="new-item-name">Produit</label>
+      <input
+        id="new-item-name"
+        class="text-input"
+        type="text"
+        list="list-product-suggestions"
+        placeholder="Nom du produit…"
+        [attr.maxlength]="productNameMaxLength"
+        [value]="newItemName()"
+        (input)="onNewItemNameInput($event)"
+        (keydown.enter)="addEditItem()" />
+      <datalist id="list-product-suggestions">
+        @for (name of suggestions(); track name) {
+          <option [value]="name"></option>
+        }
+      </datalist>
+    </div>
 
-  <div class="form-block">
-    <span class="form-label">DLC (à l'impression)</span>
-    <div class="date-quick-choices">
-      <button
-        type="button"
-        class="date-chip"
-        [class.active]="newItemOffset() === null"
-        (click)="selectNewItemOffset(null)">
-        Défaut du type
-      </button>
-      @for (offset of dateOffsets; track offset) {
+    <div class="form-block">
+      <span class="form-label">DLC (à l'impression)</span>
+      <div class="date-quick-choices">
         <button
           type="button"
           class="date-chip"
-          [class.active]="newItemOffset() === offset"
-          (click)="selectNewItemOffset(offset)">
-          {{ offset === 0 ? "Aujourd'hui" : 'J+' + offset }}
+          [class.active]="newItemOffset() === null"
+          (click)="selectNewItemOffset(null)">
+          Défaut du type
         </button>
-      }
+        @for (offset of dateOffsets; track offset) {
+          <button
+            type="button"
+            class="date-chip"
+            [class.active]="newItemOffset() === offset"
+            (click)="selectNewItemOffset(offset)">
+            {{ offset === 0 ? "Aujourd'hui" : 'J+' + offset }}
+          </button>
+        }
+      </div>
+      <p class="form-hint">Date du jour d'impression + ce décalage. "Défaut du type" suit la règle du type d'étiquette.</p>
     </div>
-    <p class="form-hint">Date du jour d'impression + ce décalage. "Défaut du type" suit la règle du type d'étiquette.</p>
+
+    <div class="form-block">
+      <span class="form-label">Quantité</span>
+      <div class="qty-stepper">
+        <button type="button" class="qty-btn" [disabled]="newItemQty() <= 1" (click)="decrementNewItemQty()" aria-label="Diminuer la quantité">−</button>
+        <span class="qty-value">{{ newItemQty() }}</span>
+        <button type="button" class="qty-btn" [disabled]="newItemQty() >= 10" (click)="incrementNewItemQty()" aria-label="Augmenter la quantité">+</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn-ghost add-item-btn" [disabled]="!newItemName().trim()" (click)="addEditItem()">
+      + Ajouter ce produit à la liste
+    </button>
   </div>
 
-  <div class="form-block">
-    <span class="form-label">Quantité</span>
-    <div class="qty-stepper">
-      <button type="button" class="qty-btn" [disabled]="newItemQty() <= 1" (click)="decrementNewItemQty()" aria-label="Diminuer la quantité">−</button>
-      <span class="qty-value">{{ newItemQty() }}</span>
-      <button type="button" class="qty-btn" [disabled]="newItemQty() >= 10" (click)="incrementNewItemQty()" aria-label="Augmenter la quantité">+</button>
-    </div>
+  <div class="section">
+    <div class="section-title">Étiquettes de la liste ({{ editItems().length }})</div>
+
+    @if (editItems().length > 0) {
+      <ul class="item-list">
+        @for (item of editItems(); track $index) {
+          <li class="item-row">
+            <span class="item-swatch" [attr.data-type]="item.type_key"></span>
+            <span class="item-text">
+              <strong>{{ itemTypeTitle(item.type_key) }}</strong> — {{ item.product_name }}
+              <span class="item-dlc">· {{ offsetLabel(item.use_by_offset_days) }}</span>
+              @if (item.quantity > 1) {
+                <span class="item-qty">×{{ item.quantity }}</span>
+              }
+            </span>
+            <button type="button" class="item-remove" (click)="removeEditItem($index)" aria-label="Retirer ce produit">×</button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="form-hint">Ajoutez au moins un produit à cette liste.</p>
+    }
   </div>
-
-  <button type="button" class="btn-ghost add-item-btn" [disabled]="!newItemName().trim()" (click)="addEditItem()">
-    + Ajouter ce produit à la liste
-  </button>
-
-  @if (editItems().length > 0) {
-    <ul class="item-list">
-      @for (item of editItems(); track $index) {
-        <li class="item-row">
-          <span class="item-swatch" [attr.data-type]="item.type_key"></span>
-          <span class="item-text">
-            <strong>{{ itemTypeTitle(item.type_key) }}</strong> — {{ item.product_name }}
-            <span class="item-dlc">· {{ offsetLabel(item.use_by_offset_days) }}</span>
-            @if (item.quantity > 1) {
-              <span class="item-qty">×{{ item.quantity }}</span>
-            }
-          </span>
-          <button type="button" class="item-remove" (click)="removeEditItem($index)" aria-label="Retirer ce produit">×</button>
-        </li>
-      }
-    </ul>
-  } @else {
-    <p class="form-hint">Ajoutez au moins un produit à cette liste.</p>
-  }
 </ng-template>
 
 <app-confirm-dialog
