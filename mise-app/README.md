@@ -43,6 +43,13 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
     la section 7 ci-dessous), puis `git pull` + `docker compose up -d --build` — jamais automatique
     ni silencieux, uniquement sur ce clic, précisément pour garder la main en cas d'échec d'une
     migration (voir DEPLOY.md §8) ;
+  - **Sauvegarder** : lance un dump manuel à la demande (même procédure que la sauvegarde
+    automatique quotidienne, voir section 7 ci-dessous), utile avant une manipulation risquée sans
+    attendre le prochain passage planifié ;
+  - **Restaurer…** : choisit un fichier `.sql.gz` via une boîte de dialogue classique (par défaut
+    dans le dossier du projet, où vivent les sauvegardes), demande confirmation (ça écrase la base
+    actuelle), puis prend automatiquement une sauvegarde de sécurité de l'état courant avant de
+    restaurer — pour qu'une restauration par erreur reste rattrapable ;
   - au démarrage de l'app, si le projet est déjà installé, elle lance aussi `docker compose up -d`
     (sans rebuild, juste pour s'assurer que tout tourne) — en plus du pont ZPL lui-même.
   - Les deux opérations tournent en tâche de fond et journalisent leur progression dans "Activité
