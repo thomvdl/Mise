@@ -41,7 +41,7 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:100'],
             'detail' => ['nullable', 'string'],
             'horaire' => ['nullable', 'string'],
             'couverts' => ['nullable', 'integer', 'min:0'],
@@ -64,7 +64,7 @@ class EventController extends Controller
     public function update(Request $request, Event $event)
     {
         $validated = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:100'],
             'detail' => ['sometimes', 'nullable', 'string'],
             'horaire' => ['sometimes', 'nullable', 'string'],
             'couverts' => ['sometimes', 'nullable', 'integer', 'min:0'],

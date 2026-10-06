@@ -49,7 +49,7 @@ class PrintedLabelController extends Controller
     {
         $validated = $request->validate([
             'type_key' => ['required', 'string', 'in:ouvert,produit,congele,decongele,jeter'],
-            'product_name' => ['required', 'string', 'max:55'],
+            'product_name' => ['required', 'string', 'max:100'],
             'date' => ['required', 'date'],
             'use_by_date' => ['nullable', 'date'],
             'quantity' => ['required', 'integer', 'between:1,10'],
@@ -74,7 +74,7 @@ class PrintedLabelController extends Controller
     {
         $validated = $request->validate([
             'type_key' => ['required', 'string', 'in:ouvert,produit,congele,decongele,jeter'],
-            'product_name' => ['required', 'string', 'max:55'],
+            'product_name' => ['required', 'string', 'max:100'],
             'date' => ['required', 'date'],
             'use_by_date' => ['nullable', 'date'],
             'quantity' => ['required', 'integer', 'between:1,10'],

@@ -82,19 +82,19 @@ describe('Labels', () => {
     expect(button.disabled).toBe(false);
   });
 
-  it('truncates the product name to 55 characters, spaces included', () => {
-    const longName = 'A'.repeat(60);
+  it('truncates the product name to 100 characters, spaces included', () => {
+    const longName = 'A'.repeat(110);
     component.onNameInput({ target: { value: longName } } as unknown as Event);
 
-    expect(component.productName()).toHaveLength(55);
-    expect(component.productName()).toBe('A'.repeat(55));
+    expect(component.productName()).toHaveLength(100);
+    expect(component.productName()).toBe('A'.repeat(100));
   });
 
   it('exposes the max length for the template counter and the input\'s maxlength attribute', () => {
-    expect(component.productNameMaxLength).toBe(55);
+    expect(component.productNameMaxLength).toBe(100);
 
     const input: HTMLInputElement = fixture.nativeElement.querySelector('#product-name');
-    expect(input.maxLength).toBe(55);
+    expect(input.maxLength).toBe(100);
   });
 
   it('reflects the chosen type and date in the label preview', () => {

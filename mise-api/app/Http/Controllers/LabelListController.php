@@ -84,7 +84,7 @@ class LabelListController extends Controller
             'name' => [...$required, 'string', 'max:255'],
             'items' => [...$required, 'array', 'min:1'],
             'items.*.type_key' => ['required_with:items', 'string', Rule::in(explode(',', self::TYPE_KEYS))],
-            'items.*.product_name' => ['required_with:items', 'string', 'max:55'],
+            'items.*.product_name' => ['required_with:items', 'string', 'max:100'],
             'items.*.quantity' => ['required_with:items', 'integer', 'between:1,10'],
             'items.*.use_by_offset_days' => ['nullable', 'integer', 'between:0,60'],
         ];

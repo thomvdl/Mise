@@ -11,7 +11,7 @@ import { LabelList, LabelListItem } from '../../core/models/label-list.model';
 import { LABEL_TYPES, LabelType } from '../../core/models/label.model';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
-const PRODUCT_NAME_MAX_LENGTH = 55;
+const PRODUCT_NAME_MAX_LENGTH = 100;
 const MAX_ITEM_QUANTITY = 10;
 const DATE_OFFSETS = [0, 1, 2, 3, 4, 5];
 

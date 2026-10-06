@@ -8,7 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { LabelQueueService } from '../../core/services/label-queue.service';
 import { LABEL_TYPES, LabelType } from '../../core/models/label.model';
 
-const PRODUCT_NAME_MAX_LENGTH = 55;
+const PRODUCT_NAME_MAX_LENGTH = 100;
 const MIN_PRINT_QUANTITY = 1;
 const MAX_PRINT_QUANTITY = 10;
 
