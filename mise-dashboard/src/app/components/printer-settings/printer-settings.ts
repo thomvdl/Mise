@@ -44,6 +44,7 @@ export class PrinterSettings implements OnInit {
       nonNullable: true,
       validators: [Validators.required, Validators.min(1)],
     }),
+    label_rotate_90: new FormControl(false, { nonNullable: true }),
   });
 
   ngOnInit(): void {
@@ -55,6 +56,7 @@ export class PrinterSettings implements OnInit {
         printer_dpi: byKey.get('printer_dpi') ?? '203',
         label_width_mm: byKey.get('label_width_mm') ? Number(byKey.get('label_width_mm')) : 57,
         label_height_mm: byKey.get('label_height_mm') ? Number(byKey.get('label_height_mm')) : 32,
+        label_rotate_90: byKey.get('label_rotate_90') === '1',
       });
     });
   }
@@ -76,6 +78,7 @@ export class PrinterSettings implements OnInit {
       this.settingService.update('printer_dpi', value.printer_dpi),
       this.settingService.update('label_width_mm', String(value.label_width_mm)),
       this.settingService.update('label_height_mm', String(value.label_height_mm)),
+      this.settingService.update('label_rotate_90', value.label_rotate_90 ? '1' : '0'),
     ]).subscribe({
       next: () => {
         this.saving.set(false);

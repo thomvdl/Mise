@@ -43,33 +43,46 @@ class ZplLabelBuilder
         int $dpi = 203,
         float $widthMm = 57,
         float $heightMm = 32,
+        bool $rotate90 = false,
     ): string {
         $title = self::LABEL_TYPES[$typeKey] ?? strtoupper($typeKey);
         $product = self::sanitize($productName);
         $dateLabel = self::formatDate($date);
 
         $dotsPerMm = $dpi / 25.4;
-        $widthDots = (int) round($widthMm * $dotsPerMm);
-        $heightDots = (int) round($heightMm * $dotsPerMm);
-        $marginX = (int) round($widthDots * self::MARGIN_X_RATIO);
-        $blockWidth = (int) round($widthDots * self::NAME_BLOCK_WIDTH_RATIO);
+        // ^PW/^LL restent calés sur le support physique (largeur = ce que la tête d'impression
+        // peut couvrir, fixé par le rouleau chargé) — seule la mise en page tourne de 90°, pas le
+        // sens de défilement du papier, qui ne se change pas en logiciel. `^FWR` fait pivoter tous
+        // les champs ; une fois ce pivot posé, on calcule les ratios sur les dimensions "logiques"
+        // (largeur/hauteur telles que lues après rotation), pas sur ^PW/^LL eux-mêmes.
+        $physicalWidthDots = (int) round($widthMm * $dotsPerMm);
+        $physicalHeightDots = (int) round($heightMm * $dotsPerMm);
+        $logicalWidthDots = $rotate90 ? $physicalHeightDots : $physicalWidthDots;
+        $logicalHeightDots = $rotate90 ? $physicalWidthDots : $physicalHeightDots;
+        $marginX = (int) round($logicalWidthDots * self::MARGIN_X_RATIO);
+        $blockWidth = (int) round($logicalWidthDots * self::NAME_BLOCK_WIDTH_RATIO);
 
         $lines = [
             '^XA',
             '^CI28',
-            "^PW{$widthDots}",
-            "^LL{$heightDots}",
-            '^CF0,' . self::dots($heightDots, self::TITLE_FONT_RATIO),
-            '^FO' . $marginX . ',' . self::dots($heightDots, self::TITLE_Y_RATIO) . "^FD{$title}^FS",
-            '^CF0,' . self::dots($heightDots, self::NAME_FONT_RATIO),
-            '^FO' . $marginX . ',' . self::dots($heightDots, self::NAME_Y_RATIO)
-                . "^FB{$blockWidth},2,2,L,0^FD{$product}^FS",
-            '^CF0,' . self::dots($heightDots, self::DATE_FONT_RATIO),
-            '^FO' . $marginX . ',' . self::dots($heightDots, self::DATE_Y_RATIO) . "^FDLe : {$dateLabel}^FS",
+            "^PW{$physicalWidthDots}",
+            "^LL{$physicalHeightDots}",
         ];
 
+        if ($rotate90) {
+            $lines[] = '^FWR';
+        }
+
+        $lines[] = '^CF0,' . self::dots($logicalHeightDots, self::TITLE_FONT_RATIO);
+        $lines[] = '^FO' . $marginX . ',' . self::dots($logicalHeightDots, self::TITLE_Y_RATIO) . "^FD{$title}^FS";
+        $lines[] = '^CF0,' . self::dots($logicalHeightDots, self::NAME_FONT_RATIO);
+        $lines[] = '^FO' . $marginX . ',' . self::dots($logicalHeightDots, self::NAME_Y_RATIO)
+            . "^FB{$blockWidth},2,2,L,0^FD{$product}^FS";
+        $lines[] = '^CF0,' . self::dots($logicalHeightDots, self::DATE_FONT_RATIO);
+        $lines[] = '^FO' . $marginX . ',' . self::dots($logicalHeightDots, self::DATE_Y_RATIO) . "^FDLe : {$dateLabel}^FS";
+
         if ($useByDate) {
-            $lines[] = '^FO' . $marginX . ',' . self::dots($heightDots, self::DLC_Y_RATIO)
+            $lines[] = '^FO' . $marginX . ',' . self::dots($logicalHeightDots, self::DLC_Y_RATIO)
                 . '^FDÀ consommer avant : ' . self::formatDate($useByDate) . '^FS';
         }
 

@@ -68,6 +68,18 @@
         automatiquement à la résolution et à ces dimensions.
       </p>
     </div>
+
+    <div class="form-field span-2">
+      <label class="checkbox-chip" [class.checked]="form.controls.label_rotate_90.value">
+        <input type="checkbox" formControlName="label_rotate_90" />
+        Faire pivoter le texte à 90°
+      </label>
+      <p class="form-hint">
+        À activer pour une étiquette rectangulaire plus haute que large (ex. 38 x 89mm) quand on
+        veut que le texte se lise à l'horizontale une fois l'étiquette posée dans l'autre sens — le
+        sens de défilement du papier dans l'imprimante ne change pas, seul le contenu pivote.
+      </p>
+    </div>
   </div>
 
   @if (errorMessage()) {
