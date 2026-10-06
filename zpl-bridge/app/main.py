@@ -16,9 +16,11 @@ contentent donc de déposer une action dans une `queue.Queue` thread-safe, et c'
 
 import queue
 import sys
+import threading
 import tkinter as tk
+from pathlib import Path
 
-from . import autostart
+from . import autostart, config, project
 from .bridge_server import BridgeServer
 from .events import EventLog
 from .status_window import StatusWindow
@@ -45,10 +47,30 @@ def get_executable_path() -> str:
 
 def build_backend():
     if sys.platform == "win32":
-        from . import config
-
         return Backend(lambda: config.load().get("windows_printer_name"))
     return Backend()
+
+
+def ensure_project_running(events: EventLog) -> None:
+    # Démarre la pile Docker du projet si elle est déjà installée — pas de --build ici (rapide,
+    # juste pour s'assurer que tout tourne), l'installation initiale et les mises à jour se font
+    # depuis la fenêtre de statut (voir status_window.py). Ne bloque jamais le démarrage de l'app
+    # si Docker n'est pas prêt : c'est juste un confort, pas une dépendance dure.
+    cfg = config.load()
+    repo_path_str = cfg.get("repo_path")
+    if not repo_path_str:
+        return
+    repo_path = Path(repo_path_str)
+    if not project.is_repo_cloned(repo_path) or not project.is_docker_available():
+        return
+
+    def run() -> None:
+        try:
+            project.docker_up(repo_path, events.add)
+        except project.CommandError as exc:
+            events.add(f"Échec du démarrage automatique de la pile Docker : {exc}", level="error")
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 def main() -> None:
@@ -58,6 +80,8 @@ def main() -> None:
     bridge = BridgeServer(backend, events)
     bridge.start()
     events.add("Pont démarré")
+
+    ensure_project_running(events)
 
     root = tk.Tk()
     root.withdraw()

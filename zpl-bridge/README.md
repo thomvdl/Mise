@@ -30,7 +30,23 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
 - une case "Lancer au démarrage" qui gère l'auto-démarrage elle-même (agent `launchd` côté macOS,
   raccourci dans le dossier Démarrage côté Windows) — plus besoin de suivre les étapes manuelles
   des sections "Démarrage automatique" ci-dessous, qui restent documentées seulement pour les
-  anciens scripts/le dépannage.
+  anciens scripts/le dépannage ;
+- une section **"Projet Mise"** dans cette même fenêtre qui gère aussi le cycle de vie du projet
+  entier (pas juste le pont ZPL), pour que le mini PC n'ait qu'une seule app à lancer :
+  - **Installer** (visible si le dossier choisi n'est pas encore un clone du projet) : clone le
+    repo, crée `.env` à partir de `.env.example` avec des secrets générés automatiquement (sauf
+    nom/mot de passe admin, demandés dans une boîte de dialogue), puis `docker compose up -d
+    --build`. Si le dépôt GitHub est privé, un jeton d'accès personnel est demandé une seule fois
+    et enregistré dans le gestionnaire d'identifiants du système (jamais dans la config de l'app
+    ni dans l'URL du remote) ;
+  - **Mettre à jour** (visible une fois installé) : sauvegarde la base (reproduit la procédure de
+    la section 7 ci-dessous), puis `git pull` + `docker compose up -d --build` — jamais automatique
+    ni silencieux, uniquement sur ce clic, précisément pour garder la main en cas d'échec d'une
+    migration (voir DEPLOY.md §8) ;
+  - au démarrage de l'app, si le projet est déjà installé, elle lance aussi `docker compose up -d`
+    (sans rebuild, juste pour s'assurer que tout tourne) — en plus du pont ZPL lui-même.
+  - Les deux opérations tournent en tâche de fond et journalisent leur progression dans "Activité
+    récente" (peuvent prendre plusieurs minutes, surtout la toute première installation).
 
 ### Construire l'appli
 
