@@ -95,6 +95,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // réservée à l'admin (groupe role:admin plus bas).
     Route::apiResource('events', EventController::class)->only(['index'])
         ->parameters(['events' => 'event']);
+    // Imprime une étiquette pour un événement — même niveau d'accès que
+    // printed-labels/print-zebra : n'importe qui de connecté peut imprimer, ce n'est pas une
+    // écriture sur l'événement lui-même.
+    Route::post('events/{event}/print-label', [EventController::class, 'printLabel']);
 
     // Notes libres (pages/sous-pages en markdown) — CRUD complet ouvert à tout utilisateur
     // connecté (user ou admin), côté dashboard comme côté public : pas de notion de

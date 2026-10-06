@@ -57,6 +57,9 @@ export class EventCalendar implements OnInit {
 
   pendingDelete = signal<CalendarEvent | null>(null);
 
+  printingLabel = signal(false);
+  printLabelError = signal<string | null>(null);
+
   ngOnInit(): void {
     this.menuService.list().subscribe((menus) => this.menus.set(menus));
     this.loadEvents();
@@ -135,6 +138,21 @@ export class EventCalendar implements OnInit {
 
   closeForm(): void {
     this.showForm.set(false);
+  }
+
+  printLabel(): void {
+    const event = this.editingEvent();
+    if (!event) return;
+
+    this.printingLabel.set(true);
+    this.printLabelError.set(null);
+    this.eventService.printLabel(event.id).subscribe({
+      next: () => this.printingLabel.set(false),
+      error: () => {
+        this.printingLabel.set(false);
+        this.printLabelError.set("Impossible d'imprimer l'étiquette.");
+      },
+    });
   }
 
   /** Query params du lien "Voir la liste de courses" — `couverts` omis si non renseigné plutôt

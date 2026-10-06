@@ -31,4 +31,8 @@ export class EventService {
   delete(id: number) {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  printLabel(id: number) {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/print-label`, {});
+  }
 }

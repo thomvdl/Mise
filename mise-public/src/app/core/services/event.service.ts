@@ -18,4 +18,8 @@ export class EventService {
   listAll() {
     return this.http.get<CalendarEvent[]>(`${environment.apiUrl}/events`);
   }
+
+  printLabel(id: number) {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/events/${id}/print-label`, {});
+  }
 }

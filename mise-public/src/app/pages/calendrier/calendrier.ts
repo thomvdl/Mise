@@ -81,10 +81,29 @@ export class Calendrier implements OnInit {
 
   openDetail(event: CalendarEvent): void {
     this.selectedEvent.set(event);
+    this.printLabelError.set(null);
   }
 
   closeDetail(): void {
     this.selectedEvent.set(null);
+  }
+
+  printingLabel = signal(false);
+  printLabelError = signal<string | null>(null);
+
+  printLabel(): void {
+    const event = this.selectedEvent();
+    if (!event) return;
+
+    this.printingLabel.set(true);
+    this.printLabelError.set(null);
+    this.eventService.printLabel(event.id).subscribe({
+      next: () => this.printingLabel.set(false),
+      error: () => {
+        this.printingLabel.set(false);
+        this.printLabelError.set("Impossible d'imprimer l'étiquette.");
+      },
+    });
   }
 
   eventTypeLabel(type: string | null): string | null {

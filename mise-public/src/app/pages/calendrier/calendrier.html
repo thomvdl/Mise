@@ -121,7 +121,16 @@
           </div>
         }
 
-        <button type="button" class="close-btn" (click)="closeDetail()">Fermer</button>
+        @if (printLabelError()) {
+          <p class="detail-error">{{ printLabelError() }}</p>
+        }
+
+        <div class="detail-actions">
+          <button type="button" class="print-btn" [disabled]="printingLabel()" (click)="printLabel()">
+            {{ printingLabel() ? 'Impression…' : "Imprimer l'étiquette" }}
+          </button>
+          <button type="button" class="close-btn" (click)="closeDetail()">Fermer</button>
+        </div>
       </div>
     </div>
   </div>

@@ -148,10 +148,16 @@
       @if (formError()) {
         <p class="form-error">{{ formError() }}</p>
       }
+      @if (printLabelError()) {
+        <p class="form-error">{{ printLabelError() }}</p>
+      }
 
       <div class="modal-actions">
         @if (editingEvent()) {
           <button type="button" class="btn btn-danger" (click)="confirmDeleteFromForm()">Supprimer</button>
+          <button type="button" class="btn btn-ghost" [disabled]="printingLabel()" (click)="printLabel()">
+            {{ printingLabel() ? 'Impression…' : "Imprimer l'étiquette" }}
+          </button>
         }
         <button type="button" class="btn btn-ghost" (click)="closeForm()">Annuler</button>
         <button type="button" class="btn btn-primary" (click)="saveEvent()">Enregistrer</button>

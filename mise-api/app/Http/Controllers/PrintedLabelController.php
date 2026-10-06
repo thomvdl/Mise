@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PrintedLabel;
 use App\Models\Setting;
 use App\Services\ZplLabelBuilder;
+use App\Services\ZplPrinter;
 use Illuminate\Http\Request;
 
 /**
@@ -17,8 +18,6 @@ use Illuminate\Http\Request;
  */
 class PrintedLabelController extends Controller
 {
-    /** Port JetDirect/raw standard sur lequel les imprimantes Zebra écoutent le ZPL brut. */
-    private const PRINTER_PORT = 9100;
     /**
      * Filtrable par type_key et par plage de dates (from/to, sur created_at — le moment réel de
      * l'impression, pas la date affichée sur l'étiquette elle-même), pour le rapport du dashboard.
@@ -81,14 +80,6 @@ class PrintedLabelController extends Controller
             'quantity' => ['required', 'integer', 'between:1,10'],
         ]);
 
-        $printerIp = Setting::get('printer_ip');
-
-        if (! $printerIp) {
-            return response()->json([
-                'message' => "Aucune imprimante configurée — renseigne l'adresse IP dans Paramètres.",
-            ], 422);
-        }
-
         $zpl = ZplLabelBuilder::build(
             $validated['type_key'],
             $validated['product_name'],
@@ -102,16 +93,9 @@ class PrintedLabelController extends Controller
             $request->user()->name,
         );
 
-        $socket = @fsockopen($printerIp, self::PRINTER_PORT, $errno, $errstr, 5);
-
-        if (! $socket) {
-            return response()->json([
-                'message' => "Impossible de contacter l'imprimante à {$printerIp} : {$errstr}.",
-            ], 502);
+        if ($error = ZplPrinter::send($zpl)) {
+            return response()->json(['message' => $error], str_contains($error, 'configurée') ? 422 : 502);
         }
-
-        fwrite($socket, $zpl);
-        fclose($socket);
 
         $printedLabel = PrintedLabel::create([
             'user_id' => $request->user()->id,

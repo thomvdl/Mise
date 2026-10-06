@@ -425,6 +425,18 @@
   margin: 0;
 }
 
+.detail-error {
+  color: var(--accent-red);
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 .close-btn {
   display: block;
   border: 1px solid var(--border);
@@ -434,11 +446,28 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 0;
 }
 .close-btn:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+.print-btn {
+  border: 1px solid var(--accent-blue);
+  background: var(--accent-blue);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.print-btn:hover {
+  background: var(--accent-blue-dim);
+  border-color: var(--accent-blue-dim);
+}
+.print-btn:disabled {
+  opacity: 0.6;
 }
 
 @media (max-width: 700px) {
