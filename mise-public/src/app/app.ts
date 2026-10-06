@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { Topbar } from './components/topbar/topbar';
+import { InactivityLogoutService } from './core/services/inactivity-logout.service';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,12 @@ export class App {
   private readonly router = inject(Router);
 
   protected readonly title = signal('mise-public');
+
+  constructor() {
+    // L'injection seule suffit : le service fait tout son travail dans son propre constructeur
+    // (singleton `providedIn: 'root'`, instancié ici au tout premier `inject()`).
+    inject(InactivityLogoutService);
+  }
 
   /** The login screen renders full-page, without the app shell's topbar/nav. */
   isLoginPage = toSignal(
