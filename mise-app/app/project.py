@@ -257,7 +257,11 @@ def install(
     log(f"Clonage de {REPO_URL}...")
     clone(repo_path, log)
     bootstrap_env(repo_path, admin_name, admin_password, log)
-    log("Démarrage de la pile Docker (peut prendre plusieurs minutes au premier lancement)...")
+    log(
+        "Démarrage de la pile Docker (peut prendre plusieurs minutes au premier lancement) — "
+        "les migrations et le seed du référentiel (catégories, stations, allergènes, types "
+        "d'étiquette...) tournent automatiquement au démarrage du conteneur api..."
+    )
     docker_up(repo_path, log, build=True)
     log("Installation terminée.")
 
