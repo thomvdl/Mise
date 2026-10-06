@@ -8,12 +8,12 @@ l'imprimante USB.
 
 La solution dépend de l'OS du mini PC :
 
-| | **Linux** | **Windows** |
-|---|---|---|
-| Où tourne le pont | Dans un conteneur Docker (`socat`) | Nativement sur la machine, hors Docker |
-| Pourquoi | Docker sur Linux peut passer le périphérique USB directement à un conteneur | Docker Desktop sur Windows ne donne pas aux conteneurs un accès direct aux périphériques USB du hôte |
-| Adresse à renseigner dans Paramètres → Impression d'étiquettes | `zpl-bridge` (nom du service Docker) | `host.docker.internal` (adresse spéciale résolue par Docker Desktop vers la machine hôte) |
-| Fichiers | `docker-compose.linux-usb-printer.yml` (racine du projet) | `zpl_bridge.py` (ce dossier) |
+| | **Linux** | **Windows** | **macOS** |
+|---|---|---|---|
+| Où tourne le pont | Dans un conteneur Docker (`socat`) | Nativement sur la machine, hors Docker | Nativement sur la machine, hors Docker |
+| Pourquoi | Docker sur Linux peut passer le périphérique USB directement à un conteneur | Docker Desktop sur Windows ne donne pas aux conteneurs un accès direct aux périphériques USB du hôte | Même limitation que Windows — Docker Desktop sur macOS non plus |
+| Adresse à renseigner dans Paramètres → Impression d'étiquettes | `zpl-bridge` (nom du service Docker) | `host.docker.internal` (adresse spéciale résolue par Docker Desktop vers la machine hôte) | `host.docker.internal` (idem, Docker Desktop le résout aussi sur macOS) |
+| Fichiers | `docker-compose.linux-usb-printer.yml` (racine du projet) | `zpl_bridge.py` (ce dossier) | `zpl_bridge_macos.py` (ce dossier) |
 
 ## Linux
 
@@ -130,3 +130,87 @@ après coupure de courant, par exemple) :
 - **Erreur d'accès à l'imprimante** dans la console du pont : le nom passé en argument ne
   correspond pas exactement au nom affiché dans Windows → Imprimantes (sensible à la casse et aux
   espaces) — copiez-le tel quel.
+
+## macOS
+
+Comme sur Windows, le pont tourne en natif hors Docker — mais la méthode diffère : macOS a retiré
+le support des files d'attente CUPS "brutes" (`lpadmin -m raw` échoue avec "les files d'attente
+brutes ne sont plus prises en charge sur macOS"), donc pas d'impression RAW possible via le
+spouleur système comme sur Windows. `zpl_bridge_macos.py` (ce dossier) parle directement au
+périphérique USB via la librairie `pyusb`, en contournant CUPS entièrement.
+
+### Installation
+
+1. Installez Homebrew si ce n'est pas déjà fait (<https://brew.sh>), puis `libusb` :
+
+   ```bash
+   brew install libusb
+   ```
+
+2. Installez `pyusb` (Python 3 est déjà installé sur macOS) :
+
+   ```bash
+   pip3 install pyusb
+   ```
+
+3. Branchez l'imprimante en USB, puis lancez le pont :
+
+   ```bash
+   cd zpl-bridge
+   python3 zpl_bridge_macos.py
+   ```
+
+   Il doit afficher `Pont ZPL (macOS/USB direct) en écoute sur le port 9100` et rester ouvert
+   (c'est normal, c'est un serveur — laissez le terminal ouvert, ou passez à l'option de démarrage
+   automatique ci-dessous). Le script détecte l'imprimante Zebra automatiquement sur l'USB (pas
+   besoin de passer son nom en argument, contrairement à Windows).
+
+4. Dans le dashboard MISE, Paramètres → Impression d'étiquettes, réglez l'adresse de l'imprimante
+   sur `host.docker.internal`. Imprimez une étiquette de test depuis la page Étiquettes — elle
+   doit sortir sur l'imprimante USB.
+
+### Démarrage automatique (survit sans session ouverte)
+
+Pour que le pont tourne en tâche de fond et redémarre tout seul (y compris après un redémarrage de
+la machine), utilisez `launchd` plutôt qu'un simple lancement manuel :
+
+1. Repérez le chemin absolu de `python3` (`which python3`) et de ce dossier `zpl-bridge`.
+2. Créez `~/Library/LaunchAgents/com.mise.zpl-bridge.plist` avec ce contenu, en remplaçant les
+   deux chemins par les vôtres :
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0">
+   <dict>
+     <key>Label</key><string>com.mise.zpl-bridge</string>
+     <key>ProgramArguments</key>
+     <array>
+       <string>/usr/bin/python3</string>
+       <string>/chemin/absolu/vers/zpl-bridge/zpl_bridge_macos.py</string>
+     </array>
+     <key>RunAtLoad</key><true/>
+     <key>KeepAlive</key><true/>
+   </dict>
+   </plist>
+   ```
+
+3. Chargez-le :
+
+   ```bash
+   launchctl load ~/Library/LaunchAgents/com.mise.zpl-bridge.plist
+   ```
+
+   Le pont démarre immédiatement, et à chaque ouverture de session désormais. `KeepAlive` le
+   relance automatiquement s'il plante.
+
+### Dépannage
+
+- **Rien ne s'imprime** : vérifiez que le pont tourne (`lsof -i :9100` doit montrer un port en
+  écoute), et que `printer_ip` dans Paramètres vaut bien `host.docker.internal`.
+- **`Access denied (insufficient permissions)`** dans la console du pont : une autre
+  instance/script a encore l'interface USB ouverte (le pont la relâche après chaque impression via
+  `usb.util.dispose_resources`, mais un script de test lancé en parallèle peut la bloquer) — fermez
+  tout autre script qui parle à l'imprimante et relancez le pont.
+- **Aucune imprimante Zebra trouvée sur l'USB** : vérifiez que l'imprimante est bien branchée et
+  allumée (`system_profiler SPUSBDataType | grep -i zebra` doit la lister).
