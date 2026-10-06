@@ -19,7 +19,7 @@ backup_once() {
   STAMP=$(date +%Y-%m-%d_%H%M)
   FILE="$BACKUP_DIR/mise-backup-${STAMP}.sql"
 
-  mysqldump --no-tablespaces -h "$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" > "$FILE"
+  MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump --no-tablespaces -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" > "$FILE"
   gzip "$FILE"
   ln -sf "$(basename "$FILE").gz" "$BACKUP_DIR/latest.sql.gz"
 

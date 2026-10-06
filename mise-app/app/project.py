@@ -162,11 +162,19 @@ def backup_db(repo_path: Path, log: LogFn) -> Path:
     """Reproduit `backup/backup.sh::backup_once` à la main (voir DEPLOY.md §7) : dump + gzip
     dans le conteneur `db-backup`, puis copie locale (le volume Docker ne survit pas à une panne
     disque, voir ce même paragraphe)."""
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+    # Résolution à la seconde (pas juste la minute) : deux sauvegardes cliquées rapprochées dans
+    # la même minute se marchaient sur le même nom de fichier, et `gzip` refuse d'écraser un
+    # fichier existant — ce qui faisait échouer tout le dump avec un message trompeur (le warning
+    # mysqldump ci-dessous, bénin, se retrouvait au premier plan alors que le vrai souci était
+    # ce conflit de nom).
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
     remote_name = f"mise-backup-{stamp}.sql.gz"
     dump_script = (
         f'FILE="/backup/mise-backup-{stamp}.sql"; '
-        'mysqldump --no-tablespaces -h "$MYSQL_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" '
+        # Mot de passe via MYSQL_PWD plutôt que `-p"$VAR"` : évite le warning "Using a password
+        # on the command line interface can be insecure" (visible via `ps` par d'autres
+        # utilisateurs du même hôte) — cosmétique mais autant l'éviter proprement.
+        'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump --no-tablespaces -h "$MYSQL_HOST" -uroot '
         '"$MYSQL_DATABASE" > "$FILE" && gzip "$FILE"'
     )
     _run(
@@ -182,6 +190,55 @@ def backup_db(repo_path: Path, log: LogFn) -> Path:
     )
     log(f"Sauvegarde copiée : {local_path}")
     return local_path
+
+
+def list_backups(repo_path: Path) -> list[Path]:
+    return sorted(repo_path.glob("mise-backup-*.sql.gz"), reverse=True)
+
+
+def restore_db(repo_path: Path, backup_file: Path, log: LogFn) -> None:
+    """Reproduit la restauration manuelle de DEPLOY.md §7 (`gunzip -c ... | docker compose exec
+    -T db mysql ...`), mais lit les identifiants depuis les variables d'environnement déjà
+    définies dans le conteneur `db` (mêmes noms que pour `backup_db` côté `db-backup`) plutôt que
+    de dépendre de `.env` sourcé dans le shell de l'appelant."""
+    log(f"Lecture de {backup_file}...")
+    try:
+        import gzip
+
+        sql_bytes = gzip.open(backup_file, "rb").read()
+    except OSError as exc:
+        raise CommandError(f"Impossible de lire la sauvegarde : {exc}") from exc
+
+    log(f"Restauration de {backup_file.name} (écrase la base actuelle)...")
+    script = 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot "$MYSQL_DATABASE"'
+    args = ["docker", "compose", "exec", "-T", "db", "sh", "-c", script]
+    log("$ " + " ".join(args) + f" < {backup_file.name}")
+    try:
+        result = subprocess.run(
+            args,
+            cwd=repo_path,
+            input=sql_bytes,
+            capture_output=True,
+            timeout=_TIMEOUT_SECONDS,
+            env=_NO_PROMPT_ENV,
+        )
+    except FileNotFoundError as exc:
+        raise CommandError("Commande introuvable : « docker » — pas installé, ou pas dans le PATH ?") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise CommandError(f"La restauration n'a pas répondu après {_TIMEOUT_SECONDS}s") from exc
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or b"echec sans message").decode(errors="replace").strip()
+        raise CommandError(detail[-2000:])
+    log("Restauration terminée.")
+
+
+def restore(repo_path: Path, backup_file: Path, log: LogFn) -> None:
+    # Toujours une sauvegarde de sécurité juste avant d'écraser la base — même logique que
+    # update() : une restauration qui tourne mal (mauvais fichier choisi...) ne doit pas être
+    # irréversible.
+    log("Sauvegarde de sécurité avant restauration...")
+    backup_db(repo_path, log)
+    restore_db(repo_path, backup_file, log)
 
 
 def pull(repo_path: Path, log: LogFn) -> None:

@@ -98,11 +98,18 @@ class StatusWindow:
         self.project_status_label.pack(anchor="w", padx=8, pady=(0, 6))
 
         btn_row = ttk.Frame(frame)
-        btn_row.pack(fill="x", padx=8, pady=(0, 8))
+        btn_row.pack(fill="x", padx=8, pady=(0, 4))
         self.install_button = ttk.Button(btn_row, text="Installer", command=self._install)
         self.install_button.pack(side="left")
         self.update_button = ttk.Button(btn_row, text="Mettre à jour", command=self._update_project)
         self.update_button.pack(side="left", padx=(6, 0))
+
+        backup_row = ttk.Frame(frame)
+        backup_row.pack(fill="x", padx=8, pady=(0, 8))
+        self.backup_button = ttk.Button(backup_row, text="Sauvegarder", command=self._backup_now)
+        self.backup_button.pack(side="left")
+        self.restore_button = ttk.Button(backup_row, text="Restaurer…", command=self._restore)
+        self.restore_button.pack(side="left", padx=(6, 0))
 
     def _repo_path(self) -> Path:
         cfg = config.load()
@@ -133,6 +140,8 @@ class StatusWindow:
 
         self.install_button.config(state="disabled" if (self._busy or cloned) else "normal")
         self.update_button.config(state="normal" if (not self._busy and cloned) else "disabled")
+        self.backup_button.config(state="normal" if (not self._busy and cloned) else "disabled")
+        self.restore_button.config(state="normal" if (not self._busy and cloned) else "disabled")
 
     def _install(self) -> None:
         if self._busy:
@@ -193,6 +202,61 @@ class StatusWindow:
             target=self._run_project_task,
             args=(project.update, (repo_path,)),
             kwargs={},
+            daemon=True,
+        ).start()
+
+    def _backup_now(self) -> None:
+        if self._busy:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return
+        if not project.is_docker_available():
+            messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
+            return
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.backup_db, (repo_path,)),
+            daemon=True,
+        ).start()
+
+    def _restore(self) -> None:
+        if self._busy:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return
+        if not project.is_docker_available():
+            messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
+            return
+
+        chosen = filedialog.askopenfilename(
+            title="Choisir une sauvegarde à restaurer",
+            initialdir=str(repo_path),
+            filetypes=[("Sauvegardes Mise", "*.sql.gz"), ("Tous les fichiers", "*.*")],
+        )
+        if not chosen:
+            return
+
+        confirmed = messagebox.askyesno(
+            "Mise",
+            f"Restaurer « {Path(chosen).name} » ?\n\n"
+            "Ça écrase la base de données actuelle avec le contenu de cette sauvegarde. Une "
+            "sauvegarde de sécurité de l'état actuel sera prise automatiquement avant, mais "
+            "cette action reste irréversible sans elle.",
+            icon="warning",
+        )
+        if not confirmed:
+            return
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.restore, (repo_path, Path(chosen))),
             daemon=True,
         ).start()
 
