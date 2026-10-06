@@ -7,13 +7,17 @@ import { LabelListService } from '../../core/services/label-list.service';
 import { LabelQueueService } from '../../core/services/label-queue.service';
 import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { LabelTypeService } from '../../core/services/label-type.service';
 import { LabelList, LabelListItem } from '../../core/models/label-list.model';
-import { LABEL_TYPES, LabelType } from '../../core/models/label.model';
+import { LabelType } from '../../core/models/label.model';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
+import { LabelIcon } from '../label-icon/label-icon';
 
 const PRODUCT_NAME_MAX_LENGTH = 100;
 const MAX_ITEM_QUANTITY = 10;
 const DATE_OFFSETS = [0, 1, 2, 3, 4, 5];
+/** Repli le temps que les types se chargent depuis l'API — voir labels.ts pour le même principe. */
+const PLACEHOLDER_TYPE: LabelType = { key: '', title: '…' };
 
 function toIsoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -37,7 +41,7 @@ function isoDateWithOffset(daysFromToday: number): string {
  */
 @Component({
   selector: 'app-label-lists',
-  imports: [RouterLink, NgTemplateOutlet, ConfirmDialog],
+  imports: [RouterLink, NgTemplateOutlet, ConfirmDialog, LabelIcon],
   templateUrl: './label-lists.html',
   styleUrl: './label-lists.css',
 })
@@ -45,13 +49,14 @@ export class LabelLists implements OnInit {
   private readonly labelListService = inject(LabelListService);
   private readonly ingredientService = inject(IngredientService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
+  private readonly labelTypeService = inject(LabelTypeService);
   private readonly router = inject(Router);
   readonly labelQueue = inject(LabelQueueService);
 
   private readonly ingredients = toSignal(this.ingredientService.list(), { initialValue: [] });
   private readonly ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
 
-  readonly labelTypes = LABEL_TYPES;
+  readonly labelTypes = toSignal(this.labelTypeService.list(), { initialValue: [] as LabelType[] });
   readonly productNameMaxLength = PRODUCT_NAME_MAX_LENGTH;
   readonly dateOffsets = DATE_OFFSETS;
 
@@ -66,7 +71,7 @@ export class LabelLists implements OnInit {
 
   editName = signal('');
   editItems = signal<LabelListItem[]>([]);
-  newItemType = signal<LabelType>(LABEL_TYPES[0]);
+  newItemType = signal<LabelType>(PLACEHOLDER_TYPE);
   newItemName = signal('');
   newItemQty = signal(1);
   /** `null` = garder le décalage par défaut du type choisi (voir addSelectionToQueue). */
@@ -108,7 +113,11 @@ export class LabelLists implements OnInit {
   }
 
   itemTypeTitle(typeKey: string): string {
-    return this.labelTypes.find((t) => t.key === typeKey)?.title ?? typeKey;
+    return this.labelTypes().find((t) => t.key === typeKey)?.title ?? typeKey;
+  }
+
+  itemTypeIcon(typeKey: string): string | undefined {
+    return this.labelTypes().find((t) => t.key === typeKey)?.iconKey;
   }
 
   // --- Lecture / sélection avant impression ---
@@ -154,9 +163,10 @@ export class LabelLists implements OnInit {
 
     const today = toIsoDate(new Date());
 
+    const types = this.labelTypes();
     this.labelQueue.addMany(
       selected.map((item) => {
-        const type = this.labelTypes.find((t) => t.key === item.type_key) ?? this.labelTypes[0];
+        const type = types.find((t) => t.key === item.type_key) ?? types[0];
         const offset = item.use_by_offset_days ?? type.defaultShelfLifeDays;
         return {
           type,
@@ -200,7 +210,7 @@ export class LabelLists implements OnInit {
   }
 
   private resetComposer(): void {
-    this.newItemType.set(this.labelTypes[0]);
+    this.newItemType.set(this.labelTypes()[0] ?? PLACEHOLDER_TYPE);
     this.newItemName.set('');
     this.newItemQty.set(1);
     this.newItemOffset.set(null);

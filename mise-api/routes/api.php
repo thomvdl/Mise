@@ -13,6 +13,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IngredientCategoryController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\LabelListController;
+use App\Http\Controllers\LabelTypeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
@@ -66,6 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // aller-retour — voir PrintedLabelController::printZebra. Ouvert au même rôle que store()
     // ci-dessus : n'importe qui peut imprimer une étiquette depuis mise-public.
     Route::post('printed-labels/print-zebra', [PrintedLabelController::class, 'printZebra']);
+
+    // Types d'étiquette (OUVERT LE, PRODUIT LE, ...) — référentiel comme categories/stations plus
+    // bas, lecture ouverte à tout utilisateur connecté (consommé par la page Étiquettes des deux
+    // apps), écriture réservée à l'admin (groupe role:admin plus bas).
+    Route::apiResource('label-types', LabelTypeController::class)->only(['index'])
+        ->parameters(['label-types' => 'label_type']);
 
     // Listes nommées et réutilisables de produits à étiqueter (ex. "Mise en place du lundi") —
     // n'importe qui peut créer/modifier une liste partagée ; seule la suppression est réservée
@@ -130,6 +137,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['events' => 'event']);
         Route::apiResource('label-lists', LabelListController::class)->only(['destroy'])
             ->parameters(['label-lists' => 'label_list']);
+        Route::apiResource('label-types', LabelTypeController::class)->except(['index'])
+            ->parameters(['label-types' => 'label_type']);
 
         // Config globale de l'app (ex. IP de l'imprimante d'étiquettes) — dashboard uniquement,
         // mise-public n'y a jamais accès directement (voir PrintedLabelController::printZebra).

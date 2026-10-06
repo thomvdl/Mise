@@ -82,6 +82,9 @@
 }
 .type-chip {
   --chip-accent: var(--accent-blue);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-dim);

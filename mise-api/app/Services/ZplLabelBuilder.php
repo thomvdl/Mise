@@ -17,14 +17,6 @@ namespace App\Services;
  */
 class ZplLabelBuilder
 {
-    private const LABEL_TYPES = [
-        'ouvert' => 'OUVERT LE',
-        'produit' => 'PRODUIT LE',
-        'congele' => 'CONGELÉ LE',
-        'decongele' => 'DÉCONGELÉ LE',
-        'jeter' => 'À JETER LE',
-    ];
-
     /** Marge intérieure, en proportion de chaque dimension. */
     private const MARGIN_RATIO = 0.035;
 
@@ -40,10 +32,13 @@ class ZplLabelBuilder
 
     /**
      * Étiquette HACCP, dans l'ordre : nom du produit (sur 2 lignes max), type d'étiquette -> date,
-     * DLC -> date si applicable, puis le nom de l'utilisateur connecté qui imprime.
+     * DLC -> date si applicable, puis le nom de l'utilisateur connecté qui imprime. `$title` et
+     * `$iconKey` viennent du `LabelType` résolu par le contrôleur (table `label_types`,
+     * configurable — voir LabelTypeController) : ce service reste un pur générateur ZPL à partir
+     * de primitives, sans dépendance Eloquent.
      */
     public static function build(
-        string $typeKey,
+        string $title,
         string $productName,
         string $date,
         ?string $useByDate,
@@ -53,14 +48,14 @@ class ZplLabelBuilder
         float $heightMm = 32,
         bool $rotate90 = false,
         ?string $userName = null,
+        ?string $iconKey = null,
     ): string {
-        $title = self::LABEL_TYPES[$typeKey] ?? strtoupper($typeKey);
         $typeLine = $title . ' -> ' . self::formatDate($date);
         $dlcLine = $useByDate ? 'DLC -> ' . self::formatDate($useByDate) : null;
 
         $fields = [
             ['text' => self::sanitize($productName), 'lines' => 2],
-            ['text' => $typeLine, 'lines' => 1],
+            ['text' => $typeLine, 'lines' => 1, 'icon' => $iconKey],
         ];
 
         if ($dlcLine) {
@@ -121,7 +116,11 @@ class ZplLabelBuilder
      * empilant les champs par X croissant, l'ordre lu était inversé). Le premier champ de `$fields`
      * est donc placé au bout le plus loin de la marge sous rotation, et au début sinon.
      *
-     * @param  array<int, array{text: string, lines: int}>  $fields
+     * Un champ peut porter une `icon` (clé reconnue par ZplIconRenderer) : elle est dessinée en
+     * carré occupant toute la tranche déjà allouée au champ (`$lineSlot`), au tout début de l'axe
+     * d'avance, et le texte du champ démarre juste après (budget de largeur réduit d'autant).
+     *
+     * @param  array<int, array{text: string, lines: int, icon?: ?string}>  $fields
      */
     private static function render(
         float $widthMm,
@@ -174,11 +173,23 @@ class ZplLabelBuilder
         // `^FD` seul n'a aucune limite de longueur et déborderait sur le champ suivant si le texte
         // est un peu long.
         foreach ($fields as $field) {
-            $font = self::fitFont($field['text'], $innerAdvance, $lineSlot, $field['lines']);
+            $pos = $next($field['lines']);
+            $fieldAdvanceMargin = $advanceMargin;
+            $fieldInnerAdvance = $innerAdvance;
+
+            if (! empty($field['icon'])) {
+                $iconGap = max(4, (int) round($lineSlot * 0.15));
+                $lines[] = '^FO' . self::fo($rotate90, $pos, $advanceMargin)
+                    . ZplIconRenderer::graphicField($field['icon'], $lineSlot, $rotate90);
+                $fieldAdvanceMargin = $advanceMargin + $lineSlot + $iconGap;
+                $fieldInnerAdvance = max(1, $innerAdvance - $lineSlot - $iconGap);
+            }
+
+            $font = self::fitFont($field['text'], $fieldInnerAdvance, $lineSlot, $field['lines']);
             $spacing = $field['lines'] > 1 ? 2 : 0;
             $lines[] = "^CF0,{$font}";
-            $lines[] = '^FO' . self::fo($rotate90, $next($field['lines']), $advanceMargin)
-                . "^FB{$innerAdvance},{$field['lines']},{$spacing},L,0^FD{$field['text']}^FS";
+            $lines[] = '^FO' . self::fo($rotate90, $pos, $fieldAdvanceMargin)
+                . "^FB{$fieldInnerAdvance},{$field['lines']},{$spacing},L,0^FD{$field['text']}^FS";
         }
 
         $lines[] = '^PQ' . max(1, $quantity);

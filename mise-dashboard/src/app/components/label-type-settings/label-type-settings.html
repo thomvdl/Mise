@@ -1,0 +1,100 @@
+<div class="page-header">
+  <h1 class="page-title">Types d'étiquettes</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/parametres">Retour</a>
+    <button type="button" class="btn btn-primary" (click)="startCreate()">+ Nouveau type</button>
+  </div>
+</div>
+
+@if (errorMessage()) {
+  <p class="form-error">{{ errorMessage() }}</p>
+}
+
+@if (loading()) {
+  <p class="form-hint">Chargement…</p>
+} @else if (types().length === 0) {
+  <p class="form-hint">Aucun type d'étiquette pour l'instant.</p>
+} @else {
+  <ul class="type-list">
+    @for (type of types(); track type.id) {
+      <li class="type-row">
+        <app-label-icon class="type-row-icon" [icon]="type.icon_key" />
+        <span class="type-row-main">
+          <strong>{{ type.name }}</strong>
+          <span class="type-row-key">{{ type.key }}</span>
+        </span>
+        <span class="type-row-jplus">
+          {{ type.jplus_days === null ? 'Pas de DLC par défaut' : (type.jplus_days === 0 ? "DLC aujourd'hui" : 'DLC J+' + type.jplus_days) }}
+        </span>
+        <span class="type-row-actions">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="startEdit(type)">Modifier</button>
+          <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(type)">Supprimer</button>
+        </span>
+      </li>
+    }
+  </ul>
+}
+
+@if (editingId() !== null) {
+  <div class="modal-backdrop" (click)="cancelEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 class="modal-title">{{ editingId() === 'new' ? 'Nouveau type' : 'Modifier le type' }}</h2>
+
+      <div class="form-field">
+        <label class="form-label" for="type-name">Nom affiché sur l'étiquette</label>
+        <input id="type-name" class="form-input" type="text" placeholder="Ex. OUVERT LE" [value]="editName()" (input)="onNameInput($event)" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="type-key">Clé technique</label>
+        <input
+          id="type-key"
+          class="form-input"
+          type="text"
+          [value]="editKey()"
+          (input)="onKeyInput($event)"
+          [disabled]="editingId() !== 'new'" />
+        @if (editingId() === 'new') {
+          <p class="form-hint">Lettres, chiffres et tirets seulement — ne peut plus changer une fois le type créé.</p>
+        } @else {
+          <p class="form-hint">Fixée à la création — les étiquettes déjà imprimées avec ce type la référencent telle quelle.</p>
+        }
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="type-jplus">DLC par défaut (J+, en jours)</label>
+        <input id="type-jplus" class="form-input" type="number" min="0" max="60" placeholder="Laisser vide = pas de DLC" [value]="editJplusDays()" (input)="onJplusInput($event)" />
+        <p class="form-hint">Préremplit la DLC quand ce type est choisi sur la page Étiquettes — reste modifiable à chaque impression.</p>
+      </div>
+
+      <div class="form-field">
+        <span class="form-label">Icône</span>
+        <div class="icon-choices">
+          @for (icon of iconKeys; track icon) {
+            <button type="button" class="icon-chip" [class.active]="editIconKey() === icon" (click)="selectIcon(icon)">
+              <app-label-icon [icon]="icon" />
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (saveError()) {
+        <p class="form-error">{{ saveError() }}</p>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelEdit()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="'Supprimer le type « ' + (pendingDelete()?.name ?? '') + ' » ? Les étiquettes déjà imprimées avec ce type restent inchangées dans l\'historique.'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

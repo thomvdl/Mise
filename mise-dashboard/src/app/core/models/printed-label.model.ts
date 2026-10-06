@@ -11,15 +11,6 @@ export interface PrintedLabel {
   created_at: string;
 }
 
-/** mise-dashboard ne partage pas de code avec mise-public — sous-ensemble des LABEL_TYPES pour l'affichage/le filtre ici. */
-export const LABEL_TYPE_TITLES: Record<string, string> = {
-  ouvert: 'Ouvert le',
-  produit: 'Produit le',
-  congele: 'Congelé le',
-  decongele: 'Décongelé le',
-  jeter: 'Jeter le',
-};
-
 export interface PrintedLabelPayload {
   type_key: string;
   product_name: string;

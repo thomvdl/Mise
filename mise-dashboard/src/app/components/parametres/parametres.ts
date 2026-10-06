@@ -22,5 +22,6 @@ export class Parametres {
     { label: 'Appareils', description: 'Frigos, chambres froides, congélateurs…', path: '/appareils' },
     { label: 'Friteuses', description: 'Friteuses et durée de vie de l\'huile', path: '/friteuses' },
     { label: "Impression d'étiquettes", description: 'IP de l\'imprimante Zebra réseau', path: '/parametres/impression' },
+    { label: "Types d'étiquettes", description: 'Noms, DLC par défaut et icônes des types d\'étiquette', path: '/parametres/types-etiquettes' },
   ];
 }

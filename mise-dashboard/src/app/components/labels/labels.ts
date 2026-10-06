@@ -1,12 +1,17 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { IngredientService } from '../../core/services/ingredient.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
-import { AuthService } from '../../core/services/auth.service';
 import { LabelQueueService } from '../../core/services/label-queue.service';
-import { LABEL_TYPES, LabelType } from '../../core/models/label.model';
+import { LabelTypeService } from '../../core/services/label-type.service';
+import { LabelType } from '../../core/models/label.model';
+import { LabelIcon } from '../label-icon/label-icon';
+
+/** Le temps que les types se chargent depuis l'API, un repli vide évite de parsemer le template
+ *  de gardes null — remplacé par le vrai premier type dès que la liste arrive (voir l'effect). */
+const PLACEHOLDER_TYPE: LabelType = { key: '', title: '…' };
 
 const PRODUCT_NAME_MAX_LENGTH = 100;
 const MIN_PRINT_QUANTITY = 1;
@@ -32,7 +37,7 @@ function formatIsoDate(value: string): string {
 
 @Component({
   selector: 'app-labels',
-  imports: [RouterLink],
+  imports: [RouterLink, LabelIcon],
   templateUrl: './labels.html',
   styleUrl: './labels.css',
 })
@@ -40,26 +45,24 @@ export class Labels {
   private readonly route = inject(ActivatedRoute);
   private readonly ingredientService = inject(IngredientService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
-  private readonly auth = inject(AuthService);
+  private readonly labelTypeService = inject(LabelTypeService);
   /** File d'impression partagée avec /etiquettes/listes — voir LabelQueueService. */
   readonly labelQueue = inject(LabelQueueService);
 
   private readonly ingredients = toSignal(this.ingredientService.list(), { initialValue: [] });
   private readonly ficheTechniques = toSignal(this.ficheTechniqueService.list(), { initialValue: [] });
 
-  readonly labelTypes = LABEL_TYPES;
+  readonly labelTypes = toSignal(this.labelTypeService.list(), { initialValue: [] as LabelType[] });
   readonly dateOffsets = [0, 1, 2, 3, 4, 5];
   readonly productNameMaxLength = PRODUCT_NAME_MAX_LENGTH;
 
-  selectedType = signal<LabelType>(LABEL_TYPES[0]);
+  selectedType = signal<LabelType>(PLACEHOLDER_TYPE);
   productName = signal('');
   date = signal(toIsoDate(new Date()));
   /** ISO date, or '' when this label has no DLC (Date Limite de Consommation). */
-  useByDate = signal(LABEL_TYPES[0].defaultShelfLifeDays ? isoDateWithOffset(LABEL_TYPES[0].defaultShelfLifeDays) : '');
+  useByDate = signal('');
   /** Number of copies of the label being composed to add to the queue at once (1-10). */
   printQuantity = signal(MIN_PRINT_QUANTITY);
-
-  currentUserName = computed(() => this.auth.user()?.name ?? '');
 
   /** Product names pulled from the catalogs, offered as suggestions — the field itself stays free text. */
   suggestions = computed(() => {
@@ -69,18 +72,23 @@ export class Labels {
     return [...names].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
   });
 
-  formattedDate = computed(() => formatIsoDate(this.date()));
-  formattedUseByDate = computed(() => formatIsoDate(this.useByDate()));
-
   constructor() {
     const produit = this.route.snapshot.queryParamMap.get('produit');
     if (produit) {
       this.productName.set(produit.slice(0, PRODUCT_NAME_MAX_LENGTH));
-      // Arriving from a fiche technique detail page: "this dish was made today" is the
-      // natural default, rather than whichever type happened to be first in the list.
-      const producedType = LABEL_TYPES.find((type) => type.key === 'produit');
-      if (producedType) this.selectType(producedType);
     }
+
+    // Les types arrivent de façon asynchrone (API) — on choisit le premier dès qu'ils sont là,
+    // une seule fois (tant que le placeholder est encore actif). Arrivée depuis une fiche
+    // technique (`produit` en query param) : "fabriqué aujourd'hui" est le défaut naturel plutôt
+    // que le premier type de la liste, peu importe son ordre.
+    effect(() => {
+      const types = this.labelTypes();
+      if (types.length === 0 || this.selectedType().key !== '') return;
+
+      const preferred = produit ? types.find((type) => type.key === 'produit') : undefined;
+      this.selectType(preferred ?? types[0]);
+    });
   }
 
   selectType(type: LabelType): void {
@@ -120,7 +128,7 @@ export class Labels {
   /** Adds the label being composed to the print queue (with its chosen quantity), then resets name/quantity for the next one. */
   addToQueue(): void {
     const name = this.productName().trim();
-    if (!name) return;
+    if (!name || this.selectedType().key === '') return;
 
     this.labelQueue.add({
       type: this.selectedType(),

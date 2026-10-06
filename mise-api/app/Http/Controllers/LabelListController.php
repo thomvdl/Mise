@@ -13,8 +13,6 @@ use Illuminate\Validation\Rule;
  */
 class LabelListController extends Controller
 {
-    private const TYPE_KEYS = 'ouvert,produit,congele,decongele,jeter';
-
     /**
      * Display a listing of the resource.
      */
@@ -83,7 +81,7 @@ class LabelListController extends Controller
         return [
             'name' => [...$required, 'string', 'max:255'],
             'items' => [...$required, 'array', 'min:1'],
-            'items.*.type_key' => ['required_with:items', 'string', Rule::in(explode(',', self::TYPE_KEYS))],
+            'items.*.type_key' => ['required_with:items', 'string', Rule::exists('label_types', 'key')],
             'items.*.product_name' => ['required_with:items', 'string', 'max:100'],
             'items.*.quantity' => ['required_with:items', 'integer', 'between:1,10'],
             'items.*.use_by_offset_days' => ['nullable', 'integer', 'between:0,60'],

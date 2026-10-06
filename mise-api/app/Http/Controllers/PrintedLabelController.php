@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LabelType;
 use App\Models\PrintedLabel;
 use App\Models\Setting;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Historique des étiquettes réellement imprimées (traçabilité HACCP) — voir CONTEXT.md
@@ -48,7 +50,7 @@ class PrintedLabelController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type_key' => ['required', 'string', 'in:ouvert,produit,congele,decongele,jeter'],
+            'type_key' => ['required', 'string', Rule::exists('label_types', 'key')],
             'product_name' => ['required', 'string', 'max:100'],
             'date' => ['required', 'date'],
             'use_by_date' => ['nullable', 'date'],
@@ -73,15 +75,17 @@ class PrintedLabelController extends Controller
     public function printZebra(Request $request)
     {
         $validated = $request->validate([
-            'type_key' => ['required', 'string', 'in:ouvert,produit,congele,decongele,jeter'],
+            'type_key' => ['required', 'string', Rule::exists('label_types', 'key')],
             'product_name' => ['required', 'string', 'max:100'],
             'date' => ['required', 'date'],
             'use_by_date' => ['nullable', 'date'],
             'quantity' => ['required', 'integer', 'between:1,10'],
         ]);
 
+        $type = LabelType::where('key', $validated['type_key'])->first();
+
         $zpl = ZplLabelBuilder::build(
-            $validated['type_key'],
+            $type->name,
             $validated['product_name'],
             $validated['date'],
             $validated['use_by_date'] ?? null,
@@ -91,6 +95,7 @@ class PrintedLabelController extends Controller
             (float) Setting::get('label_height_mm', '32'),
             Setting::get('label_rotate_90', '0') === '1',
             $request->user()->name,
+            $type->icon_key,
         );
 
         if ($error = ZplPrinter::send($zpl)) {

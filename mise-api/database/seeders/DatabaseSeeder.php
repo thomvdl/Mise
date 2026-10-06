@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             IngredientCategorySeeder::class,
             IngredientSeeder::class,
             ChannelSeeder::class,
+            LabelTypeSeeder::class,
         ]);
 
         if (config('app.demo')) {

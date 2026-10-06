@@ -238,6 +238,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./components/printer-settings/printer-settings').then((m) => m.PrinterSettings),
           },
+          {
+            path: 'types-etiquettes',
+            loadComponent: () =>
+              import('./components/label-type-settings/label-type-settings').then((m) => m.LabelTypeSettings),
+          },
         ],
       },
 

@@ -1,8 +1,11 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
 
-import { LABEL_TYPE_TITLES, PrintedLabel } from '../../core/models/printed-label.model';
+import { PrintedLabel } from '../../core/models/printed-label.model';
+import { LabelType } from '../../core/models/label.model';
 import { PrintedLabelService } from '../../core/services/printed-label.service';
+import { LabelTypeService } from '../../core/services/label-type.service';
 import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
 
 type Period = 'semaine' | 'mois' | 'annee';
@@ -50,6 +53,7 @@ function rangeStart(period: 'semaine'): Date {
 })
 export class LabelHistory {
   private readonly printedLabelService = inject(PrintedLabelService);
+  private readonly labelTypeService = inject(LabelTypeService);
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly periods: { key: Period; label: string }[] = [
@@ -58,8 +62,7 @@ export class LabelHistory {
     { key: 'annee', label: 'Année' },
   ];
 
-  readonly labelTypeTitles = LABEL_TYPE_TITLES;
-  readonly labelTypeKeys = Object.keys(LABEL_TYPE_TITLES);
+  readonly labelTypes = toSignal(this.labelTypeService.list(), { initialValue: [] as LabelType[] });
   readonly maxMonth = currentMonthIso();
 
   selectedTypeKey = signal<string>('');
@@ -147,7 +150,7 @@ export class LabelHistory {
   }
 
   typeTitle(typeKey: string): string {
-    return this.labelTypeTitles[typeKey] ?? typeKey;
+    return this.labelTypes().find((type) => type.key === typeKey)?.title ?? typeKey;
   }
 
   printedViaLabel(via: string): string {

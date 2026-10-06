@@ -9,37 +9,17 @@
 
   <div class="labels-layout">
   <div class="panel">
-    <div class="preview-wrap">
-      <span class="preview-label">Aperçu</span>
-      <div class="label-page" [attr.data-type]="selectedType().key">
-        <div class="label-body">
-          <div class="label-name-col">
-            <div class="label-name">{{ productName() || 'Nom du produit' }}</div>
-          </div>
-          <div class="label-type-block">
-            <div class="label-type">{{ selectedType().title }}</div>
-            <div class="label-date">{{ formattedDate() || '––/––/––––' }}</div>
-            @if (useByDate()) {
-              <div class="label-type label-use-by-caption">DLC</div>
-              <div class="label-date label-use-by">{{ formattedUseByDate() }}</div>
-            }
-          </div>
-        </div>
-        <div class="label-footer">Fait par : <span class="label-footer-name">{{ currentUserName() || '—' }}</span></div>
-      </div>
-    </div>
-
     <div class="form-block">
       <span class="form-label">Type d'étiquette</span>
       <div class="type-choices">
-        @for (type of labelTypes; track type.key) {
+        @for (type of labelTypes(); track type.key) {
           <button
             type="button"
             class="type-chip"
             [attr.data-type]="type.key"
             [class.active]="selectedType().key === type.key"
             (click)="selectType(type)">
-            {{ type.title }}
+            <app-label-icon [icon]="type.iconKey" />{{ type.title }}
           </button>
         }
       </div>
@@ -175,7 +155,7 @@
           <div class="label-name">{{ item.productName }}</div>
         </div>
         <div class="label-type-block">
-          <div class="label-type">{{ item.type.title }}</div>
+          <div class="label-type"><app-label-icon [icon]="item.type.iconKey" />{{ item.type.title }}</div>
           <div class="label-date">{{ formatDate(item.date) }}</div>
           @if (item.useByDate) {
             <div class="label-type label-use-by-caption">DLC</div>

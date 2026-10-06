@@ -9,15 +9,32 @@ export interface LabelType {
    * storage, or disposal itself has no forward-looking date).
    */
   defaultShelfLifeDays?: number;
+  /** Clé d'icône (voir ICON_KEYS) — `undefined` affiche l'icône générique de repli. */
+  iconKey?: string;
 }
 
-export const LABEL_TYPES: LabelType[] = [
-  { key: 'ouvert', title: 'Ouvert le' },
-  { key: 'produit', title: 'Produit le', defaultShelfLifeDays: 3 },
-  { key: 'congele', title: 'Congelé le' },
-  { key: 'decongele', title: 'Décongelé le', defaultShelfLifeDays: 2 },
-  { key: 'jeter', title: 'Jeter le', defaultShelfLifeDays: 3 },
-];
+/** Enregistrement brut tel que renvoyé par `GET /label-types` (voir LabelTypeController côté API). */
+export interface LabelTypeRecord {
+  id: number;
+  key: string;
+  name: string;
+  jplus_days: number | null;
+  icon_key: string | null;
+  position: number;
+}
+
+export function labelTypeFromRecord(record: LabelTypeRecord): LabelType {
+  return {
+    key: record.key,
+    title: record.name,
+    defaultShelfLifeDays: record.jplus_days ?? undefined,
+    iconKey: record.icon_key ?? undefined,
+  };
+}
+
+/** Jeu fixe d'icônes dessinables côté impression (voir ZplIconRenderer/LabelTypeController::ICON_KEYS). */
+export const ICON_KEYS = ['flocon', 'poubelle', 'production', 'goutte', 'ouvert', 'generique'] as const;
+export type IconKey = (typeof ICON_KEYS)[number];
 
 export interface QueuedLabel {
   id: number;

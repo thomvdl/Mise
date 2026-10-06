@@ -133,14 +133,14 @@
     <div class="form-block">
       <span class="form-label">Type d'étiquette</span>
       <div class="type-choices">
-        @for (type of labelTypes; track type.key) {
+        @for (type of labelTypes(); track type.key) {
           <button
             type="button"
             class="type-chip"
             [attr.data-type]="type.key"
             [class.active]="newItemType().key === type.key"
             (click)="selectNewItemType(type)">
-            {{ type.title }}
+            <app-label-icon [icon]="type.iconKey" />{{ type.title }}
           </button>
         }
       </div>

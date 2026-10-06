@@ -10,8 +10,8 @@
     <label class="form-label" for="type">Type</label>
     <select id="type" class="form-select" (change)="onTypeChange($event)">
       <option value="" [selected]="selectedTypeKey() === ''">Tous</option>
-      @for (key of labelTypeKeys; track key) {
-        <option [value]="key" [selected]="key === selectedTypeKey()">{{ typeTitle(key) }}</option>
+      @for (type of labelTypes(); track type.key) {
+        <option [value]="type.key" [selected]="type.key === selectedTypeKey()">{{ type.title }}</option>
       }
     </select>
   </div>
