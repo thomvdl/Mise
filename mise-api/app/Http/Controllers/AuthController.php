@@ -11,11 +11,18 @@ class AuthController extends Controller
 {
     /**
      * Liste des noms d'utilisateurs, publique et non authentifiée — sert uniquement à afficher
-     * le sélecteur de compte sur l'écran de connexion (pas d'email, pas de rôle, pas de mot de passe).
+     * le sélecteur de compte sur l'écran de connexion de mise-public (pas d'email, pas de rôle,
+     * pas de mot de passe). N'est consommée que par mise-public — le dashboard a son propre
+     * formulaire de connexion sans sélecteur, pas concerné par ce filtre.
+     *
+     * Les comptes admin sont exclus : cet écran est celui de la brigade en cuisine (potentiellement
+     * affiché en kiosque sur un écran partagé), pas un outil d'administration — pas de raison d'y
+     * afficher les comptes admin. Rien n'empêche un admin de se connecter quand même depuis
+     * mise-public en tapant son nom à la main : seul l'affichage dans le sélecteur est filtré.
      */
     public function publicUsers()
     {
-        return User::orderBy('name')->get(['id', 'name']);
+        return User::where('role', '!=', 'admin')->orderBy('name')->get(['id', 'name']);
     }
 
     public function login(Request $request)
