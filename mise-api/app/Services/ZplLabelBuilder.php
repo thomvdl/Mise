@@ -11,9 +11,9 @@ namespace App\Services;
  * indispensable dès que deux formats très différents (ex. 57x32mm en paysage, 38x89mm pivoté)
  * doivent cohabiter sans recalibrage manuel.
  *
- * Contenu : titre du type d'étiquette, nom du produit (sur 2 lignes max), date, et DLC si
- * applicable — reprend le même contenu que l'ancien système Brother QL. `^PQ` imprime les copies
- * en une seule connexion plutôt que de rouvrir un socket par exemplaire.
+ * Contenu, dans l'ordre : nom du produit (sur 2 lignes max), type d'étiquette -> date, DLC -> date
+ * si applicable, puis le nom de l'utilisateur connecté qui imprime. `^PQ` imprime les copies en
+ * une seule connexion plutôt que de rouvrir un socket par exemplaire.
  */
 class ZplLabelBuilder
 {
@@ -48,11 +48,13 @@ class ZplLabelBuilder
         float $widthMm = 57,
         float $heightMm = 32,
         bool $rotate90 = false,
+        ?string $userName = null,
     ): string {
         $title = self::LABEL_TYPES[$typeKey] ?? strtoupper($typeKey);
         $product = self::sanitize($productName);
-        $dateLine = 'Le : ' . self::formatDate($date);
-        $dlcLine = $useByDate ? 'À consommer avant : ' . self::formatDate($useByDate) : null;
+        $typeLine = $title . ' -> ' . self::formatDate($date);
+        $dlcLine = $useByDate ? 'DLC -> ' . self::formatDate($useByDate) : null;
+        $userLine = $userName ? self::sanitize($userName) : null;
 
         $dotsPerMm = $dpi / 25.4;
         // ^PW/^LL restent calés sur le support physique (largeur = ce que la tête d'impression
@@ -77,12 +79,11 @@ class ZplLabelBuilder
 
         // Le nom du produit réserve toujours 2 lignes (comme avant) — ^FB n'utilise la seconde
         // que si le texte déborde de la première, donc un nom court ne gaspille rien.
-        $lineCount = 1 + 2 + 1 + ($dlcLine ? 1 : 0);
+        $lineCount = 2 + 1 + ($dlcLine ? 1 : 0) + ($userLine ? 1 : 0);
         $lineSlot = (int) floor($innerStack / $lineCount);
 
-        $titleFont = self::fitFont($title, $innerAdvance, $lineSlot);
         $nameFont = self::fitFont($product, $innerAdvance, $lineSlot, perLine: 2);
-        $dateFont = self::fitFont($dateLine, $innerAdvance, $lineSlot);
+        $typeFont = self::fitFont($typeLine, $innerAdvance, $lineSlot);
 
         $lines = [
             '^XA',
@@ -98,23 +99,42 @@ class ZplLabelBuilder
         // `^FB` est indispensable sur CHAQUE champ, pas seulement le nom du produit : un `^FD`
         // seul n'a aucune limite de longueur et déborderait sur le champ suivant si le texte est
         // un peu long. `^FB` le contraint à sa tranche le long de l'axe d'avance.
-        $stackPos = $stackMargin;
-        $lines[] = "^CF0,{$titleFont}";
-        $lines[] = '^FO' . self::fo($rotate90, $stackPos, $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$title}^FS";
-        $stackPos += $lineSlot;
+        //
+        // Sous rotation, le sens de lecture physique (une fois l'étiquette tournée) va du X
+        // physique le plus GRAND vers le plus PETIT — l'inverse du sens normal (constaté en test :
+        // en empilant les champs par X croissant, l'ordre lu était inversé). `$next()` place donc
+        // le premier champ au bout le plus loin de la marge sous rotation, et avance normalement
+        // sinon.
+        $stackPos = $rotate90 ? ($stackMargin + $innerStack) : $stackMargin;
+        $next = function (int $slots) use (&$stackPos, $lineSlot, $rotate90): int {
+            if ($rotate90) {
+                $stackPos -= $slots * $lineSlot;
+
+                return $stackPos;
+            }
+
+            $pos = $stackPos;
+            $stackPos += $slots * $lineSlot;
+
+            return $pos;
+        };
 
         $lines[] = "^CF0,{$nameFont}";
-        $lines[] = '^FO' . self::fo($rotate90, $stackPos, $advanceMargin) . "^FB{$innerAdvance},2,2,L,0^FD{$product}^FS";
-        $stackPos += $lineSlot * 2;
+        $lines[] = '^FO' . self::fo($rotate90, $next(2), $advanceMargin) . "^FB{$innerAdvance},2,2,L,0^FD{$product}^FS";
 
-        $lines[] = "^CF0,{$dateFont}";
-        $lines[] = '^FO' . self::fo($rotate90, $stackPos, $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$dateLine}^FS";
-        $stackPos += $lineSlot;
+        $lines[] = "^CF0,{$typeFont}";
+        $lines[] = '^FO' . self::fo($rotate90, $next(1), $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$typeLine}^FS";
 
         if ($dlcLine) {
             $dlcFont = self::fitFont($dlcLine, $innerAdvance, $lineSlot);
             $lines[] = "^CF0,{$dlcFont}";
-            $lines[] = '^FO' . self::fo($rotate90, $stackPos, $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$dlcLine}^FS";
+            $lines[] = '^FO' . self::fo($rotate90, $next(1), $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$dlcLine}^FS";
+        }
+
+        if ($userLine) {
+            $userFont = self::fitFont($userLine, $innerAdvance, $lineSlot);
+            $lines[] = "^CF0,{$userFont}";
+            $lines[] = '^FO' . self::fo($rotate90, $next(1), $advanceMargin) . "^FB{$innerAdvance},1,0,L,0^FD{$userLine}^FS";
         }
 
         $lines[] = '^PQ' . max(1, $quantity);
