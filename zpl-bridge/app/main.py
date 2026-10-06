@@ -5,8 +5,16 @@ restent dans le dossier pour un usage manuel/dépannage, voir README.md).
 `pystray` et `tkinter` veulent chacun tourner sur le thread principal selon l'OS — on donne le
 thread principal à tkinter (`root.mainloop()`) et on détache pystray dans un thread à lui via
 `icon.run_detached()`, explicitement prévu par pystray pour ce genre de combinaison.
+
+Sur macOS, les callbacks du menu pystray (clic sur "Ouvrir"/"Quitter") s'exécutent sur ce thread
+détaché, pas sur le thread principal — y appeler directement une méthode Tkinter (même via
+`root.after`) fait planter l'app (`Fatal Python error: PyEval_RestoreThread: NULL tstate`, Tkinter
+n'étant pilotable que depuis le thread qui fait tourner `mainloop()`). Les callbacks du menu se
+contentent donc de déposer une action dans une `queue.Queue` thread-safe, et c'est `poll_actions()`
+— planifiée par le thread principal lui-même — qui la consomme et appelle Tkinter.
 """
 
+import queue
 import sys
 import tkinter as tk
 
@@ -56,9 +64,11 @@ def main() -> None:
 
     status_window = StatusWindow(root, backend, events, autostart, get_executable_path)
 
+    actions: "queue.Queue[str]" = queue.Queue()
+
     icon = build_tray_icon(
-        open_status_window=lambda _icon=None, _item=None: root.after(0, status_window.open),
-        quit_app=lambda _icon=None, _item=None: root.after(0, do_quit),
+        open_status_window=lambda _icon=None, _item=None: actions.put("open"),
+        quit_app=lambda _icon=None, _item=None: actions.put("quit"),
     )
 
     def do_quit() -> None:
@@ -66,7 +76,22 @@ def main() -> None:
         icon.stop()
         root.quit()
 
-    status_window.set_quit_callback(lambda: root.after(0, do_quit))
+    # Appelé par le bouton "Quitter" de la fenêtre de statut (déjà sur le thread principal, via
+    # un callback de bouton Tkinter) — pas besoin de passer par la queue ici.
+    status_window.set_quit_callback(do_quit)
+
+    def poll_actions() -> None:
+        try:
+            while True:
+                action = actions.get_nowait()
+                if action == "open":
+                    status_window.open()
+                elif action == "quit":
+                    do_quit()
+                    return  # root.quit() a été appelé : ne pas se replanifier.
+        except queue.Empty:
+            pass
+        root.after(100, poll_actions)
 
     def tick() -> None:
         update_icon(icon, backend.is_available())
@@ -75,6 +100,7 @@ def main() -> None:
         root.after(REFRESH_INTERVAL_MS, tick)
 
     icon.run_detached()
+    root.after(100, poll_actions)
     root.after(500, tick)
     root.mainloop()
 

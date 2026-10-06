@@ -52,6 +52,7 @@ class StatusWindow:
         btn_row.pack(fill="x", padx=14, pady=(0, 14))
         ttk.Button(btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(side="left")
         ttk.Button(btn_row, text="Quitter", command=self._quit).pack(side="right")
+        ttk.Button(btn_row, text="Recharger", command=self.refresh).pack(side="right", padx=(0, 6))
 
     def _build_printer_picker(self) -> None:
         from .print_backend_windows import WindowsPrintBackend
@@ -82,8 +83,21 @@ class StatusWindow:
 
     def open(self) -> None:
         self.refresh()
+        if sys.platform == "darwin":
+            # L'app est une "accessory app" (LSUIElement, pas d'icône Dock) — sans activation
+            # explicite, macOS ne la passe jamais au premier plan et la fenêtre reste dessinée
+            # vide/blanche (jamais de focus clavier non plus) tant qu'on ne clique pas ailleurs
+            # pour forcer un redraw.
+            try:
+                from AppKit import NSApplication
+
+                NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+            except Exception:  # noqa: BLE001 — l'ouverture de la fenêtre doit continuer même si
+                # l'activation échoue (ex. PyObjC manquant en dev hors venv complet).
+                pass
         self.window.deiconify()
         self.window.lift()
+        self.window.focus_force()
 
     def refresh(self) -> None:
         available = self.backend.is_available()
