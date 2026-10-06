@@ -1,0 +1,4 @@
+pyusb
+pystray
+pillow
+pyinstaller

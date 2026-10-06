@@ -13,7 +13,57 @@ La solution dépend de l'OS du mini PC :
 | Où tourne le pont | Dans un conteneur Docker (`socat`) | Nativement sur la machine, hors Docker | Nativement sur la machine, hors Docker |
 | Pourquoi | Docker sur Linux peut passer le périphérique USB directement à un conteneur | Docker Desktop sur Windows ne donne pas aux conteneurs un accès direct aux périphériques USB du hôte | Même limitation que Windows — Docker Desktop sur macOS non plus |
 | Adresse à renseigner dans Paramètres → Impression d'étiquettes | `zpl-bridge` (nom du service Docker) | `host.docker.internal` (adresse spéciale résolue par Docker Desktop vers la machine hôte) | `host.docker.internal` (idem, Docker Desktop le résout aussi sur macOS) |
-| Fichiers | `docker-compose.linux-usb-printer.yml` (racine du projet) | `zpl_bridge.py` (ce dossier) | `zpl_bridge_macos.py` (ce dossier) |
+| Fichiers | `docker-compose.linux-usb-printer.yml` (racine du projet) | `app/` empaqueté en `.exe` (voir ci-dessous) | `app/` empaqueté en `.app` (voir ci-dessous) |
+
+## Windows et macOS : l'appli de barre système (`app/`)
+
+Sur Windows et macOS, le pont tourne désormais sous la forme d'une petite appli native avec icône
+de barre système (barre des tâches / barre de menus), empaquetée via PyInstaller en `.exe`/`.app`
+autonome — pas besoin d'installer Python ni de dépendance sur la machine cible. Elle fait tout ce
+que faisaient les anciens scripts (`zpl_bridge.py` / `zpl_bridge_macos.py`, conservés dans ce
+dossier pour un usage manuel/dépannage en ligne de commande), plus :
+
+- une fenêtre de statut (clic sur l'icône → **Ouvrir**) qui montre si l'imprimante est détectée,
+  le journal des dernières impressions/erreurs, et un bouton pour imprimer une étiquette de test ;
+- sur Windows, le choix de l'imprimante installée directement depuis cette fenêtre (persisté dans
+  un fichier de config — plus besoin de passer le nom en argument de script) ;
+- une case "Lancer au démarrage" qui gère l'auto-démarrage elle-même (agent `launchd` côté macOS,
+  raccourci dans le dossier Démarrage côté Windows) — plus besoin de suivre les étapes manuelles
+  des sections "Démarrage automatique" ci-dessous, qui restent documentées seulement pour les
+  anciens scripts/le dépannage.
+
+### Construire l'appli
+
+Sur chaque OS cible, dans un venv avec les dépendances installées :
+
+```bash
+# macOS (nécessite `brew install libusb` au préalable — voir section macOS ci-dessous)
+pip install -r requirements-macos.txt
+./packaging/build_macos.sh
+# -> dist/macos/Pont ZPL - Mise.app
+```
+
+```powershell
+# Windows
+pip install -r requirements-windows.txt
+packaging\build_windows.bat
+# -> dist\windows\Pont ZPL - Mise.exe
+```
+
+Le `.app`/`.exe` obtenu est autonome (Python et toutes les dépendances, y compris `libusb` côté
+macOS, sont embarqués) — copiez-le simplement sur le mini PC cible et lancez-le. Pas besoin d'y
+installer Python, Homebrew ou pip.
+
+### Dépannage de l'appli empaquetée
+
+- **L'icône n'apparaît pas** : l'app a peut-être échoué au lancement — relancez-la depuis un
+  Terminal/une invite de commandes (`./dist/macos/Pont\ ZPL\ -\ Mise.app/Contents/MacOS/Pont\ ZPL\ -\ Mise`
+  ou l'équivalent `.exe`) pour voir une éventuelle erreur affichée.
+- **macOS refuse de lancer l'app** (non signée) : clic droit → Ouvrir, puis confirmer dans la
+  boîte de dialogue Gatekeeper (une seule fois).
+- Pour le reste (imprimante introuvable, étiquette mal formatée…), voir les sections de
+  dépannage par OS ci-dessous — les causes sont les mêmes, seule l'interface pour les constater
+  change (fenêtre de statut au lieu des logs de script/`netstat`/`lsof`).
 
 ## Linux
 
