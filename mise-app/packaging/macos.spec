@@ -45,6 +45,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=f"{APP_NAME}.app",
+    icon=str(PROJECT_ROOT / "packaging" / "assets" / "icon.icns"),
     bundle_identifier="com.mise.app",
     info_plist={
         # Pas d'icône Dock ni d'entrée Cmd+Tab — c'est une app de barre de menus uniquement.

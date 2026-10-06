@@ -28,4 +28,5 @@ exe = EXE(
     [],
     name=APP_NAME,
     console=False,
+    icon=str(PROJECT_ROOT / "packaging" / "assets" / "icon.ico"),
 )
