@@ -20,7 +20,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 
-from . import autostart, config, project
+from . import autostart, config, kiosk, project
 from .bridge_server import BridgeServer
 from .events import EventLog
 from .status_window import StatusWindow
@@ -73,6 +73,18 @@ def ensure_project_running(events: EventLog) -> None:
     threading.Thread(target=run, daemon=True).start()
 
 
+def maybe_launch_kiosk(events: EventLog) -> None:
+    cfg = config.load()
+    if not cfg.get("kiosk_autostart"):
+        return
+    url = cfg.get("kiosk_url") or "http://localhost:8082"
+    try:
+        kiosk.launch(url, events.add)
+    except Exception as exc:  # noqa: BLE001 — un kiosque qui ne démarre pas ne doit pas empêcher
+        # le reste de l'app (pont ZPL, Docker) de tourner.
+        events.add(f"Échec du lancement automatique du mode kiosque : {exc}", level="error")
+
+
 def main() -> None:
     events = EventLog()
     backend = build_backend()
@@ -82,6 +94,7 @@ def main() -> None:
     events.add("Pont démarré")
 
     ensure_project_running(events)
+    maybe_launch_kiosk(events)
 
     root = tk.Tk()
     root.withdraw()

@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
-from . import config, project
+from . import config, kiosk, project
 
 # Étiquette minimale pour le bouton de test — juste de quoi confirmer que le pont et l'imprimante
 # répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
@@ -71,7 +71,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("460x560")
+        self.window.geometry("460x660")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -83,6 +83,7 @@ class StatusWindow:
             self._build_printer_picker()
 
         self._build_project_section()
+        self._build_kiosk_section()
 
         ttk.Label(self.window, text="Activité récente").pack(anchor="w", padx=14)
         self.events_list = tk.Listbox(self.window, height=9)
@@ -157,6 +158,49 @@ class StatusWindow:
         cfg = config.load()
         configured = cfg.get("repo_path")
         return Path(configured) if configured else Path.home() / "Mise"
+
+    def _build_kiosk_section(self) -> None:
+        frame = ttk.LabelFrame(self.window, text="Mode brigade (kiosk)")
+        frame.pack(fill="x", padx=14, pady=(0, 10))
+
+        ttk.Label(frame, text="Adresse mise-public :").pack(anchor="w", padx=8, pady=(8, 2))
+        cfg = config.load()
+        self.kiosk_url_var = tk.StringVar(value=cfg.get("kiosk_url") or "http://localhost:8082")
+        url_entry = ttk.Entry(frame, textvariable=self.kiosk_url_var, width=40)
+        url_entry.pack(fill="x", padx=8)
+        url_entry.bind("<FocusOut>", lambda _event: self._save_kiosk_url())
+
+        row = ttk.Frame(frame)
+        row.pack(fill="x", padx=8, pady=8)
+        ttk.Button(row, text="Lancer", command=self._launch_kiosk).pack(side="left")
+
+        self.kiosk_autostart_var = tk.BooleanVar(value=bool(cfg.get("kiosk_autostart")))
+        ttk.Checkbutton(
+            row,
+            text="Lancer au démarrage de l'app",
+            variable=self.kiosk_autostart_var,
+            command=self._toggle_kiosk_autostart,
+        ).pack(side="left", padx=(10, 0))
+
+    def _save_kiosk_url(self) -> None:
+        cfg = config.load()
+        cfg["kiosk_url"] = self.kiosk_url_var.get().strip() or "http://localhost:8082"
+        config.save(cfg)
+
+    def _toggle_kiosk_autostart(self) -> None:
+        cfg = config.load()
+        cfg["kiosk_autostart"] = self.kiosk_autostart_var.get()
+        config.save(cfg)
+
+    def _launch_kiosk(self) -> None:
+        self._save_kiosk_url()
+        url = self.kiosk_url_var.get().strip()
+        try:
+            kiosk.launch(url, self.events.add)
+        except Exception as exc:  # noqa: BLE001 — affiché dans le journal, pas une exception à
+            # laisser remonter jusqu'à l'UI.
+            self.events.add(f"Échec du lancement du mode kiosque : {exc}", level="error")
+        self.refresh()
 
     def _choose_repo_folder(self) -> None:
         chosen = filedialog.askdirectory(
