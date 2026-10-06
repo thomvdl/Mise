@@ -1,5 +1,5 @@
 # Build : `pyinstaller packaging/macos.spec --distpath dist/macos --workpath build/macos -y`
-# (ou directement `./packaging/build_macos.sh`), depuis la racine de zpl-bridge/.
+# (ou directement `./packaging/build_macos.sh`), depuis la racine de mise-app/.
 #
 # Bundle le `.dylib` libusb trouvé via Homebrew au moment du build dans l'app elle-même — le mini
 # PC cible n'a pas forcément Homebrew installé (voir print_backend_macos.py::_bundled_backend).
@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 PROJECT_ROOT = Path(SPECPATH).parent
-APP_NAME = "Pont ZPL - Mise"
+APP_NAME = "Mise"
 
 libusb_path = subprocess.run(
     ["brew", "--prefix", "libusb"], capture_output=True, text=True, check=True
@@ -45,7 +45,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=f"{APP_NAME}.app",
-    bundle_identifier="com.mise.zpl-bridge",
+    bundle_identifier="com.mise.app",
     info_plist={
         # Pas d'icône Dock ni d'entrée Cmd+Tab — c'est une app de barre de menus uniquement.
         "LSUIElement": True,

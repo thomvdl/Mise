@@ -1,11 +1,11 @@
-# Build (sur une machine Windows, depuis la racine de zpl-bridge/) :
+# Build (sur une machine Windows, depuis la racine de mise-app/) :
 #   pyinstaller packaging\windows.spec --distpath dist\windows --workpath build\windows -y
 # ou directement `packaging\build_windows.bat`.
 
 from pathlib import Path
 
 PROJECT_ROOT = Path(SPECPATH).parent
-APP_NAME = "Pont ZPL - Mise"
+APP_NAME = "Mise"
 
 a = Analysis(
     [str(PROJECT_ROOT / "run.py")],

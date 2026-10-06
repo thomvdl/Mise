@@ -13,7 +13,7 @@ def _config_dir() -> Path:
         base = Path(os.environ.get("APPDATA", str(Path.home())))
     else:
         base = Path.home() / "Library" / "Application Support"
-    path = base / "MiseZplBridge"
+    path = base / "MiseApp"
     path.mkdir(parents=True, exist_ok=True)
     return path
 

@@ -6,5 +6,5 @@
 .venv-test
 __pycache__
 *.pyc
-/zpl-bridge/dist/
-/zpl-bridge/build/
+/mise-app/dist/
+/mise-app/build/

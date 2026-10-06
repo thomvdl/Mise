@@ -1,4 +1,4 @@
-# Pont ZPL (imprimante Zebra en USB)
+# Mise App (pont ZPL + installation/mise à jour du projet)
 
 `mise-api` parle à l'imprimante en ouvrant un socket TCP brut sur le port **9100** (protocole
 JetDirect, voir `mise-api/app/Http/Controllers/PrintedLabelController.php`) — pensé à l'origine
@@ -48,6 +48,47 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
   - Les deux opérations tournent en tâche de fond et journalisent leur progression dans "Activité
     récente" (peuvent prendre plusieurs minutes, surtout la toute première installation).
 
+### Déployer un nouveau mini PC avec l'app (clone + installation + mises à jour)
+
+C'est le chemin pensé pour le mini PC de production : une seule app à copier, qui gère ensuite
+tout le cycle de vie du projet (plus besoin de suivre `DEPLOY.md` à la main pas à pas).
+
+**Prérequis à installer soi-même avant, une seule fois** (l'app ne les installe jamais
+silencieusement — trop risqué sans contrôle) :
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) ;
+- [Git](https://git-scm.com/downloads) (Git for Windows sur Windows).
+
+L'app détecte leur absence et affiche un message clair plutôt que d'échouer silencieusement.
+
+**Étapes :**
+
+1. Récupérez `Mise.exe`/`Mise.app` (voir "Construire l'appli" ci-dessous pour le construire
+   vous-même, ou copiez un exécutable déjà construit par ailleurs — clé USB, partage réseau...) et
+   lancez-le. Une icône apparaît dans la barre système.
+2. Cliquez sur l'icône → **Ouvrir**, puis dans la section **"Projet Mise"** :
+   - **Dossier…** pour choisir où installer le projet (par défaut `~/Mise`) ;
+   - **Installer** : clone le dépôt, crée `.env` avec des mots de passe générés automatiquement
+     (seuls le nom et le mot de passe du compte admin sont demandés, dans deux boîtes de
+     dialogue), puis lance `docker compose up -d --build`. Peut prendre plusieurs minutes la
+     première fois (téléchargement/construction des images) — la progression s'affiche dans
+     "Activité récente".
+   - Si le dépôt GitHub est privé, un jeton d'accès personnel GitHub est demandé une seule fois
+     (voir la note plus bas) et enregistré dans le gestionnaire d'identifiants du système — jamais
+     dans la config de l'app.
+3. Une fois terminé : le dashboard tourne sur `http://localhost:8081` (voir `DEPLOY.md` pour
+   l'accès réseau local/tunnel Cloudflare), et le pont ZPL est actif en parallèle dans la même
+   app si l'imprimante est branchée en USB (voir ci-dessous pour la configurer côté dashboard).
+4. À chaque démarrage de l'app par la suite, elle relance `docker compose up -d` (sans rebuild)
+   pour s'assurer que tout tourne — pas besoin de retaper de commande Docker au quotidien.
+5. Pour une mise à jour future : bouton **Mettre à jour** dans la même section — sauvegarde la
+   base automatiquement (même procédure que `DEPLOY.md` §7), puis `git pull` + rebuild. Ce n'est
+   **jamais automatique ni silencieux** : uniquement sur ce clic, pour garder la main en cas
+   d'échec d'une migration sans personne sur place pour intervenir (voir `DEPLOY.md` §8).
+
+Toutes ces opérations tournent en tâche de fond ; la fenêtre de statut peut être fermée et
+rouverte pendant qu'une installation/mise à jour est en cours, le journal "Activité récente"
+reprend où elle en est.
+
 ### Construire l'appli
 
 Sur chaque OS cible, dans un venv avec les dépendances installées :
@@ -56,14 +97,14 @@ Sur chaque OS cible, dans un venv avec les dépendances installées :
 # macOS (nécessite `brew install libusb` au préalable — voir section macOS ci-dessous)
 pip install -r requirements-macos.txt
 ./packaging/build_macos.sh
-# -> dist/macos/Pont ZPL - Mise.app
+# -> dist/macos/Mise.app
 ```
 
 ```powershell
 # Windows
 pip install -r requirements-windows.txt
 packaging\build_windows.bat
-# -> dist\windows\Pont ZPL - Mise.exe
+# -> dist\windows\Mise.exe
 ```
 
 Le `.app`/`.exe` obtenu est autonome (Python et toutes les dépendances, y compris `libusb` côté
@@ -73,7 +114,7 @@ installer Python, Homebrew ou pip.
 ### Dépannage de l'appli empaquetée
 
 - **L'icône n'apparaît pas** : l'app a peut-être échoué au lancement — relancez-la depuis un
-  Terminal/une invite de commandes (`./dist/macos/Pont\ ZPL\ -\ Mise.app/Contents/MacOS/Pont\ ZPL\ -\ Mise`
+  Terminal/une invite de commandes (`./dist/macos/Mise.app/Contents/MacOS/Mise`
   ou l'équivalent `.exe`) pour voir une éventuelle erreur affichée.
 - **macOS refuse de lancer l'app** (non signée) : clic droit → Ouvrir, puis confirmer dans la
   boîte de dialogue Gatekeeper (une seule fois).
@@ -183,7 +224,7 @@ après coupure de courant, par exemple) :
    - Programme : `pythonw.exe` (le chemin exact dépend de l'installation Python ; `pythonw` plutôt
      que `python` pour ne pas garder une fenêtre de console ouverte)
    - Arguments : `zpl_bridge.py "Nom exact de l'imprimante"`
-   - Démarrer dans : le dossier `zpl-bridge` de ce projet.
+   - Démarrer dans : le dossier `mise-app` de ce projet.
 4. Dans l'onglet Général : cochez **"Exécuter que l'utilisateur soit connecté ou non"**.
 
 ### Dépannage
@@ -222,7 +263,7 @@ périphérique USB via la librairie `pyusb`, en contournant CUPS entièrement.
 3. Branchez l'imprimante en USB, puis lancez le pont :
 
    ```bash
-   cd zpl-bridge
+   cd mise-app
    python3 zpl_bridge_macos.py
    ```
 
@@ -240,7 +281,7 @@ périphérique USB via la librairie `pyusb`, en contournant CUPS entièrement.
 Pour que le pont tourne en tâche de fond et redémarre tout seul (y compris après un redémarrage de
 la machine), utilisez `launchd` plutôt qu'un simple lancement manuel :
 
-1. Repérez le chemin absolu de `python3` (`which python3`) et de ce dossier `zpl-bridge`.
+1. Repérez le chemin absolu de `python3` (`which python3`) et de ce dossier `mise-app`.
 2. Créez `~/Library/LaunchAgents/com.mise.zpl-bridge.plist` avec ce contenu, en remplaçant les
    deux chemins par les vôtres :
 
@@ -253,7 +294,7 @@ la machine), utilisez `launchd` plutôt qu'un simple lancement manuel :
      <key>ProgramArguments</key>
      <array>
        <string>/usr/bin/python3</string>
-       <string>/chemin/absolu/vers/zpl-bridge/zpl_bridge_macos.py</string>
+       <string>/chemin/absolu/vers/mise-app/zpl_bridge_macos.py</string>
      </array>
      <key>RunAtLoad</key><true/>
      <key>KeepAlive</key><true/>

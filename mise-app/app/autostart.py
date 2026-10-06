@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-_MACOS_LABEL = "com.mise.zpl-bridge"
+_MACOS_LABEL = "com.mise.app"
 
 
 def is_enabled() -> bool:
@@ -72,7 +72,7 @@ def _windows_shortcut_path() -> Path:
     import os
 
     startup = Path(os.environ["APPDATA"]) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
-    return startup / "MiseZplBridge.lnk"
+    return startup / "MiseApp.lnk"
 
 
 def _windows_enable(executable_path: str) -> None:

@@ -1,5 +1,5 @@
 # Pont ZPL pour une imprimante Zebra branchée en USB sur un hôte LINUX — voir
-# zpl-bridge/README.md pour l'équivalent Windows (nécessaire là-bas, car Docker Desktop sur
+# mise-app/README.md pour l'équivalent Windows (nécessaire là-bas, car Docker Desktop sur
 # Windows ne passe pas les périphériques USB aux conteneurs). Sur Linux, Docker y accède
 # directement : pas besoin d'un service natif hors Docker, un simple pont socat suffit.
 #

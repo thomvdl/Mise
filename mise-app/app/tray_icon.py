@@ -22,7 +22,7 @@ def build_tray_icon(open_status_window, quit_app) -> pystray.Icon:
         pystray.MenuItem("Ouvrir", open_status_window, default=True),
         pystray.MenuItem("Quitter", quit_app),
     )
-    return pystray.Icon("mise-zpl-bridge", make_icon_image("orange"), "Mise", menu)
+    return pystray.Icon("mise-app", make_icon_image("orange"), "Mise", menu)
 
 
 def update_icon(icon: pystray.Icon, available: bool) -> None:
