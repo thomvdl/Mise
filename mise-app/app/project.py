@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import subprocess
+import sys
 from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
@@ -20,28 +21,64 @@ REPO_URL = "https://github.com/thomvdl/Mise.git"
 LogFn = Callable[[str], None]
 # Build Docker compris : peut être long au premier lancement (images à télécharger/construire).
 _TIMEOUT_SECONDS = 1800
-# Le repo est privé — sans ça, un git qui n'a pas d'identifiants en cache reste bloqué à vie sur
-# un prompt de terminal qu'il ne recevra jamais dans un thread de fond (voir authenticate_git).
-_NO_PROMPT_ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+
+# Une app macOS lancée en GUI (double-clic/Finder/`open`, pas depuis un terminal) hérite d'un
+# PATH minimal (/usr/bin:/bin:/usr/sbin:/sbin) — PAS du PATH enrichi par .zshrc/.bash_profile.
+# Docker Desktop et Git s'installent typiquement hors de ce PATH minimal, donc sans ça l'app
+# affiche "Docker n'est pas installé" même quand Docker Desktop tourne parfaitement (vu en
+# conditions réelles : l'app elle-même le trouvait en dev via un shell, mais pas une fois
+# empaquetée et lancée normalement).
+_MACOS_EXTRA_PATH_DIRS = [
+    "/usr/local/bin",  # Docker Desktop (CLI symlinks), Git installé manuellement
+    "/opt/homebrew/bin",  # Homebrew sur Apple Silicon
+    "/Applications/Docker.app/Contents/Resources/bin",  # Docker Desktop fournit aussi sa CLI ici
+]
+
+
+def _build_env() -> dict:
+    # Le repo est public mais push/clone privé a quand même besoin d'identifiants — sans
+    # GIT_TERMINAL_PROMPT=0, un git qui n'a pas d'identifiants en cache reste bloqué à vie sur un
+    # prompt de terminal qu'il ne recevra jamais dans un thread de fond (voir authenticate_git).
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    if sys.platform == "darwin":
+        extra = os.pathsep.join(d for d in _MACOS_EXTRA_PATH_DIRS if Path(d).is_dir())
+        if extra:
+            env["PATH"] = f"{extra}{os.pathsep}{env.get('PATH', '')}"
+    return env
+
+
+_RUN_ENV = _build_env()
 
 
 class CommandError(RuntimeError):
     pass
 
 
-def _run(args: list[str], cwd: Path | None = None, log: LogFn | None = None) -> str:
+# Pour les vérifications rapides (git/docker dispo, accès au remote) — si l'une d'elles bloque
+# pour une raison inattendue (ex. une invite Keychain macOS ouverte mais pas au premier plan),
+# l'app ne doit pas paraître figée jusqu'à 30 minutes : une erreur visible rapidement vaut mieux
+# qu'un blocage silencieux.
+_QUICK_TIMEOUT_SECONDS = 15
+
+
+def _run(
+    args: list[str],
+    cwd: Path | None = None,
+    log: LogFn | None = None,
+    timeout: int = _TIMEOUT_SECONDS,
+) -> str:
     if log:
         log("$ " + " ".join(args))
     try:
         result = subprocess.run(
-            args, cwd=cwd, capture_output=True, text=True, timeout=_TIMEOUT_SECONDS, env=_NO_PROMPT_ENV
+            args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=_RUN_ENV
         )
     except FileNotFoundError as exc:
         raise CommandError(
             f"Commande introuvable : « {args[0]} » — pas installé, ou pas dans le PATH ?"
         ) from exc
     except subprocess.TimeoutExpired as exc:
-        raise CommandError(f"« {args[0]} » n'a pas répondu après {_TIMEOUT_SECONDS}s") from exc
+        raise CommandError(f"« {args[0]} » n'a pas répondu après {timeout}s") from exc
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "échec sans message").strip()
         raise CommandError(detail[-2000:])
@@ -50,7 +87,15 @@ def _run(args: list[str], cwd: Path | None = None, log: LogFn | None = None) -> 
 
 def can_access_remote(log: LogFn | None = None) -> bool:
     try:
-        _run(["git", "ls-remote", REPO_URL], log=log)
+        # Désactive explicitement le credential helper (Keychain/Git Credential Manager) pour ce
+        # test anonyme : un dépôt public n'en a pas besoin, et ça évite qu'un helper tente malgré
+        # tout une invite système (hors de GIT_TERMINAL_PROMPT, qui ne couvre que les prompts de
+        # terminal) qui pourrait rester invisible et bloquer l'appel.
+        _run(
+            ["git", "-c", "credential.helper=", "ls-remote", REPO_URL],
+            log=log,
+            timeout=_QUICK_TIMEOUT_SECONDS,
+        )
         return True
     except CommandError:
         return False
@@ -71,6 +116,7 @@ def authenticate_git(token: str, log: LogFn) -> None:
             check=True,
             capture_output=True,
             timeout=30,
+            env=_RUN_ENV,
         )
     except subprocess.CalledProcessError as exc:
         raise CommandError(
@@ -81,7 +127,7 @@ def authenticate_git(token: str, log: LogFn) -> None:
 
 def is_git_available() -> bool:
     try:
-        _run(["git", "--version"])
+        _run(["git", "--version"], timeout=_QUICK_TIMEOUT_SECONDS)
         return True
     except CommandError:
         return False
@@ -89,7 +135,7 @@ def is_git_available() -> bool:
 
 def is_docker_available() -> bool:
     try:
-        _run(["docker", "info"])
+        _run(["docker", "info"], timeout=_QUICK_TIMEOUT_SECONDS)
         return True
     except CommandError:
         return False
@@ -220,7 +266,7 @@ def restore_db(repo_path: Path, backup_file: Path, log: LogFn) -> None:
             input=sql_bytes,
             capture_output=True,
             timeout=_TIMEOUT_SECONDS,
-            env=_NO_PROMPT_ENV,
+            env=_RUN_ENV,
         )
     except FileNotFoundError as exc:
         raise CommandError("Commande introuvable : « docker » — pas installé, ou pas dans le PATH ?") from exc

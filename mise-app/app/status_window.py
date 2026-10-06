@@ -7,7 +7,7 @@ import sys
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
 from . import config, project
@@ -15,6 +15,48 @@ from . import config, project
 # Étiquette minimale pour le bouton de test — juste de quoi confirmer que le pont et l'imprimante
 # répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
 _TEST_ZPL = b"^XA\n^CI28\n^PW304\n^LL200\n^CF0,40\n^FO20,20^FDTest pont ZPL^FS\n^XZ\n"
+
+
+def _ask_string(parent: tk.Misc, title: str, prompt: str, show: Optional[str] = None) -> Optional[str]:
+    """Remplace `tkinter.simpledialog.askstring` — cassé sous Tk 9 sur macOS (plante avec
+    `invalid command name "::tk::unsupported::MacWindowStyle"`, une commande Tcl interne que Tk 9
+    a retirée mais que `simpledialog._setup_dialog` continue d'appeler ; confirmé en lançant l'app
+    depuis un terminal pour voir la trace). Ne fait que ce dont on a besoin : un Toplevel modal
+    avec un champ texte, sans passer par ce code interne cassé."""
+    result: dict[str, Optional[str]] = {"value": None}
+    dialog = tk.Toplevel(parent)
+    dialog.title(title)
+    dialog.resizable(False, False)
+    dialog.transient(parent)
+
+    ttk.Label(dialog, text=prompt, wraplength=360, justify="left").pack(padx=16, pady=(16, 8))
+    var = tk.StringVar()
+    entry = ttk.Entry(dialog, textvariable=var, width=40)
+    if show:
+        entry.configure(show=show)
+    entry.pack(padx=16, pady=(0, 12))
+    entry.focus_set()
+
+    def _confirm(_event=None) -> None:
+        result["value"] = var.get()
+        dialog.destroy()
+
+    def _cancel(_event=None) -> None:
+        dialog.destroy()
+
+    btn_row = ttk.Frame(dialog)
+    btn_row.pack(pady=(0, 16))
+    ttk.Button(btn_row, text="Annuler", command=_cancel).pack(side="right", padx=(6, 16))
+    ttk.Button(btn_row, text="OK", command=_confirm).pack(side="right")
+
+    dialog.bind("<Return>", _confirm)
+    dialog.bind("<Escape>", _cancel)
+    dialog.protocol("WM_DELETE_WINDOW", _cancel)
+
+    dialog.update_idletasks()
+    dialog.grab_set()
+    parent.wait_window(dialog)
+    return result["value"]
 
 
 class StatusWindow:
@@ -149,6 +191,14 @@ class StatusWindow:
         repo_path = self._repo_path()
         if project.is_repo_cloned(repo_path):
             return
+
+        self._activate()
+        # Retour immédiat au clic : les vérifications ci-dessous (et surtout can_access_remote,
+        # un vrai aller-retour réseau) peuvent prendre quelques secondes sur le thread principal
+        # — sans ça, l'app paraît ne rien faire pendant ce délai.
+        self.events.add("Vérification de Git/Docker...")
+        self.refresh()
+
         if not project.is_git_available():
             messagebox.showerror("Mise", "Git n'est pas installé (ou pas dans le PATH).")
             return
@@ -158,23 +208,21 @@ class StatusWindow:
 
         github_token = None
         if not project.can_access_remote():
-            github_token = simpledialog.askstring(
+            github_token = _ask_string(
+                self.window,
                 "Mise",
                 "Le dépôt GitHub est privé et aucun accès n'est enregistré sur cette machine.\n"
                 "Jeton d'accès personnel GitHub (Settings → Developer settings → "
                 "Personal access tokens, droit « repo ») :",
-                parent=self.window,
                 show="*",
             )
             if not github_token:
                 return
 
-        admin_name = simpledialog.askstring("Mise", "Nom du compte administrateur :", parent=self.window)
+        admin_name = _ask_string(self.window, "Mise", "Nom du compte administrateur :")
         if not admin_name:
             return
-        admin_password = simpledialog.askstring(
-            "Mise", "Mot de passe administrateur :", parent=self.window, show="*"
-        )
+        admin_password = _ask_string(self.window, "Mise", "Mot de passe administrateur :", show="*")
         if not admin_password:
             return
 
@@ -192,6 +240,7 @@ class StatusWindow:
         repo_path = self._repo_path()
         if not project.is_repo_cloned(repo_path):
             return
+        self._activate()
         if not project.is_docker_available():
             messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
             return
@@ -211,6 +260,7 @@ class StatusWindow:
         repo_path = self._repo_path()
         if not project.is_repo_cloned(repo_path):
             return
+        self._activate()
         if not project.is_docker_available():
             messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
             return
@@ -229,6 +279,7 @@ class StatusWindow:
         repo_path = self._repo_path()
         if not project.is_repo_cloned(repo_path):
             return
+        self._activate()
         if not project.is_docker_available():
             messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
             return
@@ -277,20 +328,25 @@ class StatusWindow:
     def set_quit_callback(self, callback: Callable[[], None]) -> None:
         self._quit_callback = callback
 
+    def _activate(self) -> None:
+        # L'app est une "accessory app" (LSUIElement, pas d'icône Dock) — sans activation
+        # explicite, macOS ne la passe jamais au premier plan : une fenêtre (ou une boîte de
+        # dialogue, ex. simpledialog/messagebox) peut rester dessinée vide, ou s'ouvrir cachée
+        # derrière une autre app, tant qu'on ne force pas ça. À appeler avant d'afficher quoi que
+        # ce soit (voir open() et les boîtes de dialogue de _install()/_restore()).
+        if sys.platform != "darwin":
+            return
+        try:
+            from AppKit import NSApplication
+
+            NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        except Exception:  # noqa: BLE001 — continuer même si l'activation échoue (ex. PyObjC
+            # manquant en dev hors venv complet).
+            pass
+
     def open(self) -> None:
         self.refresh()
-        if sys.platform == "darwin":
-            # L'app est une "accessory app" (LSUIElement, pas d'icône Dock) — sans activation
-            # explicite, macOS ne la passe jamais au premier plan et la fenêtre reste dessinée
-            # vide/blanche (jamais de focus clavier non plus) tant qu'on ne clique pas ailleurs
-            # pour forcer un redraw.
-            try:
-                from AppKit import NSApplication
-
-                NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
-            except Exception:  # noqa: BLE001 — l'ouverture de la fenêtre doit continuer même si
-                # l'activation échoue (ex. PyObjC manquant en dev hors venv complet).
-                pass
+        self._activate()
         self.window.deiconify()
         self.window.lift()
         self.window.focus_force()
