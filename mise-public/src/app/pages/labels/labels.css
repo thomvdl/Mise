@@ -26,6 +26,7 @@
   flex-wrap: wrap;
 }
 .lists-link { flex-shrink: 0; white-space: nowrap; }
+.intro-links { display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
 
 /* stretch (défaut) plutôt que align-items:start : les deux colonnes prennent toute la hauteur
    disponible, ce qui borne .panel/.queue-panel et active leur overflow-y:auto respectif. */

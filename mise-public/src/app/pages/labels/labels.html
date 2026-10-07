@@ -4,8 +4,13 @@
       <h1 class="page-title">Impression d'étiquettes</h1>
       <p class="page-sub">Composez une étiquette et ajoutez-la à la liste, répétez pour chacune.</p>
     </div>
-    <a class="btn-ghost lists-link" routerLink="/etiquettes/listes">Mes listes enregistrées</a>
+    <div class="intro-links">
+      <a class="btn-ghost lists-link" routerLink="/etiquettes/listes">Mes listes enregistrées</a>
+      <button type="button" class="btn-ghost lists-link" (click)="barcodeDialog.show()">Code-barres</button>
+    </div>
   </div>
+
+  <app-barcode-lookup-dialog #barcodeDialog (found)="onBarcodeFound($event)" />
 
   <div class="labels-layout">
   <div class="panel">

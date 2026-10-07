@@ -8,6 +8,7 @@ import { LabelQueueService } from '../../core/services/label-queue.service';
 import { LabelTypeService } from '../../core/services/label-type.service';
 import { LabelType } from '../../core/models/label.model';
 import { LabelIcon } from '../label-icon/label-icon';
+import { BarcodeLookupDialog } from '../barcode-lookup-dialog/barcode-lookup-dialog';
 
 /** Le temps que les types se chargent depuis l'API, un repli vide évite de parsemer le template
  *  de gardes null — remplacé par le vrai premier type dès que la liste arrive (voir l'effect). */
@@ -37,7 +38,7 @@ function formatIsoDate(value: string): string {
 
 @Component({
   selector: 'app-labels',
-  imports: [RouterLink, LabelIcon],
+  imports: [RouterLink, LabelIcon, BarcodeLookupDialog],
   templateUrl: './labels.html',
   styleUrl: './labels.css',
 })
@@ -94,6 +95,11 @@ export class Labels {
   selectType(type: LabelType): void {
     this.selectedType.set(type);
     this.useByDate.set(type.defaultShelfLifeDays ? isoDateWithOffset(type.defaultShelfLifeDays) : '');
+  }
+
+  /** Appelé quand le dialogue code-barres trouve un produit — voir BarcodeLookupDialog. */
+  onBarcodeFound(name: string): void {
+    this.productName.set(name.slice(0, PRODUCT_NAME_MAX_LENGTH));
   }
 
   onNameInput(event: Event): void {

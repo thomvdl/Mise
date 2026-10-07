@@ -1,0 +1,33 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="close()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 class="modal-title">Rechercher un produit par code-barres</h2>
+      <p class="form-hint">Base Open Food Facts — pas garanti à 100% pour tous les produits.</p>
+
+      <div class="form-field">
+        <label class="form-label" for="barcode-dialog-input">Code-barres (EAN)</label>
+        <input
+          id="barcode-dialog-input"
+          #eanInput
+          class="form-input"
+          type="text"
+          inputmode="numeric"
+          placeholder="Scanner ou taper un EAN…"
+          [value]="ean()"
+          (input)="onEanInput($event)"
+          (keydown.enter)="lookup()" />
+      </div>
+
+      @if (error()) {
+        <p class="form-error">{{ error() }}</p>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="close()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="!ean() || loading()" (click)="lookup()">
+          {{ loading() ? 'Recherche…' : 'Chercher' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

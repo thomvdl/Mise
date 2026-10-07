@@ -7,8 +7,11 @@
     <div class="intro-links">
       <a class="btn-ghost lists-link" routerLink="/etiquettes/listes">Mes listes enregistrées</a>
       <a class="btn-ghost lists-link" routerLink="/etiquettes/historique">Historique des étiquettes</a>
+      <button type="button" class="btn-ghost lists-link" (click)="barcodeDialog.show()">Code-barres</button>
     </div>
   </div>
+
+  <app-barcode-lookup-dialog #barcodeDialog (found)="onBarcodeFound($event)" />
 
   <div class="labels-layout">
   <div class="panel">

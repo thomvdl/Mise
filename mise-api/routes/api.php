@@ -3,6 +3,7 @@
 use App\Http\Controllers\AllergenController;
 use App\Http\Controllers\AppareilController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChangementHuileController;
 use App\Http\Controllers\ChannelController;
@@ -73,6 +74,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // apps), écriture réservée à l'admin (groupe role:admin plus bas).
     Route::apiResource('label-types', LabelTypeController::class)->only(['index'])
         ->parameters(['label-types' => 'label_type']);
+
+    // Recherche du nom d'un produit par code-barres EAN (proxy Open Food Facts) — voir
+    // BarcodeController. Ouvert à tout utilisateur connecté, même niveau que label-types ci-dessus.
+    Route::get('barcode/{ean}', [BarcodeController::class, 'lookup']);
 
     // Listes nommées et réutilisables de produits à étiqueter (ex. "Mise en place du lundi") —
     // n'importe qui peut créer/modifier une liste partagée ; seule la suppression est réservée
