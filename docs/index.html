@@ -248,6 +248,59 @@
     color: var(--text-dim);
   }
 
+  /* Download section */
+  .prereqs {
+    text-align: center;
+    margin: 0 0 32px;
+  }
+  .prereqs-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+  }
+  .prereqs-list {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .prereqs-list a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    transition: border-color 0.15s ease;
+  }
+  .prereqs-list a:hover { border-color: var(--accent); }
+  .downloads {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+  }
+  .download-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 200px;
+  }
+  .download-btn small {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+  .downloads-note {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
   /* Footer */
   footer {
     border-top: 1px solid var(--border);
@@ -289,6 +342,7 @@
     <div class="nav-links">
       <a href="#dashboard">Dashboard</a>
       <a href="#public">Public</a>
+      <a href="#download">Télécharger</a>
       <a class="cta" href="https://github.com/thomvdl/Mise">Voir sur GitHub</a>
     </div>
   </div>
@@ -484,6 +538,37 @@
   </div>
 </section>
 
+<section class="app-section" id="download">
+  <div class="wrap">
+    <div class="app-header">
+      <span class="app-tag">App de bureau</span>
+      <h2>Pont imprimante &amp; installateur</h2>
+      <p>Une petite app de barre système (macOS / Windows) qui relie une étiqueteuse Zebra branchée en USB au réseau local, et qui installe/met à jour le projet sur le mini PC de cuisine.</p>
+    </div>
+
+    <div class="prereqs">
+      <p class="prereqs-label">À installer soi-même avant, une seule fois — l'app ne les installe jamais silencieusement :</p>
+      <div class="prereqs-list">
+        <a href="https://git-scm.com/downloads" target="_blank" rel="noopener">Git</a>
+        <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Docker Desktop</a>
+        <a href="https://www.chromium.org/getting-involved/download-chromium/" target="_blank" rel="noopener">Chromium</a>
+      </div>
+    </div>
+
+    <div class="downloads">
+      <a id="download-mac" class="btn btn-secondary download-btn" href="https://github.com/thomvdl/Mise/releases/latest" target="_blank" rel="noopener">
+        <span>Télécharger pour macOS</span>
+        <small>Mise.app</small>
+      </a>
+      <a id="download-windows" class="btn btn-secondary download-btn" href="https://github.com/thomvdl/Mise/releases/latest" target="_blank" rel="noopener">
+        <span>Télécharger pour Windows</span>
+        <small>Mise.exe</small>
+      </a>
+    </div>
+    <p class="downloads-note">App non signée : sur macOS, clic droit → Ouvrir au premier lancement ; sur Windows, Windows Defender peut signaler un faux positif.</p>
+  </div>
+</section>
+
 <footer>
   <div>Projet personnel, distribué sous licence GPL-3.0.</div>
   <div class="footer-links">
@@ -492,6 +577,33 @@
     <a href="https://github.com/thomvdl/Mise/blob/main/README.md">Documentation</a>
   </div>
 </footer>
+
+<script>
+  (function () {
+    fetch('https://api.github.com/repos/thomvdl/Mise/releases/latest')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (release) {
+        var assets = release.assets || [];
+        var mac = assets.find(function (a) { return /\.app(\.zip)?$/i.test(a.name); });
+        var win = assets.find(function (a) { return /\.exe$/i.test(a.name); });
+        var version = release.tag_name ? 'v' + String(release.tag_name).replace(/^v/i, '') : '';
+
+        function wire(id, asset) {
+          if (!asset) return;
+          var el = document.getElementById(id);
+          el.href = asset.browser_download_url;
+          el.querySelector('small').textContent = version ? asset.name + ' · ' + version : asset.name;
+        }
+
+        wire('download-mac', mac);
+        wire('download-windows', win);
+      })
+      .catch(function () {
+        /* API injoignable ou limite de requêtes atteinte : les boutons gardent leur lien
+           générique vers la page des releases GitHub. */
+      });
+  })();
+</script>
 
 </body>
 </html>
