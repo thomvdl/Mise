@@ -16,10 +16,14 @@ from . import config, kiosk, project
 # répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
 _TEST_ZPL = b"^XA\n^CI28\n^PW304\n^LL200\n^CF0,40\n^FO20,20^FDTest pont ZPL^FS\n^XZ\n"
 
-# `~JC` déclenche la calibration support (mesure la longueur réelle du gap entre étiquettes) —
-# trouvé plus fiable que la variable SGD `media.calibrate` en test (celle-ci a donné une longueur
-# mesurée fausse à plusieurs reprises sur la Zebra ZD410, ~JC a donné la bonne du premier coup).
-_CALIBRATE_ZPL = b"~JC"
+# `^JUF` recharge les réglages d'usine Zebra (noirceur, vitesse, type de support...) sur
+# l'imprimante active, et `^JUS` les sauvegarde pour qu'ils survivent au prochain redémarrage —
+# sans ça, `^JUF` seul reviendrait aux dernières valeurs sauvegardées à la prochaine mise sous
+# tension plutôt que de rester sur les valeurs d'usine. Ne touche pas les réglages réseau (`^JUN`
+# fait ça séparément) ni le format d'étiquette (largeur/hauteur/rotation/offset), qui vit côté
+# Settings de l'API et est injecté dans le ZPL à chaque impression par ZplLabelBuilder — pas
+# stocké sur l'imprimante elle-même.
+_FACTORY_DEFAULTS_ZPL = b"^XA^JUF^JUS^XZ"
 
 
 def _ruler_zpl(width_dots: int = 456, height_dots: int = 256) -> bytes:
@@ -121,7 +125,9 @@ class StatusWindow:
         ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
             side="left"
         )
-        ttk.Button(printer_btn_row, text="Recalibrer", command=self._recalibrate).pack(side="left", padx=(6, 0))
+        ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
+            side="left", padx=(6, 0)
+        )
         ttk.Button(printer_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(
             side="left", padx=(6, 0)
         )
@@ -520,14 +526,24 @@ class StatusWindow:
             self.events.add(f"Échec du test : {exc}", level="error")
         self.refresh()
 
-    def _recalibrate(self) -> None:
-        """Mesure la longueur réelle du support chargé (`~JC`, voir _CALIBRATE_ZPL) — à relancer
-        après chaque changement de rouleau. Fait avancer 2-3 étiquettes, c'est normal."""
+    def _reset_to_factory_defaults(self) -> None:
+        """Remet l'imprimante sur les réglages d'usine Zebra (noirceur, vitesse, type de support...,
+        voir _FACTORY_DEFAULTS_ZPL) — utile si quelqu'un a modifié ces réglages à la main (panneau
+        imprimante, ancien pilote...) et que l'impression dérive. Le format d'étiquette (dashboard)
+        n'est pas affecté."""
+        confirmed = messagebox.askyesno(
+            "Mise",
+            "Remettre l'imprimante sur ses réglages d'usine (noirceur, vitesse, type de "
+            "support) ?\n\nLe format d'étiquette configuré dans le dashboard n'est pas touché.",
+            icon="warning",
+        )
+        if not confirmed:
+            return
         try:
-            self.backend.send(_CALIBRATE_ZPL)
-            self.events.add("Calibration support lancée (quelques étiquettes vont défiler)")
+            self.backend.send(_FACTORY_DEFAULTS_ZPL)
+            self.events.add("Réglages d'usine restaurés")
         except Exception as exc:  # noqa: BLE001 — voir _print_test
-            self.events.add(f"Échec de la calibration : {exc}", level="error")
+            self.events.add(f"Échec de la restauration des réglages d'usine : {exc}", level="error")
         self.refresh()
 
     def _print_ruler(self) -> None:
