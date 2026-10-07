@@ -1,5 +1,7 @@
 # MISE
 
+[![GNU GPLv3](https://www.gnu.org/graphics/gplv3-127x51.png)](./LICENSE)
+
 MISE est un outil de cuisine professionnelle développé par un cuisinier, pour son propre usage
 en cuisine et celui de sa brigade — fiches techniques, traçabilité HACCP, menus, étiquetage.
 Ce n'est pas un produit commercial : les choix techniques restent volontairement simples et
@@ -91,7 +93,11 @@ propre README :
 conventions, ce qui existe déjà, ce qui manque) — utile pour reprendre le développement ou pour
 un assistant IA sans avoir à ré-explorer tout le code.
 
+## Licence
+
+Mise est distribué sous licence [GPL-3.0](./LICENSE).
+
 ## Statut
 
 Projet personnel, en développement actif, pensé pour un usage interne plutôt que pour une
-distribution publique — pas de licence particulière choisie à ce jour.
+distribution publique.
