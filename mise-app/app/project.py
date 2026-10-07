@@ -49,6 +49,11 @@ def _build_env() -> dict:
 
 _RUN_ENV = _build_env()
 
+# L'app empaquetée n'a pas de console (console=False dans windows.spec) : sans ce flag, Windows
+# ouvre une fenêtre de console pour chaque `git`/`docker` lancé — soit une fenêtre toutes les
+# quelques secondes tant que la fenêtre de statut se rafraîchit.
+_CREATION_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
 
 class CommandError(RuntimeError):
     pass
@@ -71,7 +76,13 @@ def _run(
         log("$ " + " ".join(args))
     try:
         result = subprocess.run(
-            args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=_RUN_ENV
+            args,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=_RUN_ENV,
+            creationflags=_CREATION_FLAGS,
         )
     except FileNotFoundError as exc:
         raise CommandError(
@@ -117,6 +128,7 @@ def authenticate_git(token: str, log: LogFn) -> None:
             capture_output=True,
             timeout=30,
             env=_RUN_ENV,
+            creationflags=_CREATION_FLAGS,
         )
     except subprocess.CalledProcessError as exc:
         raise CommandError(
@@ -306,6 +318,7 @@ def restore_db(repo_path: Path, backup_file: Path, log: LogFn) -> None:
             capture_output=True,
             timeout=_TIMEOUT_SECONDS,
             env=_RUN_ENV,
+            creationflags=_CREATION_FLAGS,
         )
     except FileNotFoundError as exc:
         raise CommandError("Commande introuvable : « docker » — pas installé, ou pas dans le PATH ?") from exc
