@@ -91,7 +91,8 @@ propre README :
 
 `CONTEXT.md`, à la racine, rassemble le contexte détaillé du projet (modèle de données,
 conventions, ce qui existe déjà, ce qui manque) — utile pour reprendre le développement ou pour
-un assistant IA sans avoir à ré-explorer tout le code.
+un assistant IA sans avoir à ré-explorer tout le code. `TODO.md` liste les tâches d'installation
+et d'outillage en cours, séparément du backlog fonctionnel.
 
 ## Licence
 
