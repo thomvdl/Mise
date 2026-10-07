@@ -4,7 +4,6 @@
 
 .page {
   padding: 32px 36px 60px;
-  max-width: 720px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -47,12 +46,15 @@
 }
 
 .friteuse-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
   gap: 14px;
 }
 
 .friteuse-card {
+  grid-column: span 6;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -117,6 +119,9 @@
 
 .add-change-row {
   display: flex;
+  /* Collé en bas de la carte : le bouton reste aligné d'une carte à l'autre sur une même ligne,
+     même si l'une a un statut plus long (badge "À changer"...). */
+  margin-top: auto;
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
@@ -157,6 +162,7 @@
 }
 
 .history-toggle {
+  align-self: flex-start;
   margin-top: 12px;
   border: none;
   background: transparent;
@@ -172,6 +178,9 @@
 
 .history-list {
   list-style: none;
+  /* Défilante plutôt que de faire grandir la carte (et donc toute la ligne) sans limite. */
+  max-height: 180px;
+  overflow-y: auto;
   margin: 10px 0 0;
   padding: 0;
   display: flex;
@@ -188,4 +197,10 @@
 
 .history-list li:first-child {
   border-top: none;
+}
+
+@media (max-width: 860px) {
+  .friteuse-card {
+    grid-column: span 12;
+  }
 }
