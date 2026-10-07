@@ -2,10 +2,10 @@ import { Injectable, effect, inject } from '@angular/core';
 
 import { AuthService } from './auth.service';
 
-const INACTIVITY_LIMIT_MS = 60_000;
+const INACTIVITY_LIMIT_MS = 180_000;
 const ACTIVITY_EVENTS = ['click', 'keydown', 'mousemove', 'touchstart', 'scroll'] as const;
 
-/** Déconnecte automatiquement après une minute sans interaction — pensé pour un écran partagé en
+/** Déconnecte automatiquement après trois minutes sans interaction — pensé pour un écran partagé en
  * cuisine (potentiellement en kiosque plein écran, voir mise-app) où personne ne pense à se
  * déconnecter manuellement entre deux utilisateurs.
  *
