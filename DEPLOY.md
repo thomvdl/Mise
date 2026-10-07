@@ -94,32 +94,80 @@ utilisateurs) — ou passez à un tunnel nommé ci-dessous pour une URL fixe.
 ### Tunnel nommé (URL fixe, pour une installation durable)
 
 Le "quick tunnel" change d'adresse à chaque redémarrage du conteneur — pas pratique à mettre en
-favori ou à communiquer. Un tunnel nommé donne une URL stable (ex.
-`dashboard.nomducuisto.fr`) qui ne bouge plus. Nécessite un compte Cloudflare (gratuit) et un nom
-de domaine (le vôtre, ou un domaine acheté pour quelques euros/an — chez n'importe quel
-registrar, pas besoin de l'acheter chez Cloudflare).
+favori ou à communiquer. Un tunnel nommé donne une URL stable (ex. `dashboard.mondomaine.be`) qui
+ne bouge plus. Nécessite un compte Cloudflare (gratuit) et un nom de domaine (le vôtre, chez
+n'importe quel registrar — OVH dans les captures ci-dessous — pas besoin de l'acheter chez
+Cloudflare). Procédure vérifiée pas à pas sur l'interface Cloudflare/OVH d'octobre 2026 — les
+libellés de menu changent parfois d'une année à l'autre, mais l'enchaînement reste le même.
 
-1. Ajoutez le domaine à Cloudflare (gratuit) si ce n'est pas déjà fait : [dash.cloudflare.com](https://dash.cloudflare.com/)
-   → "Add a site", puis pointez les serveurs DNS du domaine vers ceux donnés par Cloudflare (chez
-   votre registrar).
-2. Dans le tableau de bord Cloudflare → **Zero Trust → Networks → Tunnels** → "Create a tunnel" →
-   type "Cloudflared" → donnez-lui un nom (ex. `mise-dashboard`).
-3. L'étape suivante affiche une commande d'installation contenant un token (une longue chaîne
-   après `--token`) — copiez uniquement ce token.
-4. Toujours dans l'assistant, section **Public Hostname** : domaine = le vôtre, sous-domaine au
-   choix (ex. `dashboard`), type `HTTP`, URL = `dashboard:80` (le nom du service Docker, pas une
-   IP — `cloudflared-dashboard` est sur le même réseau Compose que `dashboard`).
-5. Dans `.env` du projet, renseignez :
+**A. Ajouter le domaine à Cloudflare**
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com/) → se connecter.
+2. Menu de gauche → **Domains** → **Add a domain** → saisir le domaine (ex. `mise-vidal.be`) →
+   plan **Free**.
+   - Si un message "TLD is not supported... cannot be registered" apparaît : c'est l'écran de
+     *transfert d'enregistrement* du domaine, pas celui qu'il faut. On garde le domaine chez son
+     registrar actuel (OVH) — on ne fait ici que déléguer le DNS à Cloudflare, jamais le
+     transférer. Revenir à **Domains → Add a domain** et vérifier qu'aucune option de transfert
+     n'a été cochée.
+3. Cloudflare affiche 2 serveurs de noms à renseigner chez le registrar (ex.
+   `davina.ns.cloudflare.com` / `morgan.ns.cloudflare.com` — ces noms sont propres à chaque
+   domaine, à copier depuis l'écran, pas à réutiliser tels quels). Le domaine reste sur la page
+   **Overview** du domaine avec le statut "Waiting for your registrar to propagate your new
+   nameservers" tant que l'étape B n'est pas faite.
+
+**B. Basculer les serveurs DNS chez le registrar (exemple OVH)**
+
+1. [manager.ovhcloud.com](https://manager.ovhcloud.com) → se connecter.
+2. Menu de gauche → **Noms de domaine** → cliquer sur le domaine concerné.
+3. Onglet **Serveurs DNS** → bouton **Modifier les DNS**.
+4. Choisir **Utiliser mes propres DNS**.
+5. Dans le champ "Serveur DNS", saisir le premier nameserver Cloudflare (ex.
+   `davina.ns.cloudflare.com`) → **Ajouter**. Répéter pour le second (ex.
+   `morgan.ns.cloudflare.com`). Laisser le champ "IP associée" vide (pas nécessaire pour des
+   nameservers hors du domaine lui-même).
+6. **Appliquer la configuration** → vérifier les 2 valeurs dans la pop-up de confirmation →
+   **Appliquer la configuration**.
+7. Statut "En cours d'activation" côté OVH, puis propagation généralement en 1-2h (jusqu'à 24h).
+   Cloudflare envoie un e-mail une fois le domaine actif.
+
+**C. Créer le tunnel et le router vers le dashboard**
+
+À faire une fois le domaine actif côté Cloudflare (étape B terminée) :
+
+1. Dashboard Cloudflare → menu de gauche → **Zero Trust** (s'affiche sous le nom **Cloudflare
+   One** une fois dedans).
+2. Menu de gauche → **Networks → Tunnels & Mesh** → **Create a tunnel**.
+3. Type de tunnel : **Cloudflared** → **Select Cloudflared**.
+4. Nommer le tunnel (ex. `mise-dashboard`) → **Save tunnel**.
+5. Écran "Install and run a connector" : un menu déroulant OS propose une commande d'installation
+   contenant `cloudflared tunnel run --token <long token>`. Ce token est le même quel que soit
+   l'OS choisi dans le menu — copier uniquement la valeur après `--token` (bouton de copie à côté
+   de la commande "OR run the tunnel manually in your current terminal session only"). **Ce
+   token donne un accès complet au tunnel : à traiter comme un mot de passe**, ne pas le coller
+   en clair dans un chat ou un ticket.
+6. **Next** → onglet **Published applications** (sélectionné par défaut) → section Hostname :
+   - **Subdomain** : `dashboard`
+   - **Domain** : sélectionner le domaine (n'apparaît dans la liste que si l'étape B a fini de
+     propager — "No valid options" sinon, revenir plus tard)
+   - **Service → Type** : `HTTP`
+   - **Service → URL** : `dashboard:80` (le nom du service Docker, pas une IP — le conteneur
+     `cloudflared-dashboard` est sur le même réseau Compose que `dashboard`)
+7. **Complete setup**.
+
+**D. Brancher le token sur le projet**
+
+1. Dans `.env` du mini PC (copié depuis `.env.example`) :
    ```
-   CLOUDFLARE_TUNNEL_ARGS=run --token <le token copié à l'étape 3>
+   CLOUDFLARE_TUNNEL_ARGS=run --token <le token copié à l'étape C.5>
    ```
-6. Relancez le conteneur pour prendre en compte le changement :
+2. Relancer le conteneur pour prendre en compte le changement :
    ```bash
    docker compose up -d cloudflared-dashboard
    ```
 
-Le dashboard est alors joignable en permanence sur l'URL fixe choisie, sans jamais changer au
-redémarrage. Les logs (`docker compose logs cloudflared-dashboard`) ne donnent plus d'URL
+Le dashboard est alors joignable en permanence sur `dashboard.<votredomaine>`, sans jamais changer
+au redémarrage. Les logs (`docker compose logs cloudflared-dashboard`) ne donnent plus d'URL
 `trycloudflare.com` à récupérer — c'est normal, elle est maintenant fixée côté Cloudflare.
 
 ## 5. Imprimante d'étiquettes (ZPL)
