@@ -20,6 +20,8 @@
 
   html { scroll-behavior: smooth; }
 
+  a { color: var(--accent); }
+
   body {
     margin: 0;
     overflow-x: hidden;
@@ -94,6 +96,14 @@
     margin: 0 0 16px;
     letter-spacing: -0.01em;
   }
+  .badges {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 0 0 20px;
+  }
+  .badges img { display: block; height: 20px; }
   header.hero p.tagline {
     color: var(--text-dim);
     font-size: 1.15rem;
@@ -248,6 +258,48 @@
     color: var(--text-dim);
   }
 
+  /* Get started */
+  .start-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .start-card {
+    background: var(--bg);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+  .start-card h3 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+  }
+  .start-card .desc {
+    margin: 0 0 16px;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+  .start-card .btn { align-self: flex-start; margin-top: auto; }
+  .start-card pre {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 16px;
+  }
+  .start-card pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
   /* Download section */
   .prereqs {
     text-align: center;
@@ -325,6 +377,7 @@
     header.hero h1 { font-size: 2rem; }
     .shots-grid { grid-template-columns: 1fr; }
     .feature-row { grid-template-columns: 1fr; gap: 10px; }
+    .start-grid { grid-template-columns: 1fr; }
     .nav-links > a:not(.cta) { display: none; }
     nav a.cta { padding: 7px 12px; font-size: 0.85rem; }
     .brand { font-size: 0.95rem; }
@@ -352,6 +405,17 @@
   <div class="wrap">
     <img class="logo" src="assets/logo.png" alt="Logo Mise">
     <h1>Mise</h1>
+    <div class="badges">
+      <a href="https://github.com/thomvdl/Mise/stargazers" target="_blank" rel="noopener">
+        <img src="https://img.shields.io/github/stars/thomvdl/Mise?style=flat-square&labelColor=1c2024&color=c6763b&label=stars" alt="Étoiles GitHub">
+      </a>
+      <a href="https://github.com/thomvdl/Mise/releases/latest" target="_blank" rel="noopener">
+        <img src="https://img.shields.io/github/v/release/thomvdl/Mise?style=flat-square&labelColor=1c2024&color=c6763b&label=version" alt="Dernière version">
+      </a>
+      <a href="./LICENSE" target="_blank" rel="noopener">
+        <img src="https://img.shields.io/badge/licence-GPL--3.0-1c2024?style=flat-square&labelColor=1c2024&color=c6763b" alt="Licence GPL-3.0">
+      </a>
+    </div>
     <p class="tagline">
       Outil open source de cuisine professionnelle — fiches techniques,
       traçabilité HACCP, menus et étiquetage. Développé par un cuisinier,
@@ -538,6 +602,30 @@
   </div>
 </section>
 
+<section class="app-section" id="get-started">
+  <div class="wrap">
+    <div class="app-header">
+      <span class="app-tag">Installation</span>
+      <h2>Deux façons de démarrer</h2>
+      <p>Mise est fait pour tourner sur une seule machine restée sur le réseau local — un mini PC en cuisine, ou n'importe quel poste avec Docker.</p>
+    </div>
+    <div class="start-grid">
+      <div class="start-card">
+        <h3>En autonomie</h3>
+        <p class="desc">Toute la stack (API, dashboard, app publique, base de données) tourne en Docker Compose.</p>
+        <pre><code>cp .env.example .env
+docker compose up -d --build</code></pre>
+        <p class="desc">Dashboard sur <code>:8081</code>, app publique sur <code>:8082</code>. Procédure complète dans <a href="https://github.com/thomvdl/Mise/blob/main/DEPLOY.md">DEPLOY.md</a>.</p>
+      </div>
+      <div class="start-card">
+        <h3>Avec un coup de main</h3>
+        <p class="desc">Installation, matériel (mini PC, imprimante Zebra) et support assurés clé en main, pour une cuisine qui préfère ne pas s'en occuper elle-même.</p>
+        <a class="btn btn-primary" href="mailto:thomsvdl@gmail.com?subject=Installation%20Mise">Me contacter</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="app-section" id="download">
   <div class="wrap">
     <div class="app-header">
@@ -570,11 +658,12 @@
 </section>
 
 <footer>
-  <div>Projet personnel, distribué sous licence GPL-3.0.</div>
+  <div>Développé par <a href="https://github.com/thomvdl">Thomas Vidal</a>, distribué sous licence GPL-3.0.</div>
   <div class="footer-links">
     <a href="https://github.com/thomvdl/Mise">GitHub</a>
     <a href="https://github.com/thomvdl/Mise/blob/main/LICENSE">Licence</a>
     <a href="https://github.com/thomvdl/Mise/blob/main/README.md">Documentation</a>
+    <a href="https://github.com/thomvdl/Mise/issues">Contribuer</a>
   </div>
 </footer>
 
