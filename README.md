@@ -97,7 +97,6 @@ un assistant IA sans avoir à ré-explorer tout le code.
 
 Mise est distribué sous licence [GPL-3.0](./LICENSE).
 
-## Statut
+## Auteur
 
-Projet personnel, en développement actif, pensé pour un usage interne plutôt que pour une
-distribution publique.
+Développé par [Thomas Vidal](https://github.com/thomvdl).
