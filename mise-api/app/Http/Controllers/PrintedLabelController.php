@@ -96,6 +96,7 @@ class PrintedLabelController extends Controller
             Setting::get('label_rotate_90', '0') === '1',
             $request->user()->name,
             $type->icon_key,
+            (float) Setting::get('label_top_offset_mm', '0'),
         );
 
         if ($error = ZplPrinter::send($zpl)) {

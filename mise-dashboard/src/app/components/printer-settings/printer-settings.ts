@@ -1,5 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -17,9 +25,32 @@ function ipv4OrHostnameValidator(control: AbstractControl): ValidationErrors | n
   return IPV4_PATTERN.test(value) || HOSTNAME_PATTERN.test(value) ? null : { ipv4OrHostname: true };
 }
 
+interface LabelFormatPreset {
+  label: string;
+  widthMm: number;
+  heightMm: number;
+  rotate90: boolean;
+  /**
+   * Compense une zone morte mécanique propre à l'imprimante (tête/capteur décalés physiquement),
+   * mesurée étiquette graduée à l'appui — ~7,5mm constatés en 57x32mm. Pas (encore) mesurée pour
+   * 38x89mm pivoté, donc 0 par défaut pour ce format plutôt que de deviner une valeur qui pourrait
+   * casser un format qui marchait déjà.
+   */
+  topOffsetMm: number;
+}
+
+/**
+ * Préréglages des deux formats de rouleau utilisés en cuisine, pour éviter de ressaisir
+ * largeur/hauteur/rotation à la main (et de se tromper) à chaque changement de support.
+ */
+const LABEL_FORMAT_PRESETS: LabelFormatPreset[] = [
+  { label: '38 × 89 mm (pivoté 90°)', widthMm: 38, heightMm: 89, rotate90: true, topOffsetMm: 0 },
+  { label: '57 × 32 mm', widthMm: 57, heightMm: 32, rotate90: false, topOffsetMm: 7.5 },
+];
+
 @Component({
   selector: 'app-printer-settings',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink],
   templateUrl: './printer-settings.html',
   styleUrl: './printer-settings.css',
 })
@@ -29,6 +60,8 @@ export class PrinterSettings implements OnInit {
   saving = signal(false);
   saved = signal(false);
   errorMessage = signal<string | null>(null);
+
+  readonly labelFormatPresets = LABEL_FORMAT_PRESETS;
 
   form = new FormGroup({
     printer_ip: new FormControl('', {
@@ -45,6 +78,7 @@ export class PrinterSettings implements OnInit {
       validators: [Validators.required, Validators.min(1)],
     }),
     label_rotate_90: new FormControl(false, { nonNullable: true }),
+    label_top_offset_mm: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
   });
 
   ngOnInit(): void {
@@ -57,8 +91,41 @@ export class PrinterSettings implements OnInit {
         label_width_mm: byKey.get('label_width_mm') ? Number(byKey.get('label_width_mm')) : 57,
         label_height_mm: byKey.get('label_height_mm') ? Number(byKey.get('label_height_mm')) : 32,
         label_rotate_90: byKey.get('label_rotate_90') === '1',
+        label_top_offset_mm: byKey.get('label_top_offset_mm') ? Number(byKey.get('label_top_offset_mm')) : 0,
       });
     });
+  }
+
+  /** Préréglage actif correspondant aux valeurs actuelles du formulaire, s'il y en a un. */
+  activePresetLabel(): string {
+    const value = this.form.getRawValue();
+    const match = this.labelFormatPresets.find(
+      (preset) =>
+        Number(value.label_width_mm) === preset.widthMm &&
+        Number(value.label_height_mm) === preset.heightMm &&
+        value.label_rotate_90 === preset.rotate90 &&
+        Number(value.label_top_offset_mm) === preset.topOffsetMm,
+    );
+
+    return match?.label ?? '';
+  }
+
+  /**
+   * Remplit largeur/hauteur/rotation depuis un préréglage choisi dans la liste déroulante et
+   * enregistre tout de suite — un changement de rouleau ne doit pas dépendre de ne pas oublier de
+   * cliquer "Enregistrer" en plus.
+   */
+  selectPreset(label: string): void {
+    const preset = this.labelFormatPresets.find((p) => p.label === label);
+    if (!preset) return;
+
+    this.form.patchValue({
+      label_width_mm: preset.widthMm,
+      label_height_mm: preset.heightMm,
+      label_rotate_90: preset.rotate90,
+      label_top_offset_mm: preset.topOffsetMm,
+    });
+    this.save();
   }
 
   save(): void {
@@ -79,6 +146,7 @@ export class PrinterSettings implements OnInit {
       this.settingService.update('label_width_mm', String(value.label_width_mm)),
       this.settingService.update('label_height_mm', String(value.label_height_mm)),
       this.settingService.update('label_rotate_90', value.label_rotate_90 ? '1' : '0'),
+      this.settingService.update('label_top_offset_mm', String(value.label_top_offset_mm)),
     ]).subscribe({
       next: () => {
         this.saving.set(false);

@@ -77,7 +77,12 @@ export class LabelQueueService {
     forkJoin(requests).subscribe({
       // Ici, contrairement à window.print(), le serveur confirme l'impression réelle avant de
       // répondre — pas besoin d'un recordPrint séparé, printZebra journalise déjà côté serveur.
-      next: () => this.printingOnZebra.set(false),
+      // On vide la file après coup : sinon un produit resté de la fois précédente se réimprime
+      // silencieusement avec le suivant (vécu : 2 étiquettes sorties pour 1 ajoutée).
+      next: () => {
+        this.printingOnZebra.set(false);
+        this.clear();
+      },
       error: (error) => {
         this.printingOnZebra.set(false);
         this.zebraError.set(error?.error?.message ?? "Une erreur est survenue lors de l'impression.");

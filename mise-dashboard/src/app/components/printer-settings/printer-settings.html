@@ -3,6 +3,27 @@
 </div>
 
 <form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-field span-2">
+    <label class="form-label" for="label_format_preset">Format du support chargé</label>
+    <select
+      id="label_format_preset"
+      class="form-select"
+      [disabled]="saving()"
+      [ngModel]="activePresetLabel()"
+      [ngModelOptions]="{ standalone: true }"
+      (ngModelChange)="selectPreset($event)">
+      <option value="" disabled>Choisir un format…</option>
+      @for (preset of labelFormatPresets; track preset.label) {
+        <option [value]="preset.label">{{ preset.label }}</option>
+      }
+    </select>
+    <p class="form-hint">
+      Change et enregistre directement largeur/hauteur/rotation ci-dessous pour le rouleau chargé.
+      Après un changement de rouleau, utilise aussi le bouton "Recalibrer" dans l'app Mise (menu
+      barre de menu) — sinon l'imprimante peut continuer à mal reconnaître les étiquettes.
+    </p>
+  </div>
+
   <div class="form-grid">
     <div class="form-field">
       <label class="form-label" for="printer_ip">Adresse de l'imprimante</label>
@@ -78,6 +99,22 @@
         À activer pour une étiquette rectangulaire plus haute que large (ex. 38 x 89mm) quand on
         veut que le texte se lise à l'horizontale une fois l'étiquette posée dans l'autre sens — le
         sens de défilement du papier dans l'imprimante ne change pas, seul le contenu pivote.
+      </p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="label_top_offset_mm">Zone morte en haut de l'étiquette (mm)</label>
+      <input
+        id="label_top_offset_mm"
+        class="form-input"
+        type="number"
+        min="0"
+        step="0.5"
+        formControlName="label_top_offset_mm" />
+      <p class="form-hint">
+        Décalage mécanique propre à l'imprimante (pas au support) où rien ne s'imprime en haut de
+        chaque étiquette — à mesurer une fois par imprimante avec le bouton "Étiquette de mesure"
+        dans l'app Mise, pas à deviner. Rempli automatiquement par le format choisi ci-dessus.
       </p>
     </div>
   </div>

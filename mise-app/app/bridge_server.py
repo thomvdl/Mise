@@ -11,6 +11,10 @@ from .events import EventLog
 
 LISTEN_PORT = 9100
 RECV_CHUNK = 4096
+# Évite qu'une connexion qui n'envoie jamais rien (ex. sondes/proxy réseau de Docker Desktop vers
+# host.docker.internal, vu en prod : une connexion restée ouverte sans données a bloqué toute
+# impression suivante) ne bloque indéfiniment la boucle le temps qu'elle attend recv().
+CONN_TIMEOUT_SECONDS = 10
 
 
 class BridgeServer:
@@ -54,18 +58,30 @@ class BridgeServer:
                 # Déclenché par stop() fermant le socket — sortie normale de la boucle.
                 break
 
-            with conn:
-                chunks = []
+            # Chaque connexion dans son propre thread : une connexion lente/muette (ou un simple
+            # port scan) ne doit jamais empêcher d'accepter les impressions suivantes pendant
+            # qu'elle traîne dans recv().
+            threading.Thread(target=self._handle_connection, args=(conn, addr), daemon=True).start()
+
+    def _handle_connection(self, conn: socket.socket, addr) -> None:
+        conn.settimeout(CONN_TIMEOUT_SECONDS)
+        with conn:
+            chunks = []
+            try:
                 while chunk := conn.recv(RECV_CHUNK):
                     chunks.append(chunk)
-                data = b"".join(chunks)
+            except OSError:
+                # Timeout ou connexion coupée brutalement — on imprime quand même ce qui a été
+                # reçu jusque-là plutôt que de tout perdre silencieusement.
+                pass
+            data = b"".join(chunks)
 
-                if not data:
-                    continue
+            if not data:
+                return
 
-                try:
-                    self.backend.send(data)
-                    self.events.add(f"{addr[0]} -> {len(data)} octets imprimés")
-                except Exception as exc:  # noqa: BLE001 — une étiquette ratée ne doit pas arrêter
-                    # le pont pour les suivantes.
-                    self.events.add(f"Échec d'impression ({addr[0]}) : {exc}", level="error")
+            try:
+                self.backend.send(data)
+                self.events.add(f"{addr[0]} -> {len(data)} octets imprimés")
+            except Exception as exc:  # noqa: BLE001 — une étiquette ratée ne doit pas arrêter
+                # le pont pour les suivantes.
+                self.events.add(f"Échec d'impression ({addr[0]}) : {exc}", level="error")

@@ -104,6 +104,7 @@ class EventController extends Controller
             (float) Setting::get('label_width_mm', '57'),
             (float) Setting::get('label_height_mm', '32'),
             Setting::get('label_rotate_90', '0') === '1',
+            (float) Setting::get('label_top_offset_mm', '0'),
         );
 
         if ($error = ZplPrinter::send($zpl)) {

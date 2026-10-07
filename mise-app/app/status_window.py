@@ -16,6 +16,25 @@ from . import config, kiosk, project
 # répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
 _TEST_ZPL = b"^XA\n^CI28\n^PW304\n^LL200\n^CF0,40\n^FO20,20^FDTest pont ZPL^FS\n^XZ\n"
 
+# `~JC` déclenche la calibration support (mesure la longueur réelle du gap entre étiquettes) —
+# trouvé plus fiable que la variable SGD `media.calibrate` en test (celle-ci a donné une longueur
+# mesurée fausse à plusieurs reprises sur la Zebra ZD410, ~JC a donné la bonne du premier coup).
+_CALIBRATE_ZPL = b"~JC"
+
+
+def _ruler_zpl(width_dots: int = 456, height_dots: int = 256) -> bytes:
+    """Étiquette graduée (un trait + un chiffre tous les 20 dots) pour mesurer à l'œil la vraie
+    zone morte en haut d'impression de CETTE imprimante — un trou mécanique tête/capteur, pas un
+    réglage logiciel (voir `label_top_offset_mm` côté dashboard, à renseigner avec la valeur lue
+    ici). Dimensions par défaut calées sur une étiquette 57x32mm à 203dpi, assez large pour la
+    plupart des formats utilisés."""
+    parts = [f"^XA^CI28^PW{width_dots}^LL{height_dots}"]
+    for y in range(0, height_dots - 15, 20):
+        parts.append(f"^FO0,{y}^GB{width_dots},2,2^FS")
+        parts.append(f"^FO4,{y + 3}^A0N,16,16^FD{y}^FS")
+    parts.append("^XZ")
+    return "".join(parts).encode()
+
 
 def _ask_string(parent: tk.Misc, title: str, prompt: str, show: Optional[str] = None) -> Optional[str]:
     """Remplace `tkinter.simpledialog.askstring` — cassé sous Tk 9 sur macOS (plante avec
@@ -71,7 +90,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("460x710")
+        self.window.geometry("460x740")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -97,9 +116,18 @@ class StatusWindow:
             command=self._toggle_autostart,
         ).pack(anchor="w", padx=14, pady=(0, 8))
 
+        printer_btn_row = ttk.Frame(self.window)
+        printer_btn_row.pack(fill="x", padx=14, pady=(0, 6))
+        ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
+            side="left"
+        )
+        ttk.Button(printer_btn_row, text="Recalibrer", command=self._recalibrate).pack(side="left", padx=(6, 0))
+        ttk.Button(printer_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(
+            side="left", padx=(6, 0)
+        )
+
         btn_row = ttk.Frame(self.window)
         btn_row.pack(fill="x", padx=14, pady=(0, 14))
-        ttk.Button(btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(side="left")
         ttk.Button(btn_row, text="Quitter", command=self._quit).pack(side="right")
         ttk.Button(btn_row, text="Recharger", command=self.refresh).pack(side="right", padx=(0, 6))
 
@@ -490,6 +518,27 @@ class StatusWindow:
         except Exception as exc:  # noqa: BLE001 — affiché dans le journal, pas une exception à
             # laisser remonter jusqu'à l'UI.
             self.events.add(f"Échec du test : {exc}", level="error")
+        self.refresh()
+
+    def _recalibrate(self) -> None:
+        """Mesure la longueur réelle du support chargé (`~JC`, voir _CALIBRATE_ZPL) — à relancer
+        après chaque changement de rouleau. Fait avancer 2-3 étiquettes, c'est normal."""
+        try:
+            self.backend.send(_CALIBRATE_ZPL)
+            self.events.add("Calibration support lancée (quelques étiquettes vont défiler)")
+        except Exception as exc:  # noqa: BLE001 — voir _print_test
+            self.events.add(f"Échec de la calibration : {exc}", level="error")
+        self.refresh()
+
+    def _print_ruler(self) -> None:
+        """Imprime une étiquette graduée pour mesurer à l'œil la zone morte mécanique en haut de
+        l'impression (voir _ruler_zpl) — le chiffre lu en premier visible, en dots, est la valeur à
+        reporter dans `label_top_offset_mm` côté dashboard (÷ 7,99 pour du 203dpi → mm)."""
+        try:
+            self.backend.send(_ruler_zpl())
+            self.events.add("Étiquette de mesure envoyée — relève le premier chiffre visible en haut")
+        except Exception as exc:  # noqa: BLE001 — voir _print_test
+            self.events.add(f"Échec de l'impression de mesure : {exc}", level="error")
         self.refresh()
 
     def _quit(self) -> None:

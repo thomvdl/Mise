@@ -49,6 +49,7 @@ class ZplLabelBuilder
         bool $rotate90 = false,
         ?string $userName = null,
         ?string $iconKey = null,
+        float $topOffsetMm = 0,
     ): string {
         $typeLine = $title . ' -> ' . self::formatDate($date);
         $dlcLine = $useByDate ? 'DLC -> ' . self::formatDate($useByDate) : null;
@@ -66,7 +67,7 @@ class ZplLabelBuilder
             $fields[] = ['text' => self::sanitize($userName), 'lines' => 1];
         }
 
-        return self::render($widthMm, $heightMm, $dpi, $rotate90, $fields, $quantity);
+        return self::render($widthMm, $heightMm, $dpi, $rotate90, $fields, $quantity, $topOffsetMm);
     }
 
     /**
@@ -82,6 +83,7 @@ class ZplLabelBuilder
         float $widthMm = 57,
         float $heightMm = 32,
         bool $rotate90 = false,
+        float $topOffsetMm = 0,
     ): string {
         $fields = [
             ['text' => self::sanitize($name), 'lines' => 2],
@@ -93,7 +95,7 @@ class ZplLabelBuilder
 
         $fields[] = ['text' => 'Le : ' . self::formatDate($date), 'lines' => 1];
 
-        return self::render($widthMm, $heightMm, $dpi, $rotate90, $fields, 1);
+        return self::render($widthMm, $heightMm, $dpi, $rotate90, $fields, 1, $topOffsetMm);
     }
 
     /**
@@ -120,6 +122,19 @@ class ZplLabelBuilder
      * carré occupant toute la tranche déjà allouée au champ (`$lineSlot`), au tout début de l'axe
      * d'avance, et le texte du champ démarre juste après (budget de largeur réduit d'autant).
      *
+     * `$topOffsetMm` compense une zone morte mécanique mesurée sur l'imprimante (tête/capteur de
+     * gap décalés physiquement) — rien à voir avec `^LT`/`zpl.label_top` côté firmware (déjà à 0,
+     * vérifié) ni avec la marge de mise en page ci-dessus : c'est un trou constaté à l'impression
+     * (mesuré à ~7,5mm sur la Zebra ZD410 en 57x32mm non pivoté, via une étiquette graduée).
+     * **Ne PAS utiliser `^LT` pour ça** (testé, revert délibéré) : `^LT` décale le point de départ
+     * de l'impression sur le défilement papier lui-même, pas juste dans la fenêtre `^LL` existante
+     * — le contenu déborde alors sur l'étiquette suivante (vu en test : 2 étiquettes imprimées,
+     * décalées, pour UNE demandée). On réduit donc simplement la marge de DÉBUT (uniquement le
+     * début, pas la marge symétrique) sur l'axe `^LL` (hauteur physique, qui est l'axe
+     * d'empilement en mode normal et l'axe d'avance du texte en mode pivoté — `^FWR` ne pivote que
+     * le sens d'écriture, jamais le sens de défilement du papier, voir plus haut) : le contenu
+     * reste dans la même fenêtre `^LL`, juste repoussé après la zone morte.
+     *
      * @param  array<int, array{text: string, lines: int, icon?: ?string}>  $fields
      */
     private static function render(
@@ -129,17 +144,21 @@ class ZplLabelBuilder
         bool $rotate90,
         array $fields,
         int $quantity,
+        float $topOffsetMm = 0,
     ): string {
         $dotsPerMm = $dpi / 25.4;
         $physicalWidthDots = (int) round($widthMm * $dotsPerMm);
         $physicalHeightDots = (int) round($heightMm * $dotsPerMm);
+        $topOffsetDots = (int) round($topOffsetMm * $dotsPerMm);
         $stackDots = $rotate90 ? $physicalWidthDots : $physicalHeightDots;
         $advanceDots = $rotate90 ? $physicalHeightDots : $physicalWidthDots;
 
         $stackMargin = (int) round($stackDots * self::MARGIN_RATIO);
         $advanceMargin = (int) round($advanceDots * self::MARGIN_RATIO);
-        $innerAdvance = max(1, $advanceDots - 2 * $advanceMargin);
-        $innerStack = max(1, $stackDots - 2 * $stackMargin);
+        $stackStartMargin = $stackMargin + (! $rotate90 ? $topOffsetDots : 0);
+        $advanceStartMargin = $advanceMargin + ($rotate90 ? $topOffsetDots : 0);
+        $innerAdvance = max(1, $advanceDots - $advanceStartMargin - $advanceMargin);
+        $innerStack = max(1, $stackDots - $stackStartMargin - $stackMargin);
 
         $lineCount = max(1, array_sum(array_column($fields, 'lines')));
         $lineSlot = (int) floor($innerStack / $lineCount);
@@ -155,7 +174,7 @@ class ZplLabelBuilder
             $lines[] = '^FWR';
         }
 
-        $stackPos = $rotate90 ? ($stackMargin + $innerStack) : $stackMargin;
+        $stackPos = $rotate90 ? ($stackMargin + $innerStack) : $stackStartMargin;
         $next = function (int $slots) use (&$stackPos, $lineSlot, $rotate90): int {
             if ($rotate90) {
                 $stackPos -= $slots * $lineSlot;
@@ -174,14 +193,14 @@ class ZplLabelBuilder
         // est un peu long.
         foreach ($fields as $field) {
             $pos = $next($field['lines']);
-            $fieldAdvanceMargin = $advanceMargin;
+            $fieldAdvanceMargin = $advanceStartMargin;
             $fieldInnerAdvance = $innerAdvance;
 
             if (! empty($field['icon'])) {
                 $iconGap = max(4, (int) round($lineSlot * 0.15));
-                $lines[] = '^FO' . self::fo($rotate90, $pos, $advanceMargin)
+                $lines[] = '^FO' . self::fo($rotate90, $pos, $advanceStartMargin)
                     . ZplIconRenderer::graphicField($field['icon'], $lineSlot, $rotate90);
-                $fieldAdvanceMargin = $advanceMargin + $lineSlot + $iconGap;
+                $fieldAdvanceMargin = $advanceStartMargin + $lineSlot + $iconGap;
                 $fieldInnerAdvance = max(1, $innerAdvance - $lineSlot - $iconGap);
             }
 

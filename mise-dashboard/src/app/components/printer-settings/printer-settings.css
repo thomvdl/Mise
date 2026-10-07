@@ -3,3 +3,10 @@
   color: var(--accent-green);
   font-weight: 700;
 }
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
