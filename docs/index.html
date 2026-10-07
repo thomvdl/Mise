@@ -22,6 +22,7 @@
 
   body {
     margin: 0;
+    overflow-x: hidden;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -56,6 +57,17 @@
     text-decoration: none;
   }
   .brand img { width: 26px; height: 26px; }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .nav-links > a:not(.cta) {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .nav-links > a:not(.cta):hover { color: var(--text); }
   nav a.cta {
     color: var(--text);
     text-decoration: none;
@@ -142,39 +154,72 @@
     border-top: 1px solid var(--border);
   }
 
-  /* Features */
-  section.features {
-    padding: 0 0 96px;
+  /* Feature sections (per app) */
+  section.app-section {
+    padding: 0 0 88px;
   }
-  section.features h2 {
-    font-size: 0.8rem;
+  .app-header {
+    text-align: center;
+    max-width: 580px;
+    margin: 0 auto 40px;
+  }
+  .app-tag {
+    display: inline-block;
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-dim);
-    margin: 0 0 32px;
-    text-align: center;
-  }
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
+    color: var(--accent);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
+    border-radius: 999px;
+    padding: 4px 12px;
+    margin-bottom: 14px;
   }
-  .feature {
-    background: var(--bg);
-    padding: 28px 24px;
+  .app-header h2 {
+    font-size: 1.5rem;
+    margin: 0 0 10px;
   }
-  .feature h3 {
-    font-size: 1rem;
-    margin: 0 0 8px;
-  }
-  .feature p {
-    margin: 0;
-    font-size: 0.88rem;
+  .app-header p {
     color: var(--text-dim);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  .feature-list {
+    border-top: 1px solid var(--border);
+  }
+  .feature-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 28px;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-row h3 {
+    margin: 0;
+    font-size: 1.02rem;
+  }
+  .feature-row .desc {
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+  .usecase {
+    font-size: 0.86rem;
+    color: var(--text);
+    background: var(--bg-raised);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+  }
+  .usecase b {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  code {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.85em;
   }
 
   /* Stack */
@@ -222,10 +267,14 @@
   }
 
   @media (max-width: 640px) {
-    header.hero { padding: 64px 20px 56px; }
+    .wrap { padding: 0 16px; }
+    header.hero { padding: 64px 16px 56px; }
     header.hero h1 { font-size: 2rem; }
     .shots-grid { grid-template-columns: 1fr; }
-    .features-grid { grid-template-columns: 1fr; }
+    .feature-row { grid-template-columns: 1fr; gap: 10px; }
+    .nav-links > a:not(.cta) { display: none; }
+    nav a.cta { padding: 7px 12px; font-size: 0.85rem; }
+    .brand { font-size: 0.95rem; }
   }
 </style>
 </head>
@@ -237,7 +286,11 @@
       <img src="assets/logo.png" alt="Mise">
       MISE
     </a>
-    <a class="cta" href="https://github.com/thomvdl/Mise">Voir sur GitHub</a>
+    <div class="nav-links">
+      <a href="#dashboard">Dashboard</a>
+      <a href="#public">Public</a>
+      <a class="cta" href="https://github.com/thomvdl/Mise">Voir sur GitHub</a>
+    </div>
   </div>
 </nav>
 
@@ -272,34 +325,148 @@
   </div>
 </section>
 
-<section class="features">
+<section class="app-section" id="dashboard">
   <div class="wrap">
-    <h2>Fonctionnalités</h2>
-    <div class="features-grid">
-      <div class="feature">
+    <div class="app-header">
+      <span class="app-tag">Dashboard</span>
+      <h2>Le back-office du chef</h2>
+      <p>Utilisé sur un poste fixe ou un mini PC en cuisine, pour construire et faire vivre tout le référentiel que la brigade consulte au quotidien.</p>
+    </div>
+    <div class="feature-list">
+
+      <div class="feature-row">
         <h3>Fiches techniques</h3>
-        <p>Ingrédients, étapes chronométrées, food cost, mise à l'échelle des portions et schéma de dressage visuel.</p>
+        <div>
+          <p class="desc">Création et édition complètes : ingrédients avec sous-groupes, étapes chronométrées, matériel, HACCP, conservation, astuces de chef, photos, schéma de dressage visuel (éléments positionnés sur l'assiette), et import/export markdown en lot. Une fiche peut aussi servir de composant dans une autre.</p>
+          <p class="usecase"><b>Cas concret —</b> le chef colle d'un coup 12 fiches générées à partir d'un vieux classeur papier via une IA, dans le format markdown attendu ; elles arrivent déjà structurées, il n'a plus qu'à relire. Une sauce béarnaise créée une fois comme fiche est ensuite réutilisée comme composant dans 3 plats de la carte — la modifier à un seul endroit la met à jour partout.</p>
+        </div>
       </div>
-      <div class="feature">
-        <h3>Traçabilité HACCP</h3>
-        <p>Étiquettes imprimées (Zebra ou navigateur), listes réutilisables, historique consultable.</p>
+
+      <div class="feature-row">
+        <h3>Référentiel</h3>
+        <div>
+          <p class="desc">Ingrédients (avec prix au kg/L et allergènes liés), catégories, stations et groupes de la brigade — la base commune sur laquelle s'appuient fiches et menus.</p>
+          <p class="usecase"><b>Cas concret —</b> le chef met à jour le prix du beurre une seule fois dans le référentiel ; le food cost de toutes les fiches qui en contiennent se recalcule automatiquement côté app publique, sans ressaisie.</p>
+        </div>
       </div>
-      <div class="feature">
+
+      <div class="feature-row">
         <h3>Menus</h3>
-        <p>Composés de sections et de plats, combinant plusieurs fiches techniques.</p>
+        <div>
+          <p class="desc">Sections et plats combinant plusieurs fiches techniques, import markdown, impression, génération de liste de courses et grille allergènes imprimable par menu.</p>
+          <p class="usecase"><b>Cas concret —</b> avant un menu dégustation, le chef imprime la grille allergènes du menu (calculée automatiquement depuis les fiches qui le composent) pour l'avoir sous la main en salle.</p>
+        </div>
       </div>
-      <div class="feature">
+
+      <div class="feature-row">
+        <h3>Appareils &amp; températures</h3>
+        <div>
+          <p class="desc">Fiche par appareil (frigo, chambre froide...) avec plage de température normale, et un rapport par période avec courbe, tableau détaillé des relevés hors plage, et impression.</p>
+          <p class="usecase"><b>Cas concret —</b> lors d'un contrôle sanitaire, le chef sort en 30 secondes l'historique de température du mois pour la chambre froide poissons, imprimé et prêt à montrer.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Friteuses &amp; huile</h3>
+        <div>
+          <p class="desc">Fiche par friteuse avec durée de vie d'huile paramétrable, historique des changements et date conseillée du prochain, rapport imprimable par période.</p>
+          <p class="usecase"><b>Cas concret —</b> avant le coup de feu du midi, le chef voit en un coup d'œil quelle friteuse est en retard sur son changement d'huile (flag rouge "à changer").</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Étiquettes &amp; impression</h3>
+        <div>
+          <p class="desc">Paramétrage des types d'étiquettes HACCP (DLC suggérée, éditable par type) et des réglages d'imprimante utilisés par toute la brigade côté app publique.</p>
+          <p class="usecase"><b>Cas concret —</b> le chef resserre la DLC par défaut du type "Décongelé le" de J+2 à J+1 pour un produit plus fragile ; le changement s'applique immédiatement à toutes les étiquettes composées par la brigade.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Utilisateurs</h3>
+        <div>
+          <p class="desc">Gestion des comptes et des rôles (<code>user</code> / <code>admin</code>) via Laravel Sanctum, plus connexion rapide par QR code pour amener un nouvel appareil sur l'app sans taper d'adresse.</p>
+          <p class="usecase"><b>Cas concret —</b> un stagiaire arrive pour la semaine : le chef lui crée un compte <code>user</code> en 10 secondes, avec accès à l'app publique mais pas au back-office.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Vie d'équipe &amp; événements</h3>
+        <div>
+          <p class="desc">Discussion interne, liste de courses, notes libres en markdown, calendrier d'événements et mise en place classée par station, groupe ou événement.</p>
+          <p class="usecase"><b>Cas concret —</b> le chef programme un banquet de 80 couverts dans le calendrier et affecte les tâches de mise en place par station ; la brigade les retrouve et les coche depuis l'app publique au fur et à mesure.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="app-section" id="public">
+  <div class="wrap">
+    <div class="app-header">
+      <span class="app-tag">Public</span>
+      <h2>L'app du quotidien en cuisine</h2>
+      <p>Une PWA utilisée en service par toute la brigade — consultation des fiches et menus, et les gestes de traçabilité qui reviennent chaque jour.</p>
+    </div>
+    <div class="feature-list">
+
+      <div class="feature-row">
+        <h3>Fiches techniques</h3>
+        <div>
+          <p class="desc">Recherche par station, lecture des étapes, HACCP et schéma de dressage, allergènes agrégés affichés automatiquement, et food cost (total + prix/portion) recalculé en direct quand on ajuste le nombre de portions.</p>
+          <p class="usecase"><b>Cas concret —</b> en plein service, un commis ouvre la fiche sur la tablette de la station et fait passer le nombre de portions de 4 à 12 pour un gros groupe — quantités d'ingrédients et coût matière s'ajustent tout seuls.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Menus</h3>
+        <div>
+          <p class="desc">Consultation, recherche et impression directe, avec une grille allergènes dédiée par menu.</p>
+          <p class="usecase"><b>Cas concret —</b> un client signale une allergie au gluten en salle : le serveur ouvre la grille allergènes du menu du jour sur l'app pour vérifier en 5 secondes quels plats conviennent.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Étiquettes HACCP</h3>
+        <div>
+          <p class="desc">Composition et impression (imprimante thermique Zebra en réseau, ou navigateur en secours), listes d'étiquettes enregistrées et réutilisables avec quantités, et historique de toutes les impressions consultable pour la traçabilité.</p>
+          <p class="usecase"><b>Cas concret —</b> à l'ouverture, le commis imprime d'un coup la liste "ouverture du matin" (6 produits, quantités prédéfinies) au lieu de composer chaque étiquette une par une.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Températures</h3>
+        <div>
+          <p class="desc">Saisie de la température de tous les appareils sur une seule page, avec alerte visuelle immédiate si une valeur sort de la plage normale de l'appareil.</p>
+          <p class="usecase"><b>Cas concret —</b> à la ronde de 11h, le commis saisit les 8 relevés sur une seule page ; la chambre froide légumes passe en rouge instantanément, avant que ça devienne un vrai problème.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <h3>Huile des friteuses</h3>
+        <div>
+          <p class="desc">Une carte par friteuse (dernier changement, prochain conseillé, historique dépliable) avec un bouton "Marquer changée" — la date est toujours celle du jour, impossible à antidater.</p>
+          <p class="usecase"><b>Cas concret —</b> après avoir changé l'huile de la friteuse 2, le commis clique "Marquer changée" ; la date ne peut pas être modifiée, ce qui garde la traçabilité fiable même si la saisie est faite un peu après coup.</p>
+        </div>
+      </div>
+
+      <div class="feature-row">
         <h3>Mise en place</h3>
-        <p>Tâches avant service, classées par station, groupe ou événement, avec confirmation.</p>
+        <div>
+          <p class="desc">Tâches à faire avant service, classées par station, groupe ou événement à venir, avec une confirmation explicite avant de marquer une tâche comme faite.</p>
+          <p class="usecase"><b>Cas concret —</b> avant le coup de feu, chaque commis consulte la liste de tâches de sa station et les coche au fur et à mesure ; le chef voit en direct ce qu'il reste à faire sans avoir à faire le tour de la cuisine.</p>
+        </div>
       </div>
-      <div class="feature">
-        <h3>Suivi des appareils</h3>
-        <p>Température des frigos et chambres froides, changement d'huile des friteuses, rapports imprimables.</p>
-      </div>
-      <div class="feature">
+
+      <div class="feature-row">
         <h3>Vie de brigade</h3>
-        <p>Discussion interne, liste de courses partagée, calendrier d'événements, notes libres.</p>
+        <div>
+          <p class="desc">Discussion interne, liste de courses partagée, notes libres en markdown et calendrier d'événements, accessibles à toute l'équipe depuis son propre téléphone.</p>
+          <p class="usecase"><b>Cas concret —</b> un commis remarque qu'il manque de la crème en plein service et l'ajoute à la liste de courses depuis son téléphone ; le chef la retrouve en faisant les courses le lendemain.</p>
+        </div>
       </div>
+
     </div>
   </div>
 </section>
