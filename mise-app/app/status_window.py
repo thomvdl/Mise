@@ -128,9 +128,10 @@ class StatusWindow:
         ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
             side="left", padx=(6, 0)
         )
-        ttk.Button(printer_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(
-            side="left", padx=(6, 0)
-        )
+
+        measure_btn_row = ttk.Frame(self.window)
+        measure_btn_row.pack(fill="x", padx=14, pady=(0, 6))
+        ttk.Button(measure_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(side="left")
 
         btn_row = ttk.Frame(self.window)
         btn_row.pack(fill="x", padx=14, pady=(0, 14))
