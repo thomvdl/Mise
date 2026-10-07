@@ -4,6 +4,7 @@
 /backups/
 .DS_Store
 .venv-test
+.venv/
 __pycache__
 *.pyc
 /mise-app/dist/

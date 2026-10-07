@@ -69,9 +69,11 @@ L'app détecte leur absence et affiche un message clair plutôt que d'échouer s
 
 **Étapes :**
 
-1. Récupérez `Mise.exe`/`Mise.app` (voir "Construire l'appli" ci-dessous pour le construire
-   vous-même, ou copiez un exécutable déjà construit par ailleurs — clé USB, partage réseau...) et
-   lancez-le. Une icône apparaît dans la barre système.
+1. Récupérez `Mise-windows.zip`/`Mise.app` (voir "Construire l'appli" ci-dessous pour le
+   construire vous-même, ou copiez une version déjà construite par ailleurs — clé USB, partage
+   réseau...). Sur Windows, décompressez le zip dans un dossier stable (par ex.
+   `C:\Program Files\Mise` ou `%LOCALAPPDATA%\Mise` — le démarrage automatique pointe vers cet
+   emplacement) et lancez `Mise.exe` depuis ce dossier. Une icône apparaît dans la barre système.
 2. Cliquez sur l'icône → **Ouvrir**, puis dans la section **"Projet Mise"** :
    - **Dossier…** pour choisir où installer le projet (par défaut `~/Mise`) ;
    - **Installer** : clone le dépôt, crée `.env` avec des mots de passe générés automatiquement
@@ -111,18 +113,32 @@ pip install -r requirements-macos.txt
 # Windows
 pip install -r requirements-windows.txt
 packaging\build_windows.bat
-# -> dist\windows\Mise.exe
+# -> dist\windows\Mise\Mise.exe (+ ses fichiers à côté)
+# -> dist\windows\Mise-windows.zip (le même dossier, prêt à copier)
 ```
 
-Le `.app`/`.exe` obtenu est autonome (Python et toutes les dépendances, y compris `libusb` côté
-macOS, sont embarqués) — copiez-le simplement sur le mini PC cible et lancez-le. Pas besoin d'y
-installer Python, Homebrew ou pip.
+Le `.app` / le dossier `Mise\` obtenu est autonome (Python et toutes les dépendances, y compris
+`libusb` côté macOS, sont embarqués) — copiez-le simplement sur le mini PC cible et lancez-le.
+Pas besoin d'y installer Python, Homebrew ou pip. Sur Windows, `Mise.exe` ne fonctionne pas seul :
+gardez-le dans son dossier avec le reste des fichiers.
+
+**Pourquoi un dossier et pas un seul `.exe` (Windows)** : un `.exe` PyInstaller "tout-en-un" se
+décompresse dans `%TEMP%` à chaque lancement puis exécute du code depuis là, ce que Windows
+Defender confond régulièrement avec un virus (faux positif). Le build est donc en mode dossier,
+sans compression UPX et avec des infos de version (voir `packaging/windows.spec`), ce qui réduit
+nettement ces détections sans les supprimer à coup sûr.
 
 ### Dépannage de l'appli empaquetée
 
 - **L'icône n'apparaît pas** : l'app a peut-être échoué au lancement — relancez-la depuis un
   Terminal/une invite de commandes (`./dist/macos/Mise.app/Contents/MacOS/Mise`
   ou l'équivalent `.exe`) pour voir une éventuelle erreur affichée.
+- **Windows Defender signale `Mise.exe` comme virus** (non signé, faux positif) : vérifiez que
+  vous utilisez bien un build en mode dossier (voir "Construire l'appli"). Si ça persiste,
+  signalez le fichier à Microsoft comme faux positif
+  (https://www.microsoft.com/en-us/wdsi/filesubmission, à refaire à chaque nouvelle version) ou
+  ajoutez une exclusion Defender sur le dossier de l'app. La solution définitive est de signer
+  l'exécutable avec un certificat de signature de code.
 - **macOS refuse de lancer l'app** (non signée) : clic droit → Ouvrir, puis confirmer dans la
   boîte de dialogue Gatekeeper (une seule fois).
 - Pour le reste (imprimante introuvable, étiquette mal formatée…), voir les sections de
