@@ -204,6 +204,45 @@ def docker_up(repo_path: Path, log: LogFn, build: bool = False) -> None:
     _run(args, cwd=repo_path, log=log)
 
 
+def server_status(repo_path: Path) -> str:
+    """"running" (tous les services tournent), "stopped" (aucun), "partial" (certains), ou
+    "unknown" (Docker indisponible, ou pas encore de conteneurs créés) — basé sur
+    `docker compose ps`, pas sur `docker_up`/`stop_server` qui ne font qu'agir."""
+    try:
+        running = _run(
+            ["docker", "compose", "ps", "--services", "--filter", "status=running"],
+            cwd=repo_path,
+            timeout=_QUICK_TIMEOUT_SECONDS,
+        )
+        all_services = _run(
+            ["docker", "compose", "config", "--services"],
+            cwd=repo_path,
+            timeout=_QUICK_TIMEOUT_SECONDS,
+        )
+    except CommandError:
+        return "unknown"
+
+    running_set = {s for s in running.splitlines() if s.strip()}
+    all_set = {s for s in all_services.splitlines() if s.strip()}
+    if not all_set:
+        return "unknown"
+    if not running_set:
+        return "stopped"
+    if running_set >= all_set:
+        return "running"
+    return "partial"
+
+
+def start_server(repo_path: Path, log: LogFn) -> None:
+    docker_up(repo_path, log)
+
+
+def stop_server(repo_path: Path, log: LogFn) -> None:
+    # `stop` (pas `down`) : garde les conteneurs/volumes en place pour un redémarrage rapide via
+    # start_server, plutôt que de tout détruire et reconstruire.
+    _run(["docker", "compose", "stop"], cwd=repo_path, log=log)
+
+
 def backup_db(repo_path: Path, log: LogFn) -> Path:
     """Reproduit `backup/backup.sh::backup_once` à la main (voir DEPLOY.md §7) : dump + gzip
     dans le conteneur `db-backup`, puis copie locale (le volume Docker ne survit pas à une panne

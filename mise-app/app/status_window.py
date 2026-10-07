@@ -71,7 +71,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("460x660")
+        self.window.geometry("460x710")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -154,6 +154,16 @@ class StatusWindow:
         self.restore_button = ttk.Button(backup_row, text="Restaurer…", command=self._restore)
         self.restore_button.pack(side="left", padx=(6, 0))
 
+        self.server_status_label = ttk.Label(frame, text="…")
+        self.server_status_label.pack(anchor="w", padx=8, pady=(0, 2))
+
+        server_row = ttk.Frame(frame)
+        server_row.pack(fill="x", padx=8, pady=(0, 8))
+        self.start_server_button = ttk.Button(server_row, text="Démarrer le serveur", command=self._start_server)
+        self.start_server_button.pack(side="left")
+        self.stop_server_button = ttk.Button(server_row, text="Arrêter le serveur", command=self._stop_server)
+        self.stop_server_button.pack(side="left", padx=(6, 0))
+
     def _repo_path(self) -> Path:
         cfg = config.load()
         configured = cfg.get("repo_path")
@@ -229,6 +239,28 @@ class StatusWindow:
         self.backup_button.config(state="normal" if (not self._busy and cloned) else "disabled")
         self.restore_button.config(state="normal" if (not self._busy and cloned) else "disabled")
 
+        if not cloned:
+            self.server_status_label.config(text="")
+            self.start_server_button.config(state="disabled")
+            self.stop_server_button.config(state="disabled")
+            return
+
+        status = project.server_status(repo_path) if project.is_docker_available() else "unknown"
+        icons = {"running": "🟢", "partial": "🟡", "stopped": "🔴", "unknown": "⬜"}
+        labels = {
+            "running": "Serveur démarré",
+            "partial": "Serveur partiellement démarré",
+            "stopped": "Serveur arrêté",
+            "unknown": "État du serveur inconnu (Docker indisponible ?)",
+        }
+        self.server_status_label.config(text=f"{icons[status]} {labels[status]}")
+        self.start_server_button.config(
+            state="normal" if (not self._busy and status in ("stopped", "partial", "unknown")) else "disabled"
+        )
+        self.stop_server_button.config(
+            state="normal" if (not self._busy and status in ("running", "partial")) else "disabled"
+        )
+
     def _install(self) -> None:
         if self._busy:
             return
@@ -295,6 +327,44 @@ class StatusWindow:
             target=self._run_project_task,
             args=(project.update, (repo_path,)),
             kwargs={},
+            daemon=True,
+        ).start()
+
+    def _start_server(self) -> None:
+        if self._busy:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return
+        self._activate()
+        if not project.is_docker_available():
+            messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
+            return
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.start_server, (repo_path,)),
+            daemon=True,
+        ).start()
+
+    def _stop_server(self) -> None:
+        if self._busy:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return
+        self._activate()
+        if not project.is_docker_available():
+            messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
+            return
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.stop_server, (repo_path,)),
             daemon=True,
         ).start()
 
