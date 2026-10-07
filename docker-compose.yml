@@ -1,6 +1,6 @@
 # Déploiement de référence du projet — hébergement local (mini PC en cuisine ou tout poste avec
-# Docker) + accès extérieur via tunnel Cloudflare (cloudflared-dashboard/cloudflared-public plus
-# bas), voir DEPLOY.md pour la procédure complète. Limites mémoire et rotation des logs sur
+# Docker) + accès extérieur via tunnel Cloudflare (cloudflared-dashboard plus bas), voir DEPLOY.md
+# pour la procédure complète. Limites mémoire et rotation des logs sur
 # chaque service, pour qu'un conteneur qui dérape ne mette pas à genoux le reste ni ne remplisse
 # le disque au fil des mois — pensées pour un mini PC, pas pour un gros serveur.
 x-logging: &default-logging
@@ -110,10 +110,14 @@ services:
   # récupérer — elle change à chaque redémarrage, c'est la limite de ce mode). Accès extérieur
   # sans toucher au réseau local ni au routeur. Pas de port à publier : cloudflared rejoint le
   # réseau compose et atteint directement dashboard:80 par son nom de service.
+  #
+  # Pour une URL fixe (tunnel nommé, nécessite un domaine Cloudflare — voir DEPLOY.md §4), posez
+  # CLOUDFLARE_TUNNEL_ARGS="run --token <token>" dans .env : ça remplace --url ci-dessous sans
+  # toucher ce fichier. Laissé vide, le quick tunnel reste le comportement par défaut.
   cloudflared-dashboard:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --no-autoupdate --url http://dashboard:80
+    command: tunnel --no-autoupdate ${CLOUDFLARE_TUNNEL_ARGS:---url http://dashboard:80}
     depends_on:
       - dashboard
     mem_limit: 128m

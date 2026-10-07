@@ -29,8 +29,8 @@ TypeScript (pas de package partagé entre les deux).
 
 Côté hébergement, toute la stack tourne en Docker Compose sur une seule machine restée sur le
 réseau local (mini PC en cuisine ou poste de dev) — MySQL, l'API, les deux frontends, une
-sauvegarde automatique de la base, et deux tunnels Cloudflare pour l'accès depuis l'extérieur du
-réseau sans domaine ni certificat à gérer soi-même. Détail complet dans
+sauvegarde automatique de la base, et un tunnel Cloudflare (dashboard uniquement) pour l'accès
+depuis l'extérieur du réseau sans certificat à gérer soi-même. Détail complet dans
 [DEPLOY.md](./DEPLOY.md).
 
 ## Fonctionnalités

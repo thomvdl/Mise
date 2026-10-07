@@ -89,8 +89,38 @@ directement.
 rien d'autre que le login de l'application elle-même. Pour un usage ponctuel/de test, ça suffit.
 Pour laisser ça tourner durablement, ajoutez une couche d'authentification devant via [Cloudflare
 Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (gratuit jusqu'à 50
-utilisateurs) — ou passez à un tunnel nommé avec un domaine Cloudflare pour une URL fixe plutôt
-qu'aléatoire à chaque redémarrage (nécessite d'acheter un domaine — prévu, pas encore fait).
+utilisateurs) — ou passez à un tunnel nommé ci-dessous pour une URL fixe.
+
+### Tunnel nommé (URL fixe, pour une installation durable)
+
+Le "quick tunnel" change d'adresse à chaque redémarrage du conteneur — pas pratique à mettre en
+favori ou à communiquer. Un tunnel nommé donne une URL stable (ex.
+`dashboard.nomducuisto.fr`) qui ne bouge plus. Nécessite un compte Cloudflare (gratuit) et un nom
+de domaine (le vôtre, ou un domaine acheté pour quelques euros/an — chez n'importe quel
+registrar, pas besoin de l'acheter chez Cloudflare).
+
+1. Ajoutez le domaine à Cloudflare (gratuit) si ce n'est pas déjà fait : [dash.cloudflare.com](https://dash.cloudflare.com/)
+   → "Add a site", puis pointez les serveurs DNS du domaine vers ceux donnés par Cloudflare (chez
+   votre registrar).
+2. Dans le tableau de bord Cloudflare → **Zero Trust → Networks → Tunnels** → "Create a tunnel" →
+   type "Cloudflared" → donnez-lui un nom (ex. `mise-dashboard`).
+3. L'étape suivante affiche une commande d'installation contenant un token (une longue chaîne
+   après `--token`) — copiez uniquement ce token.
+4. Toujours dans l'assistant, section **Public Hostname** : domaine = le vôtre, sous-domaine au
+   choix (ex. `dashboard`), type `HTTP`, URL = `dashboard:80` (le nom du service Docker, pas une
+   IP — `cloudflared-dashboard` est sur le même réseau Compose que `dashboard`).
+5. Dans `.env` du projet, renseignez :
+   ```
+   CLOUDFLARE_TUNNEL_ARGS=run --token <le token copié à l'étape 3>
+   ```
+6. Relancez le conteneur pour prendre en compte le changement :
+   ```bash
+   docker compose up -d cloudflared-dashboard
+   ```
+
+Le dashboard est alors joignable en permanence sur l'URL fixe choisie, sans jamais changer au
+redémarrage. Les logs (`docker compose logs cloudflared-dashboard`) ne donnent plus d'URL
+`trycloudflare.com` à récupérer — c'est normal, elle est maintenant fixée côté Cloudflare.
 
 ## 5. Imprimante d'étiquettes (ZPL)
 
