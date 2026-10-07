@@ -300,6 +300,56 @@
     color: var(--text);
   }
 
+  /* Hardware */
+  .hw-list {
+    border-top: 1px solid var(--border);
+  }
+  .hw-row {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 24px;
+    align-items: center;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .hw-row h3 {
+    margin: 0 0 6px;
+    font-size: 1rem;
+  }
+  .hw-row .desc {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+  .hw-buy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    text-align: right;
+  }
+  .hw-price {
+    font-size: 0.9rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .hw-buy .btn {
+    padding: 7px 16px;
+    font-size: 0.85rem;
+  }
+  .hw-total {
+    text-align: center;
+    margin: 28px 0 0;
+    font-size: 0.95rem;
+  }
+  .hw-total span {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
   /* Download section */
   .prereqs {
     text-align: center;
@@ -378,6 +428,8 @@
     .shots-grid { grid-template-columns: 1fr; }
     .feature-row { grid-template-columns: 1fr; gap: 10px; }
     .start-grid { grid-template-columns: 1fr; }
+    .hw-row { grid-template-columns: 1fr; gap: 12px; }
+    .hw-buy { align-items: flex-start; text-align: left; }
     .nav-links > a:not(.cta) { display: none; }
     nav a.cta { padding: 7px 12px; font-size: 0.85rem; }
     .brand { font-size: 0.95rem; }
@@ -623,6 +675,64 @@ docker compose up -d --build</code></pre>
         <a class="btn btn-primary" href="mailto:thomsvdl@gmail.com?subject=Installation%20Mise">Me contacter</a>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="app-section" id="hardware">
+  <div class="wrap">
+    <div class="app-header">
+      <span class="app-tag">Matériel</span>
+      <h2>Le kit recommandé</h2>
+      <p>Le combo testé et utilisé en cuisine pour faire tourner Mise sur un poste dédié, avec étiqueteuse et douchette code-barres.</p>
+    </div>
+
+    <div class="hw-list">
+      <div class="hw-row">
+        <div>
+          <h3>Mini PC</h3>
+          <p class="desc">BOSGAME Mini PC E2 Air — Ryzen 5 3500U, 8 Go RAM, 256 Go SSD. Fait tourner toute la stack Docker sans broncher.</p>
+        </div>
+        <div class="hw-buy">
+          <span class="hw-price">≈ 225 €</span>
+          <a class="btn btn-secondary" href="https://www.amazon.fr/BOSGAME-E2-Windows-Entreprises-Affichage/dp/B0DKHBBMY2" target="_blank" rel="noopener">Voir sur Amazon</a>
+        </div>
+      </div>
+
+      <div class="hw-row">
+        <div>
+          <h3>Écran tactile</h3>
+          <p class="desc">iiyama ProLite T2252MSC-B2 — 21,5" Full HD, dalle IPS, tactile capacitif 10 points, HDMI. Pour consulter les fiches directement au poste.</p>
+        </div>
+        <div class="hw-buy">
+          <span class="hw-price">≈ 267 €</span>
+          <a class="btn btn-secondary" href="https://www.amazon.fr/iiyama-Prolite-T2252MSC-B2-Pixels-Tactile/dp/B0C9NJG5B3" target="_blank" rel="noopener">Voir sur Amazon</a>
+        </div>
+      </div>
+
+      <div class="hw-row">
+        <div>
+          <h3>Étiqueteuse</h3>
+          <p class="desc">Zebra ZD411 — imprimante thermique direct, Ethernet, pour les étiquettes de traçabilité HACCP.</p>
+        </div>
+        <div class="hw-buy">
+          <span class="hw-price">≈ 369 €</span>
+          <a class="btn btn-secondary" href="https://www.amazon.fr/Zebra-Imprimante-d%C3%A9tiquettes-Thermique-%C3%A9tiquettes/dp/B0BXQG2LWK" target="_blank" rel="noopener">Voir sur Amazon</a>
+        </div>
+      </div>
+
+      <div class="hw-row">
+        <div>
+          <h3>Douchette code-barres</h3>
+          <p class="desc">NETUM NT-M1 — lecteur laser filaire USB, pour pointer un ingrédient ou un produit sans ressaisie.</p>
+        </div>
+        <div class="hw-buy">
+          <span class="hw-price">≈ 21 €</span>
+          <a class="btn btn-secondary" href="https://www.amazon.fr/NETUM-Douchette-Indicateur-Portable-NT-M1/dp/B01FQTAOKA" target="_blank" rel="noopener">Voir sur Amazon</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="hw-total">Total indicatif : <strong>≈ 880 €</strong> <span>(prix Amazon.fr relevés au moment de la rédaction, hors frais de port — à vérifier avant achat)</span></p>
   </div>
 </section>
 
