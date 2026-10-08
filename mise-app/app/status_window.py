@@ -10,7 +10,27 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
-from . import config, kiosk, project
+from . import config, kiosk, network, project
+
+# Ports publiés par docker-compose.yml pour les apps web (voir aussi le défaut de kiosk_url
+# ci-dessous, déjà calé sur 8082) — fixes pour ce projet, pas de config nécessaire.
+_PUBLIC_PORT = 8082
+_DASHBOARD_PORT = 8081
+
+# Zone morte mécanique mesurée en haut d'impression sur cette imprimante (Zebra ZD410, étiquette
+# 57x32mm non pivotée, via une étiquette graduée — voir _ruler_zpl) : les premiers ~7,5mm ne
+# s'impriment pas, tête/capteur de gap décalés physiquement. Le dashboard compense déjà ça pour
+# les vraies étiquettes HACCP via `label_top_offset_mm` + ZplLabelBuilder côté API (actuellement
+# calé sur 7.5mm en base), mais les étiquettes générées ICI (test, QR...) sont du ZPL brut envoyé
+# direct à l'imprimante, sans passer par l'API — elles ont besoin de la même compensation, dupliquée
+# ici faute de mieux. Même technique que ZplLabelBuilder : on pousse la marge de DÉBUT, pas de
+# ^LT (décale le papier lui-même, déborde sur l'étiquette suivante — testé et abandonné côté API).
+_TOP_DEAD_ZONE_MM = 7.5
+_DOTS_PER_MM_203DPI = 203 / 25.4
+
+
+def _mm_to_dots(mm: float) -> int:
+    return round(mm * _DOTS_PER_MM_203DPI)
 
 # Étiquette minimale pour le bouton de test — juste de quoi confirmer que le pont et l'imprimante
 # répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
@@ -37,6 +57,37 @@ def _ruler_zpl(width_dots: int = 456, height_dots: int = 256) -> bytes:
         parts.append(f"^FO0,{y}^GB{width_dots},2,2^FS")
         parts.append(f"^FO4,{y + 3}^A0N,16,16^FD{y}^FS")
     parts.append("^XZ")
+    return "".join(parts).encode()
+
+
+def _qr_zpl(url: str, title: str, width_dots: int = 456, height_dots: int = 256) -> bytes:
+    """Étiquette QR code de connexion (57x32mm) — `^BQ` est le format QR *natif* des imprimantes
+    Zebra : l'imprimante génère elle-même le code à partir de la donnée brute, pas besoin de
+    rendre une image côté app. Modèle 2, magnification 5 (reste petit même pour une URL longue,
+    confortable sur 32mm de haut) ; le préfixe `QA` dans `^FD` = correction d'erreur niveau Q,
+    saisie en mode automatique (voir ZPL II Programming Guide, commande ^BQ). `title` (gros,
+    en haut à droite du QR — ex. "Dashboard (tunnel)") identifie l'étiquette d'un coup d'œil ;
+    l'URL en dessous, plus petite, pour la relire sans scanner. Mise en page large plutôt que
+    haute puisque le label fait 57mm de large pour seulement 32mm de haut. Le contenu est poussé
+    vers le bas de `_TOP_DEAD_ZONE_MM` pour ne rien placer dans la zone morte mécanique (voir sa
+    docstring) — `^LL` reste sur la hauteur physique réelle, seule la marge de départ grandit."""
+    top_offset = _mm_to_dots(_TOP_DEAD_ZONE_MM)
+    text_x = 230
+    text_width = width_dots - text_x - 10
+    title_y = 20 + top_offset
+    # Le titre le plus long ("Dashboard (tunnel)") tient sur 2 lignes à cette taille de police,
+    # pas 1 — espace réservé pour 2 lignes dans tous les cas (les titres plus courts, ex.
+    # "Public", laissent juste un peu de blanc en dessous) pour que l'URL commence toujours au
+    # même endroit, quel que soit le titre.
+    url_y = title_y + 70
+    parts = [
+        f"^XA^CI28^PW{width_dots}^LL{height_dots}",
+        f"^FO16,{16 + top_offset}^BQN,2,5",
+        f"^FDQA,{url}^FS",
+        f"^FO{text_x},{title_y}^FB{text_width},2,4,L^A0N,30,30^FD{title}^FS",
+        f"^FO{text_x},{url_y}^FB{text_width},4,2,L^A0N,20,20^FD{url}^FS",
+        "^XZ",
+    ]
     return "".join(parts).encode()
 
 
@@ -94,7 +145,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("460x740")
+        self.window.geometry("580x860")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -107,6 +158,7 @@ class StatusWindow:
 
         self._build_project_section()
         self._build_kiosk_section()
+        self._build_connect_section()
 
         ttk.Label(self.window, text="Activité récente").pack(anchor="w", padx=14)
         self.events_list = tk.Listbox(self.window, height=9)
@@ -236,6 +288,30 @@ class StatusWindow:
         cfg = config.load()
         cfg["kiosk_autostart"] = self.kiosk_autostart_var.get()
         config.save(cfg)
+
+    def _build_connect_section(self) -> None:
+        frame = ttk.LabelFrame(self.window, text="QR codes de connexion")
+        frame.pack(fill="x", padx=14, pady=(0, 10))
+        ttk.Label(
+            frame,
+            text="Imprime une étiquette avec un QR code vers l'app — pratique pour connecter un "
+            "appareil (téléphone, tablette) sans retaper l'adresse.",
+            wraplength=540,
+            justify="left",
+        ).pack(anchor="w", padx=8, pady=(8, 6))
+
+        row = ttk.Frame(frame)
+        row.pack(fill="x", padx=8, pady=(0, 8))
+        row.columnconfigure((0, 1, 2), weight=1, uniform="qr_buttons")
+        ttk.Button(row, text="Public", command=self._print_qr_public_lan).grid(
+            row=0, column=0, sticky="ew"
+        )
+        ttk.Button(row, text="Dashboard (local)", command=self._print_qr_dashboard_lan).grid(
+            row=0, column=1, sticky="ew", padx=6
+        )
+        ttk.Button(row, text="Dashboard (tunnel)", command=self._print_qr_dashboard_domain).grid(
+            row=0, column=2, sticky="ew"
+        )
 
     def _launch_kiosk(self) -> None:
         self._save_kiosk_url()
@@ -556,6 +632,40 @@ class StatusWindow:
             self.events.add("Étiquette de mesure envoyée — relève le premier chiffre visible en haut")
         except Exception as exc:  # noqa: BLE001 — voir _print_test
             self.events.add(f"Échec de l'impression de mesure : {exc}", level="error")
+        self.refresh()
+
+    def _print_qr_public_lan(self) -> None:
+        url = f"http://{network.local_ip()}:{_PUBLIC_PORT}"
+        self._print_connection_qr(url, "Public")
+
+    def _print_qr_dashboard_lan(self) -> None:
+        url = f"http://{network.local_ip()}:{_DASHBOARD_PORT}"
+        self._print_connection_qr(url, "Dashboard (local)")
+
+    def _print_qr_dashboard_domain(self) -> None:
+        repo_path = self._repo_path()
+        domain_url = (
+            project.read_env_var(repo_path, "CLOUDFLARE_DASHBOARD_URL")
+            if project.is_repo_cloned(repo_path)
+            else None
+        )
+        if not domain_url:
+            messagebox.showerror(
+                "Mise",
+                "Aucune adresse de domaine configurée.\n\n"
+                "Renseignez CLOUDFLARE_DASHBOARD_URL dans le .env du projet (ex. "
+                "https://dashboard.mise-vidal.be) après avoir suivi DEPLOY.md §4 « Tunnel "
+                "nommé », puis réessayez.",
+            )
+            return
+        self._print_connection_qr(domain_url, "Dashboard (tunnel)")
+
+    def _print_connection_qr(self, url: str, title: str) -> None:
+        try:
+            self.backend.send(_qr_zpl(url, title))
+            self.events.add(f"QR code de connexion envoyé — {title} : {url}")
+        except Exception as exc:  # noqa: BLE001 — voir _print_test
+            self.events.add(f"Échec de l'impression du QR : {exc}", level="error")
         self.refresh()
 
     def _quit(self) -> None:

@@ -59,6 +59,8 @@ N'importe quel appareil sur le même réseau atteint directement `http://<IP-loc
 (dashboard) ou `:8082` (public) — pas de domaine ni de certificat nécessaire pour un usage sur
 place. Chaque app propose un bouton **"Connecter un appareil"** sur son écran d'accueil, qui
 affiche un QR code de l'adresse à utiliser (pratique pour un téléphone/tablette en cuisine).
+`mise-app` (section "QR codes de connexion" de la fenêtre de statut) propose la même chose en
+version imprimée sur étiquette Zebra, détection de l'IP locale automatique.
 
 ## 4. Accès depuis l'extérieur du réseau (tunnel Cloudflare — dashboard uniquement)
 
@@ -160,7 +162,11 @@ libellés de menu changent parfois d'une année à l'autre, mais l'enchaînement
 1. Dans `.env` du mini PC (copié depuis `.env.example`) :
    ```
    CLOUDFLARE_TUNNEL_ARGS=run --token <le token copié à l'étape C.5>
+   CLOUDFLARE_DASHBOARD_URL=https://dashboard.<votredomaine>
    ```
+   La deuxième ligne n'est pas utilisée par le tunnel lui-même — elle permet à `mise-app` (bouton
+   "QR codes de connexion" → "Dashboard (tunnel)") d'imprimer une étiquette QR vers cette adresse
+   plutôt que l'IP locale.
 2. Relancer le conteneur pour prendre en compte le changement :
    ```bash
    docker compose up -d cloudflared-dashboard

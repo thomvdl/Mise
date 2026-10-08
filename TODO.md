@@ -5,11 +5,6 @@ Tâches d'installation/outillage en cours — distinct du backlog fonctionnel de
 
 ## En cours
 
-- **Terminer la config du tunnel Cloudflare pour `mise-vidal.be`** — étapes A et B de
-  `DEPLOY.md` (§4, "Tunnel nommé") faites (domaine ajouté à Cloudflare, nameservers basculés
-  chez OVH). Reste : attendre la fin de la propagation DNS, puis étape C (router
-  `dashboard.mise-vidal.be` vers le tunnel `mise-dashboard` déjà créé) et étape D (coller le
-  token dans `.env`, `docker compose up -d cloudflared-dashboard`).
 - **Tester l'imprimante Zebra en profondeur** — avec le nouveau bouton "Paramètres de base"
   (`mise-app`, remplace l'ancien "Recalibrer") et le bouton "Étiquette de mesure" redescendu sur
   sa propre ligne. Vérifier l'impression réelle des étiquettes 57×32mm.

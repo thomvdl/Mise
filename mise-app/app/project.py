@@ -14,7 +14,7 @@ import secrets
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 from urllib.parse import urlparse
 
 REPO_URL = "https://github.com/thomvdl/Mise.git"
@@ -179,6 +179,22 @@ def _set_env_var(content: str, key: str, value: str) -> str:
     if pattern.search(content):
         return pattern.sub(replacement, content)
     return content.rstrip("\n") + f"\n{replacement}\n"
+
+
+def read_env_var(repo_path: Path, key: str) -> Optional[str]:
+    """Lit une variable depuis le `.env` du projet installé (celui créé par bootstrap_env, pas la
+    config de mise-app) — ex. CLOUDFLARE_DASHBOARD_URL, posée à la main après avoir suivi
+    DEPLOY.md §4 « Tunnel nommé ». Retourne None si le fichier ou la clé n'existe pas, ou si elle
+    est vide."""
+    env_path = repo_path / ".env"
+    if not env_path.exists():
+        return None
+    match = re.search(
+        rf"^{re.escape(key)}=(.*)$", env_path.read_text(encoding="utf-8"), re.MULTILINE
+    )
+    if not match:
+        return None
+    return match.group(1).strip() or None
 
 
 def bootstrap_env(repo_path: Path, admin_name: str, admin_password: str, log: LogFn) -> None:
