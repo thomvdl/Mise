@@ -17,24 +17,56 @@ from . import config, kiosk, network, project
 _PUBLIC_PORT = 8082
 _DASHBOARD_PORT = 8081
 
-# Zone morte mécanique mesurée en haut d'impression sur cette imprimante (Zebra ZD410, étiquette
-# 57x32mm non pivotée, via une étiquette graduée — voir _ruler_zpl) : les premiers ~7,5mm ne
-# s'impriment pas, tête/capteur de gap décalés physiquement. Le dashboard compense déjà ça pour
-# les vraies étiquettes HACCP via `label_top_offset_mm` + ZplLabelBuilder côté API (actuellement
-# calé sur 7.5mm en base), mais les étiquettes générées ICI (test, QR...) sont du ZPL brut envoyé
-# direct à l'imprimante, sans passer par l'API — elles ont besoin de la même compensation, dupliquée
-# ici faute de mieux. Même technique que ZplLabelBuilder : on pousse la marge de DÉBUT, pas de
-# ^LT (décale le papier lui-même, déborde sur l'étiquette suivante — testé et abandonné côté API).
-_TOP_DEAD_ZONE_MM = 7.5
 _DOTS_PER_MM_203DPI = 203 / 25.4
 
 
 def _mm_to_dots(mm: float) -> int:
     return round(mm * _DOTS_PER_MM_203DPI)
 
-# Étiquette minimale pour le bouton de test — juste de quoi confirmer que le pont et l'imprimante
-# répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le vrai format).
-_TEST_ZPL = b"^XA\n^CI28\n^PW304\n^LL200\n^CF0,40\n^FO20,20^FDTest pont ZPL^FS\n^XZ\n"
+
+# Formats de rouleau connus — mêmes presets que `LABEL_FORMAT_PRESETS` côté dashboard
+# (mise-dashboard/src/app/components/printer-settings/printer-settings.ts), dupliqués ici car ce
+# générateur ZPL est local à mise-app (pas d'appel API, décision prise pour rester simple — voir
+# TODO.md). `top_offset_mm` compense la zone morte mécanique en haut d'impression (tête/capteur
+# de gap décalés physiquement, mesurée via _ruler_zpl) : 7.5mm mesurés pour le 57x32mm non
+# pivoté ; 0 pour le 36x89mm pivoté, jamais mesuré — ne PAS deviner une valeur ici, un mauvais
+# offset dans l'autre sens pousserait le contenu hors de l'étiquette plutôt que dans la zone
+# morte (même décision que côté dashboard, voir printer-settings.ts). Le rouleau pivoté fait
+# réellement 36mm de large (pas 38 — un ancien preset à 38mm imprimait 1 étiquette correcte suivie
+# de 2 étiquettes vierges, capteur de gap de l'imprimante déboussolé par l'écart).
+_LABEL_FORMATS = [
+    {"label": "57 × 32 mm", "width_mm": 57, "height_mm": 32, "rotate90": False, "top_offset_mm": 7.5},
+    {"label": "36 × 89 mm (pivoté 90°)", "width_mm": 36, "height_mm": 89, "rotate90": True, "top_offset_mm": 0},
+]
+
+
+def _label_format_by_index(index: int) -> dict:
+    if not isinstance(index, int) or not (0 <= index < len(_LABEL_FORMATS)):
+        index = 0
+    return _LABEL_FORMATS[index]
+
+
+def _current_label_format() -> dict:
+    return _label_format_by_index(config.load().get("label_format_index", 0))
+
+
+def _test_zpl(fmt: dict) -> bytes:
+    """Étiquette minimale pour le bouton de test — juste de quoi confirmer que le pont et
+    l'imprimante répondent, pas une vraie étiquette HACCP (voir ZplLabelBuilder côté API pour le
+    vrai format). `^FO` reste toujours en coordonnées physiques (x le long de `^PW`, y le long de
+    `^LL`) qu'on soit pivoté ou non — seule l'orientation du champ texte (`^A0R` vs `^A0N`)
+    change ; un seul champ, donc pas de question d'ordre d'empilement (voir `_qr_zpl` pour ce cas-
+    là). Décalée de `top_offset_mm` sur l'axe Y — sinon le texte, collé en haut, se retrouve en
+    partie ou totalement dans la zone morte mécanique."""
+    width_dots = _mm_to_dots(fmt["width_mm"])
+    height_dots = _mm_to_dots(fmt["height_mm"])
+    y = 20 + _mm_to_dots(fmt["top_offset_mm"])
+    orientation = "R" if fmt["rotate90"] else "N"
+    return (
+        f"^XA^CI28^PW{width_dots}^LL{height_dots}"
+        f"^FO20,{y}^A0{orientation},40,40^FDTest pont ZPL^FS^XZ"
+    ).encode()
+
 
 # `^JUF` recharge les réglages d'usine Zebra (noirceur, vitesse, type de support...) sur
 # l'imprimante active, et `^JUS` les sauvegarde pour qu'ils survivent au prochain redémarrage —
@@ -50,8 +82,10 @@ def _ruler_zpl(width_dots: int = 456, height_dots: int = 256) -> bytes:
     """Étiquette graduée (un trait + un chiffre tous les 20 dots) pour mesurer à l'œil la vraie
     zone morte en haut d'impression de CETTE imprimante — un trou mécanique tête/capteur, pas un
     réglage logiciel (voir `label_top_offset_mm` côté dashboard, à renseigner avec la valeur lue
-    ici). Dimensions par défaut calées sur une étiquette 57x32mm à 203dpi, assez large pour la
-    plupart des formats utilisés."""
+    ici). Appelant passe `width_dots`/`height_dots` du format actuellement sélectionné (voir
+    `_current_label_format`) — pas de pivot ici volontairement : la zone morte est un fait
+    mécanique du feed, indépendant de l'orientation du contenu, et lire la règle n'a pas besoin
+    d'être \"dans le bon sens\" pour être mesurée."""
     parts = [f"^XA^CI28^PW{width_dots}^LL{height_dots}"]
     for y in range(0, height_dots - 15, 20):
         parts.append(f"^FO0,{y}^GB{width_dots},2,2^FS")
@@ -60,32 +94,62 @@ def _ruler_zpl(width_dots: int = 456, height_dots: int = 256) -> bytes:
     return "".join(parts).encode()
 
 
-def _qr_zpl(url: str, title: str, width_dots: int = 456, height_dots: int = 256) -> bytes:
-    """Étiquette QR code de connexion (57x32mm) — `^BQ` est le format QR *natif* des imprimantes
-    Zebra : l'imprimante génère elle-même le code à partir de la donnée brute, pas besoin de
-    rendre une image côté app. Modèle 2, magnification 5 (reste petit même pour une URL longue,
-    confortable sur 32mm de haut) ; le préfixe `QA` dans `^FD` = correction d'erreur niveau Q,
-    saisie en mode automatique (voir ZPL II Programming Guide, commande ^BQ). `title` (gros,
-    en haut à droite du QR — ex. "Dashboard (tunnel)") identifie l'étiquette d'un coup d'œil ;
-    l'URL en dessous, plus petite, pour la relire sans scanner. Mise en page large plutôt que
-    haute puisque le label fait 57mm de large pour seulement 32mm de haut. Le contenu est poussé
-    vers le bas de `_TOP_DEAD_ZONE_MM` pour ne rien placer dans la zone morte mécanique (voir sa
-    docstring) — `^LL` reste sur la hauteur physique réelle, seule la marge de départ grandit."""
-    top_offset = _mm_to_dots(_TOP_DEAD_ZONE_MM)
-    text_x = 230
-    text_width = width_dots - text_x - 10
-    title_y = 20 + top_offset
-    # Le titre le plus long ("Dashboard (tunnel)") tient sur 2 lignes à cette taille de police,
-    # pas 1 — espace réservé pour 2 lignes dans tous les cas (les titres plus courts, ex.
-    # "Public", laissent juste un peu de blanc en dessous) pour que l'URL commence toujours au
-    # même endroit, quel que soit le titre.
-    url_y = title_y + 70
+def _qr_zpl(url: str, title: str, fmt: dict) -> bytes:
+    """Étiquette QR code de connexion — `^BQ` est le format QR *natif* des imprimantes Zebra :
+    l'imprimante génère elle-même le code à partir de la donnée brute. Le préfixe `QA` dans `^FD`
+    = correction d'erreur niveau Q, saisie en mode automatique (voir ZPL II Programming Guide,
+    commande ^BQ). Le QR lui-même reste toujours en orientation `N` (pas pivoté) : un QR se
+    scanne à n'importe quel angle, pas besoin de le tourner avec le reste.
+
+    Deux mises en page bien séparées plutôt qu'une seule formule générique — la bascule landscape
+    (57x32, large/bas) vs portrait pivoté (36x89, étroit/long) change trop la disposition pour
+    partager le même calcul, et le cas pivoté touche à un axe qui a déjà causé un bug de
+    chevauchement par le passé (voir le commit d'origine de `rotate90` côté ZplLabelBuilder)."""
+    width_dots = _mm_to_dots(fmt["width_mm"])
+    height_dots = _mm_to_dots(fmt["height_mm"])
+    top_offset = _mm_to_dots(fmt["top_offset_mm"])
+    header = f"^XA^CI28^PW{width_dots}^LL{height_dots}"
+
+    if not fmt["rotate90"]:
+        # QR à gauche, titre + URL empilés à droite (texte non pivoté : empile normalement sur
+        # Y). Dimensionné pour 57x32mm mais fonctionne pour toute étiquette assez large.
+        text_x = 230
+        text_width = width_dots - text_x - 10
+        title_y = 20 + top_offset
+        # Le titre le plus long ("Dashboard (tunnel)") tient sur 2 lignes à cette taille de
+        # police, pas 1 — espace réservé pour 2 lignes dans tous les cas (les titres plus courts,
+        # ex. "Public", laissent juste un peu de blanc en dessous) pour que l'URL commence
+        # toujours au même endroit, quel que soit le titre.
+        url_y = title_y + 70
+        parts = [
+            header,
+            f"^FO16,{16 + top_offset}^BQN,2,5",
+            f"^FDQA,{url}^FS",
+            f"^FO{text_x},{title_y}^FB{text_width},2,4,L^A0N,30,30^FD{title}^FS",
+            f"^FO{text_x},{url_y}^FB{text_width},4,2,L^A0N,20,20^FD{url}^FS",
+            "^XZ",
+        ]
+        return "".join(parts).encode()
+
+    # Format pivoté (ex. 36x89mm) : étiquette étroite (largeur = `^PW`, ex. 288 dots/36mm) mais
+    # longue (hauteur = `^LL`, ex. 712 dots/89mm). `^FO` reste en coordonnées physiques dans les
+    # deux cas — seule l'orientation du CONTENU change. Une première version tentait de séparer
+    # QR et texte sur l'axe X (en pensant à tort que sous `^A0R` le texte "avance" sur Y comme un
+    # champ ZplLabelBuilder stacké — voir sa note de calibration `rotate90`) : résultat en
+    # chevauchement visible au rendu Labelary. Vu qu'on a 712 dots de long pour seulement ~190 de
+    # QR, pas besoin d'être malin sur X : on empile juste QR puis texte le long de Y, avec une
+    # marge large (qr_reserved) — overlap impossible par construction, peu importe l'ordre de
+    # lecture une fois l'étiquette physiquement tournée (ça, ça reste à vérifier à l'impression).
+    margin = 16
+    qr_reserved = 220  # mag 5 : marge large, couvre une QR de version élevée (URL/domaine long)
+    qr_y = margin + top_offset
+    text_y = qr_y + qr_reserved
+    text_advance_budget = max(1, height_dots - text_y - margin)
     parts = [
-        f"^XA^CI28^PW{width_dots}^LL{height_dots}",
-        f"^FO16,{16 + top_offset}^BQN,2,5",
+        header,
+        f"^FO{margin},{qr_y}^BQN,2,5",
         f"^FDQA,{url}^FS",
-        f"^FO{text_x},{title_y}^FB{text_width},2,4,L^A0N,30,30^FD{title}^FS",
-        f"^FO{text_x},{url_y}^FB{text_width},4,2,L^A0N,20,20^FD{url}^FS",
+        f"^FO{margin},{text_y}^FB{text_advance_budget},6,6,L^A0R,22,22^FD{title}  {url}^FS",
         "^XZ",
     ]
     return "".join(parts).encode()
@@ -172,6 +236,8 @@ class StatusWindow:
             command=self._toggle_autostart,
         ).pack(anchor="w", padx=14, pady=(0, 8))
 
+        self._build_label_format_picker()
+
         printer_btn_row = ttk.Frame(self.window)
         printer_btn_row.pack(fill="x", padx=14, pady=(0, 6))
         ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
@@ -212,6 +278,39 @@ class StatusWindow:
     def _save_printer_name(self) -> None:
         cfg = config.load()
         cfg["windows_printer_name"] = self.printer_var.get().strip() or None
+        config.save(cfg)
+
+    def _build_label_format_picker(self) -> None:
+        # Format du rouleau actuellement chargé dans l'imprimante — pilote uniquement les
+        # étiquettes générées ICI (test, QR, règle) ; indépendant du réglage du dashboard, qui
+        # pilote les vraies étiquettes HACCP via sa propre config (voir _LABEL_FORMATS pour le
+        # pourquoi de la duplication). À recaler ici si on change de rouleau sur l'imprimante.
+        frame = ttk.Frame(self.window)
+        frame.pack(fill="x", padx=14, pady=(0, 10))
+        ttk.Label(frame, text="Format d'étiquette (rouleau chargé) :").pack(anchor="w")
+
+        cfg = config.load()
+        index = cfg.get("label_format_index", 0)
+        if not isinstance(index, int) or not (0 <= index < len(_LABEL_FORMATS)):
+            index = 0
+        self.label_format_var = tk.StringVar(value=_LABEL_FORMATS[index]["label"])
+
+        picker = ttk.Combobox(
+            frame,
+            textvariable=self.label_format_var,
+            values=[fmt["label"] for fmt in _LABEL_FORMATS],
+            state="readonly",
+        )
+        picker.pack(fill="x")
+        picker.bind("<<ComboboxSelected>>", lambda _event: self._save_label_format())
+
+    def _save_label_format(self) -> None:
+        selected = self.label_format_var.get()
+        index = next(
+            (i for i, fmt in enumerate(_LABEL_FORMATS) if fmt["label"] == selected), 0
+        )
+        cfg = config.load()
+        cfg["label_format_index"] = index
         config.save(cfg)
 
     def _build_project_section(self) -> None:
@@ -596,7 +695,7 @@ class StatusWindow:
 
     def _print_test(self) -> None:
         try:
-            self.backend.send(_TEST_ZPL)
+            self.backend.send(_test_zpl(_current_label_format()))
             self.events.add("Étiquette de test envoyée")
         except Exception as exc:  # noqa: BLE001 — affiché dans le journal, pas une exception à
             # laisser remonter jusqu'à l'UI.
@@ -627,8 +726,9 @@ class StatusWindow:
         """Imprime une étiquette graduée pour mesurer à l'œil la zone morte mécanique en haut de
         l'impression (voir _ruler_zpl) — le chiffre lu en premier visible, en dots, est la valeur à
         reporter dans `label_top_offset_mm` côté dashboard (÷ 7,99 pour du 203dpi → mm)."""
+        fmt = _current_label_format()
         try:
-            self.backend.send(_ruler_zpl())
+            self.backend.send(_ruler_zpl(_mm_to_dots(fmt["width_mm"]), _mm_to_dots(fmt["height_mm"])))
             self.events.add("Étiquette de mesure envoyée — relève le premier chiffre visible en haut")
         except Exception as exc:  # noqa: BLE001 — voir _print_test
             self.events.add(f"Échec de l'impression de mesure : {exc}", level="error")
@@ -662,7 +762,7 @@ class StatusWindow:
 
     def _print_connection_qr(self, url: str, title: str) -> None:
         try:
-            self.backend.send(_qr_zpl(url, title))
+            self.backend.send(_qr_zpl(url, title, _current_label_format()))
             self.events.add(f"QR code de connexion envoyé — {title} : {url}")
         except Exception as exc:  # noqa: BLE001 — voir _print_test
             self.events.add(f"Échec de l'impression du QR : {exc}", level="error")

@@ -33,7 +33,7 @@ interface LabelFormatPreset {
   /**
    * Compense une zone morte mécanique propre à l'imprimante (tête/capteur décalés physiquement),
    * mesurée étiquette graduée à l'appui — ~7,5mm constatés en 57x32mm. Pas (encore) mesurée pour
-   * 38x89mm pivoté, donc 0 par défaut pour ce format plutôt que de deviner une valeur qui pourrait
+   * 36x89mm pivoté, donc 0 par défaut pour ce format plutôt que de deviner une valeur qui pourrait
    * casser un format qui marchait déjà.
    */
   topOffsetMm: number;
@@ -41,10 +41,13 @@ interface LabelFormatPreset {
 
 /**
  * Préréglages des deux formats de rouleau utilisés en cuisine, pour éviter de ressaisir
- * largeur/hauteur/rotation à la main (et de se tromper) à chaque changement de support.
+ * largeur/hauteur/rotation à la main (et de se tromper) à chaque changement de support. Le
+ * rouleau pivoté fait réellement 36mm de large (pas 38 — un ancien preset à 38mm provoquait une
+ * étiquette correcte suivie de 2 étiquettes vierges à l'impression, capteur de gap de
+ * l'imprimante déboussolé par l'écart ; confirmé résolu en repassant à 36mm à la main).
  */
 const LABEL_FORMAT_PRESETS: LabelFormatPreset[] = [
-  { label: '38 × 89 mm (pivoté 90°)', widthMm: 38, heightMm: 89, rotate90: true, topOffsetMm: 0 },
+  { label: '36 × 89 mm (pivoté 90°)', widthMm: 36, heightMm: 89, rotate90: true, topOffsetMm: 0 },
   { label: '57 × 32 mm', widthMm: 57, heightMm: 32, rotate90: false, topOffsetMm: 7.5 },
 ];
 
