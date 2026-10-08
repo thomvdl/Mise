@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { concatMap, from } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import { PrintedLabelService } from './printed-label.service';
@@ -64,30 +64,40 @@ export class LabelQueueService {
     this.printingOnZebra.set(true);
     this.zebraError.set(null);
 
-    const requests = this.queue().map((item) =>
-      this.printedLabelService.printZebra({
-        type_key: item.type.key,
-        product_name: item.productName,
-        date: item.date,
-        use_by_date: item.useByDate,
-        quantity: item.quantity,
-      }),
-    );
-
-    forkJoin(requests).subscribe({
-      // Ici, contrairement à window.print(), le serveur confirme l'impression réelle avant de
-      // répondre — pas besoin d'un recordPrint séparé, printZebra journalise déjà côté serveur.
-      // On vide la file après coup : sinon un produit resté de la fois précédente se réimprime
-      // silencieusement avec le suivant (vécu : 2 étiquettes sorties pour 1 ajoutée).
-      next: () => {
-        this.printingOnZebra.set(false);
-        this.clear();
-      },
-      error: (error) => {
-        this.printingOnZebra.set(false);
-        this.zebraError.set(error?.error?.message ?? "Une erreur est survenue lors de l'impression.");
-      },
-    });
+    // Séquentiel (`concatMap`), pas en parallèle (`forkJoin` envoyait tout d'un coup) : une
+    // imprimante Zebra réseau ne gère fiablement qu'UNE connexion TCP à la fois sur son port
+    // JetDirect (voir ZplPrinter::send côté API) — plusieurs requêtes parties en même temps se
+    // faisaient concurrence et l'imprimante n'en retenait qu'une, les autres étiquettes de la
+    // file disparaissant silencieusement (même bug que côté dashboard, code dupliqué ici). L'API
+    // sérialise aussi désormais par verrou en défense, mais rester séquentiel ici évite en plus
+    // de la bombarder de connexions pour rien, et imprime dans l'ordre de la file.
+    from(this.queue())
+      .pipe(
+        concatMap((item) =>
+          this.printedLabelService.printZebra({
+            type_key: item.type.key,
+            product_name: item.productName,
+            date: item.date,
+            use_by_date: item.useByDate,
+            quantity: item.quantity,
+          }),
+        ),
+      )
+      .subscribe({
+        // Ici, contrairement à window.print(), le serveur confirme chaque impression réelle
+        // avant de répondre — pas besoin d'un recordPrint séparé, printZebra journalise déjà
+        // côté serveur. On vide la file après coup : sinon un produit resté de la fois précédente
+        // se réimprime silencieusement avec le suivant (vécu : 2 étiquettes sorties pour 1
+        // ajoutée).
+        complete: () => {
+          this.printingOnZebra.set(false);
+          this.clear();
+        },
+        error: (error) => {
+          this.printingOnZebra.set(false);
+          this.zebraError.set(error?.error?.message ?? "Une erreur est survenue lors de l'impression.");
+        },
+      });
   }
 
   private currentUserName(): string {
