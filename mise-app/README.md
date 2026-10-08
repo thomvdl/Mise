@@ -69,11 +69,13 @@ L'app détecte leur absence et affiche un message clair plutôt que d'échouer s
 
 **Étapes :**
 
-1. Récupérez `Mise-windows.zip`/`Mise.app` (voir "Construire l'appli" ci-dessous pour le
+1. Récupérez `Mise-Setup.exe`/`Mise.app` (voir "Construire l'appli" ci-dessous pour le
    construire vous-même, ou copiez une version déjà construite par ailleurs — clé USB, partage
-   réseau...). Sur Windows, décompressez le zip dans un dossier stable (par ex.
-   `C:\Program Files\Mise` ou `%LOCALAPPDATA%\Mise` — le démarrage automatique pointe vers cet
-   emplacement) et lancez `Mise.exe` depuis ce dossier. Une icône apparaît dans la barre système.
+   réseau...). Sur Windows, lancez `Mise-Setup.exe` : il installe l'app dans
+   `%LOCALAPPDATA%\Mise` (sans droits admin), ajoute une entrée au menu Démarrer et une
+   désinstallation dans Paramètres → Applications, puis propose de la lancer. Relancer un
+   `Mise-Setup.exe` plus récent met à jour l'installation existante. Une icône apparaît dans la
+   barre système.
 2. Cliquez sur l'icône → **Ouvrir**, puis dans la section **"Projet Mise"** :
    - **Dossier…** pour choisir où installer le projet (par défaut `~/Mise`) ;
    - **Installer** : clone le dépôt, crée `.env` avec des mots de passe générés automatiquement
@@ -115,12 +117,16 @@ pip install -r requirements-windows.txt
 packaging\build_windows.bat
 # -> dist\windows\Mise\Mise.exe (+ ses fichiers à côté)
 # -> dist\windows\Mise-windows.zip (le même dossier, prêt à copier)
+# -> dist\windows\Mise-Setup.exe (installateur, si Inno Setup 6 est installé :
+#    winget install JRSoftware.InnoSetup)
 ```
 
-Le `.app` / le dossier `Mise\` obtenu est autonome (Python et toutes les dépendances, y compris
-`libusb` côté macOS, sont embarqués) — copiez-le simplement sur le mini PC cible et lancez-le.
-Pas besoin d'y installer Python, Homebrew ou pip. Sur Windows, `Mise.exe` ne fonctionne pas seul :
-gardez-le dans son dossier avec le reste des fichiers.
+Le `.app` / `Mise-Setup.exe` obtenu est autonome (Python et toutes les dépendances, y compris
+`libusb` côté macOS, sont embarqués) — copiez-le simplement sur le mini PC cible. Pas besoin d'y
+installer Python, Homebrew ou pip. Sur Windows, `Mise.exe` ne fonctionne pas seul : il a besoin du
+dossier `_internal\` à côté de lui. D'où l'installateur (`packaging/windows_installer.iss`), qui
+met les deux au bon endroit ; le zip reste disponible pour une installation manuelle (le
+décompresser dans `%LOCALAPPDATA%\Mise` sans séparer les fichiers).
 
 **Pourquoi un dossier et pas un seul `.exe` (Windows)** : un `.exe` PyInstaller "tout-en-un" se
 décompresse dans `%TEMP%` à chaque lancement puis exécute du code depuis là, ce que Windows

@@ -50,7 +50,7 @@ app = BUNDLE(
     info_plist={
         # Pas d'icône Dock ni d'entrée Cmd+Tab — c'est une app de barre de menus uniquement.
         "LSUIElement": True,
-        "CFBundleShortVersionString": "1.0.0",
+        "CFBundleShortVersionString": "1.2.0",
         "NSHighResolutionCapable": True,
     },
 )
