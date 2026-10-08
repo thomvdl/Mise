@@ -170,9 +170,14 @@ class ZplLabelBuilder
             "^LL{$physicalHeightDots}",
         ];
 
-        if ($rotate90) {
-            $lines[] = '^FWR';
-        }
+        // `^FW` (orientation par défaut des champs) est un réglage qui reste actif sur
+        // l'imprimante tant qu'il n'est pas explicitement changé — PAS remis à `N` automatiquement
+        // au début de chaque nouveau `^XA`. Toujours l'émettre explicitement (jamais juste en
+        // conditionnel sur `rotate90`) : sinon, après un job en 36x89 pivoté (`^FWR`), tous les
+        // jobs suivants en 57x32 non pivoté héritaient silencieusement de l'orientation tournée
+        // de l'imprimante — vécu en prod (dashboard/public sortaient les étiquettes à 90°, alors
+        // que le ZPL généré ne contenait pourtant aucun `^FWR`).
+        $lines[] = $rotate90 ? '^FWR' : '^FWN';
 
         $stackPos = $rotate90 ? ($stackMargin + $innerStack) : $stackStartMargin;
         $next = function (int $slots) use (&$stackPos, $lineSlot, $rotate90): int {
