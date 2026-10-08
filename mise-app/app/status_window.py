@@ -209,7 +209,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("580x860")
+        self.window.geometry("1000x700")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -217,15 +217,43 @@ class StatusWindow:
         self.status_label = ttk.Label(self.window, text="…", font=("TkDefaultFont", 12, "bold"))
         self.status_label.pack(anchor="w", padx=14, pady=(14, 6))
 
-        if sys.platform == "win32":
-            self._build_printer_picker()
+        # Deux colonnes côte à côte plutôt que tout empiler verticalement — la fenêtre a fini par
+        # dépasser la hauteur d'un écran de laptop à force d'ajouter des sections (étiquettes,
+        # QR, format...). Projet à gauche (section la plus "métier") ; tout ce qui touche à
+        # l'imprimante/au kiosque à droite.
+        columns = ttk.Frame(self.window)
+        columns.pack(fill="x", padx=14)
+        columns.columnconfigure(0, weight=1, uniform="col")
+        columns.columnconfigure(1, weight=1, uniform="col")
 
-        self._build_project_section()
-        self._build_kiosk_section()
-        self._build_connect_section()
+        left_column = ttk.Frame(columns)
+        left_column.grid(row=0, column=0, sticky="new", padx=(0, 7))
+        right_column = ttk.Frame(columns)
+        right_column.grid(row=0, column=1, sticky="new", padx=(7, 0))
+
+        self._build_project_section(left_column)
+
+        if sys.platform == "win32":
+            self._build_printer_picker(right_column)
+        self._build_kiosk_section(right_column)
+        self._build_connect_section(right_column)
+        self._build_label_format_picker(right_column)
+
+        printer_btn_row = ttk.Frame(right_column)
+        printer_btn_row.pack(fill="x", pady=(0, 6))
+        ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
+            side="left"
+        )
+        ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
+            side="left", padx=(6, 0)
+        )
+
+        measure_btn_row = ttk.Frame(right_column)
+        measure_btn_row.pack(fill="x", pady=(0, 6))
+        ttk.Button(measure_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(side="left")
 
         ttk.Label(self.window, text="Activité récente").pack(anchor="w", padx=14)
-        self.events_list = tk.Listbox(self.window, height=9)
+        self.events_list = tk.Listbox(self.window, height=7)
         self.events_list.pack(fill="both", expand=True, padx=14, pady=(2, 8))
 
         self.autostart_var = tk.BooleanVar(value=self.autostart.is_enabled())
@@ -236,31 +264,16 @@ class StatusWindow:
             command=self._toggle_autostart,
         ).pack(anchor="w", padx=14, pady=(0, 8))
 
-        self._build_label_format_picker()
-
-        printer_btn_row = ttk.Frame(self.window)
-        printer_btn_row.pack(fill="x", padx=14, pady=(0, 6))
-        ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
-            side="left"
-        )
-        ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
-            side="left", padx=(6, 0)
-        )
-
-        measure_btn_row = ttk.Frame(self.window)
-        measure_btn_row.pack(fill="x", padx=14, pady=(0, 6))
-        ttk.Button(measure_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(side="left")
-
         btn_row = ttk.Frame(self.window)
         btn_row.pack(fill="x", padx=14, pady=(0, 14))
         ttk.Button(btn_row, text="Quitter", command=self._quit).pack(side="right")
         ttk.Button(btn_row, text="Recharger", command=self.refresh).pack(side="right", padx=(0, 6))
 
-    def _build_printer_picker(self) -> None:
+    def _build_printer_picker(self, parent: tk.Misc) -> None:
         from .print_backend_windows import WindowsPrintBackend
 
-        frame = ttk.Frame(self.window)
-        frame.pack(fill="x", padx=14, pady=(0, 10))
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
         ttk.Label(frame, text="Imprimante Windows :").pack(anchor="w")
 
         cfg = config.load()
@@ -280,13 +293,13 @@ class StatusWindow:
         cfg["windows_printer_name"] = self.printer_var.get().strip() or None
         config.save(cfg)
 
-    def _build_label_format_picker(self) -> None:
+    def _build_label_format_picker(self, parent: tk.Misc) -> None:
         # Format du rouleau actuellement chargé dans l'imprimante — pilote uniquement les
         # étiquettes générées ICI (test, QR, règle) ; indépendant du réglage du dashboard, qui
         # pilote les vraies étiquettes HACCP via sa propre config (voir _LABEL_FORMATS pour le
         # pourquoi de la duplication). À recaler ici si on change de rouleau sur l'imprimante.
-        frame = ttk.Frame(self.window)
-        frame.pack(fill="x", padx=14, pady=(0, 10))
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
         ttk.Label(frame, text="Format d'étiquette (rouleau chargé) :").pack(anchor="w")
 
         cfg = config.load()
@@ -313,9 +326,9 @@ class StatusWindow:
         cfg["label_format_index"] = index
         config.save(cfg)
 
-    def _build_project_section(self) -> None:
-        frame = ttk.LabelFrame(self.window, text="Projet Mise")
-        frame.pack(fill="x", padx=14, pady=(0, 10))
+    def _build_project_section(self, parent: tk.Misc) -> None:
+        frame = ttk.LabelFrame(parent, text="Projet Mise")
+        frame.pack(fill="x", pady=(0, 10))
 
         path_row = ttk.Frame(frame)
         path_row.pack(fill="x", padx=8, pady=(8, 2))
@@ -355,9 +368,9 @@ class StatusWindow:
         configured = cfg.get("repo_path")
         return Path(configured) if configured else Path.home() / "Mise"
 
-    def _build_kiosk_section(self) -> None:
-        frame = ttk.LabelFrame(self.window, text="Mode brigade (kiosk)")
-        frame.pack(fill="x", padx=14, pady=(0, 10))
+    def _build_kiosk_section(self, parent: tk.Misc) -> None:
+        frame = ttk.LabelFrame(parent, text="Mode brigade (kiosk)")
+        frame.pack(fill="x", pady=(0, 10))
 
         ttk.Label(frame, text="Adresse mise-public :").pack(anchor="w", padx=8, pady=(8, 2))
         cfg = config.load()
@@ -388,14 +401,14 @@ class StatusWindow:
         cfg["kiosk_autostart"] = self.kiosk_autostart_var.get()
         config.save(cfg)
 
-    def _build_connect_section(self) -> None:
-        frame = ttk.LabelFrame(self.window, text="QR codes de connexion")
-        frame.pack(fill="x", padx=14, pady=(0, 10))
+    def _build_connect_section(self, parent: tk.Misc) -> None:
+        frame = ttk.LabelFrame(parent, text="QR codes de connexion")
+        frame.pack(fill="x", pady=(0, 10))
         ttk.Label(
             frame,
             text="Imprime une étiquette avec un QR code vers l'app — pratique pour connecter un "
             "appareil (téléphone, tablette) sans retaper l'adresse.",
-            wraplength=540,
+            wraplength=440,
             justify="left",
         ).pack(anchor="w", padx=8, pady=(8, 6))
 
