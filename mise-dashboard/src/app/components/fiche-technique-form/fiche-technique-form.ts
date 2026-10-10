@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,6 +6,7 @@ import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } fr
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { SimpleEntityService } from '../../core/services/simple-entity.service';
 import { IngredientService } from '../../core/services/ingredient.service';
+import { PictureService } from '../../core/services/picture.service';
 import { Category } from '../../core/models/category.model';
 import { Station } from '../../core/models/station.model';
 import { Ingredient } from '../../core/models/ingredient.model';
@@ -16,6 +17,7 @@ import { smallUnitFor } from '../../core/utils/format-quantity';
 import { IngredientSearchSelect } from '../ingredient-search-select/ingredient-search-select';
 import { FicheTechniqueSearchSelect } from '../fiche-technique-search-select/fiche-technique-search-select';
 import { PlatingSchemaEditor } from '../plating-schema-editor/plating-schema-editor';
+import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
 type RowKind = 'ingredient' | 'fiche';
 
@@ -47,7 +49,14 @@ type StepRow = FormGroup<{
 
 @Component({
   selector: 'app-fiche-technique-form',
-  imports: [ReactiveFormsModule, RouterLink, IngredientSearchSelect, FicheTechniqueSearchSelect, PlatingSchemaEditor],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    IngredientSearchSelect,
+    FicheTechniqueSearchSelect,
+    PlatingSchemaEditor,
+    ConfirmDialog,
+  ],
   templateUrl: './fiche-technique-form.html',
   styleUrl: './fiche-technique-form.css',
 })
@@ -55,6 +64,7 @@ export class FicheTechniqueForm implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly pictureService = inject(PictureService);
   private readonly categoryService = new SimpleEntityService<Category>(this.http, 'categories');
   private readonly stationService = new SimpleEntityService<Station>(this.http, 'stations');
   private readonly route = inject(ActivatedRoute);
@@ -78,7 +88,17 @@ export class FicheTechniqueForm implements OnInit {
   linkedPictures = signal<Picture[]>([]);
   usedIn = signal<FicheTechnique[]>([]);
 
+  photoFileInput = viewChild<ElementRef<HTMLInputElement>>('photoFileInput');
+  uploadingPhotos = signal(false);
+  photoError = signal<string | null>(null);
+  pendingPhotoDelete = signal<Picture | null>(null);
+
   isEdit = computed(() => this.editingId() !== null);
+
+  deletePhotoMessage = computed(() => {
+    const picture = this.pendingPhotoDelete();
+    return picture ? 'Supprimer cette photo ? Cette action est irréversible.' : '';
+  });
 
   /** Une fiche ne peut pas se référencer elle-même comme composant (revérifié côté serveur). */
   availableComponentFiches = computed(() => this.fiches().filter((f) => f.id !== this.editingId()));
@@ -345,6 +365,66 @@ export class FicheTechniqueForm implements OnInit {
     const control = this.stepRows.at(index);
     this.stepRows.removeAt(index);
     this.stepRows.insert(newIndex, control);
+  }
+
+  triggerPhotoUpload(): void {
+    this.photoFileInput()?.nativeElement.click();
+  }
+
+  /** Upload direct depuis la fiche (pas de passage par la photothèque /photos) : les photos
+   *  partagent le même stockage/modèle (voir PictureService), mais upload() les crée toujours
+   *  non liées — on les relie donc à CETTE fiche juste après, une par une. Seulement disponible en
+   *  édition (editingId() non null) : une fiche pas encore enregistrée n'a pas d'id à lier. */
+  onPhotoFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files ? Array.from(input.files) : [];
+    input.value = '';
+    const ficheId = this.editingId();
+    if (files.length === 0 || ficheId === null) return;
+
+    this.uploadingPhotos.set(true);
+    this.photoError.set(null);
+
+    this.pictureService.upload(files).subscribe({
+      next: (uploaded) => {
+        let remaining = uploaded.length;
+        if (remaining === 0) {
+          this.uploadingPhotos.set(false);
+          return;
+        }
+        for (const picture of uploaded) {
+          this.pictureService.link(picture.id, ficheId).subscribe((linked) => {
+            this.linkedPictures.update((items) => [...items, linked]);
+            remaining -= 1;
+            if (remaining === 0) this.uploadingPhotos.set(false);
+          });
+        }
+      },
+      error: () => {
+        this.uploadingPhotos.set(false);
+        this.photoError.set(
+          "Une erreur est survenue lors de l'import (formats acceptés : jpg, png, gif, webp — 2 Mo max par fichier).",
+        );
+      },
+    });
+  }
+
+  confirmDeletePhoto(picture: Picture): void {
+    this.pendingPhotoDelete.set(picture);
+  }
+
+  cancelDeletePhoto(): void {
+    this.pendingPhotoDelete.set(null);
+  }
+
+  deletePhotoConfirmed(): void {
+    const picture = this.pendingPhotoDelete();
+    if (!picture) return;
+
+    this.pictureService.delete(picture.id).subscribe(() => {
+      this.linkedPictures.update((items) => items.filter((item) => item.id !== picture.id));
+      this.pendingPhotoDelete.set(null);
+    });
   }
 
   save(): void {

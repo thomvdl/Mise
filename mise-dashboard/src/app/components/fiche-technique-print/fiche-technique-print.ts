@@ -78,6 +78,7 @@ export class FicheTechniquePrint {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialEl = viewChild<ElementRef<HTMLDivElement>>('dialEl');
+  private readonly photoCarouselEl = viewChild<ElementRef<HTMLDivElement>>('photoCarousel');
   private dragging = false;
 
   private readonly ficheId = toSignal(
@@ -125,6 +126,13 @@ export class FicheTechniquePrint {
   servings = signal(0);
   doneSteps = signal<Set<number>>(new Set());
   timers = signal<Map<number, TimerState>>(new Map());
+  photoIndex = signal(0);
+
+  /** Photo actuellement affichée dans le mini carousel — `null` si la fiche n'a aucune photo. */
+  currentPhoto = computed(() => {
+    const pictures = this.fiche()?.pictures ?? [];
+    return pictures.length > 0 ? pictures[this.photoIndex() % pictures.length] : null;
+  });
 
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
@@ -237,6 +245,7 @@ export class FicheTechniquePrint {
 
       this.servings.set(fiche?.servings ?? 0);
       this.doneSteps.set(new Set());
+      this.photoIndex.set(0);
 
       const nextTimers = new Map<number, TimerState>();
       for (const step of fiche?.steps ?? []) {
@@ -284,6 +293,59 @@ export class FicheTechniquePrint {
 
     const value = Math.round((angleFromTop / 360) * 100);
     this.servings.set(Math.min(100, Math.max(1, value)));
+  }
+
+  previousPhoto(): void {
+    const total = this.fiche()?.pictures?.length ?? 0;
+    if (total > 1) this.photoIndex.update((i) => (i - 1 + total) % total);
+  }
+
+  nextPhoto(): void {
+    const total = this.fiche()?.pictures?.length ?? 0;
+    if (total > 1) this.photoIndex.update((i) => (i + 1) % total);
+  }
+
+  selectPhoto(index: number): void {
+    this.photoIndex.set(index);
+  }
+
+  /** Safari/macOS (et parfois Chrome/macOS) ne donne pas le focus clavier à un `<div tabindex>`
+   *  ni même un `<button>` au clic natif par défaut — réglage "Accès clavier complet" du système,
+   *  différent de Windows. Sans ce `.focus()` explicite, les flèches ne marchent donc jamais sur
+   *  Mac tant qu'on n'a pas Tab-é jusqu'ici. Appelé sur chaque clic dans le carousel (photo,
+   *  flèches, vignettes), donc toujours focus après une interaction souris/tactile. */
+  focusPhotoCarousel(): void {
+    this.photoCarouselEl()?.nativeElement.focus();
+  }
+
+  /** Flèches gauche/droite quand le carousel (ou un de ses boutons) a le focus — scoping sur
+   *  l'élément plutôt qu'un HostListener global pour ne pas intercepter les flèches ailleurs sur
+   *  la page (ex. le dial de portions n'en a pas besoin, mais une future zone de texte si). */
+  onPhotoKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      this.previousPhoto();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      this.nextPhoto();
+    }
+  }
+
+  private touchStartX: number | null = null;
+
+  /** Swipe tactile gauche/droite — threshold de 40px pour ignorer un simple tap qui tremble. */
+  onPhotoTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.touches[0]?.clientX ?? null;
+  }
+
+  onPhotoTouchEnd(event: TouchEvent): void {
+    if (this.touchStartX === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? this.touchStartX;
+    const delta = endX - this.touchStartX;
+    this.touchStartX = null;
+
+    if (delta > 40) this.previousPhoto();
+    else if (delta < -40) this.nextPhoto();
   }
 
   toggleStep(stepId: number) {

@@ -260,21 +260,56 @@
 
   <div class="section">
     <div class="section-title">Photos</div>
+
+    <input
+      #photoFileInput
+      type="file"
+      accept="image/*"
+      multiple
+      hidden
+      (change)="onPhotoFilesSelected($event)" />
+
     @if (linkedPictures().length) {
       <div class="linked-photos">
         @for (picture of linkedPictures(); track picture.id) {
-          <img class="linked-photo-thumb" [src]="picture.url" alt="" />
+          <div class="linked-photo">
+            <img class="linked-photo-thumb" [src]="picture.url" alt="" />
+            <button
+              type="button"
+              class="linked-photo-remove"
+              (click)="confirmDeletePhoto(picture)"
+              aria-label="Supprimer la photo">
+              ×
+            </button>
+          </div>
         }
       </div>
     } @else {
-      <p class="form-hint">Aucune photo liée pour le moment.</p>
+      <p class="form-hint">Aucune photo pour le moment.</p>
     }
-    <p class="form-hint">
-      La liaison des photos se gère depuis la <a routerLink="/photos">photothèque</a>
-      @if (isEdit()) {
-        , en choisissant « {{ form.controls.name.value }} » dans le menu déroulant de chaque photo.
+
+    @if (isEdit()) {
+      <button type="button" class="btn btn-ghost btn-sm" [disabled]="uploadingPhotos()" (click)="triggerPhotoUpload()">
+        @if (uploadingPhotos()) {
+          Import…
+        } @else {
+          + Ajouter une photo
+        }
+      </button>
+      @if (photoError()) {
+        <p class="form-error">{{ photoError() }}</p>
       }
-    </p>
+      <p class="form-hint">On peut aussi lier une photo déjà importée depuis la <a routerLink="/photos">photothèque</a>.</p>
+    } @else {
+      <p class="form-hint">Enregistrez d'abord la fiche pour pouvoir y ajouter des photos.</p>
+    }
+
+    <app-confirm-dialog
+      [open]="pendingPhotoDelete() !== null"
+      [message]="deletePhotoMessage()"
+      (confirm)="deletePhotoConfirmed()"
+      (cancel)="cancelDeletePhoto()">
+    </app-confirm-dialog>
   </div>
 
   @if (usedIn().length) {

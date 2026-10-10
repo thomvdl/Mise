@@ -30,8 +30,33 @@
     <p class="report-print-meta">Fiche technique — pour {{ servings() }} portions — imprimée le {{ generatedAt() }}</p>
   </div>
 
-  @if (fiche.pictures?.length) {
-    <img class="dh-photo" [src]="fiche.pictures![0].url" [alt]="fiche.name" />
+  @if (currentPhoto(); as photo) {
+    <div
+      #photoCarousel
+      class="dh-photo-carousel"
+      [attr.tabindex]="(fiche.pictures?.length ?? 0) > 1 ? 0 : null"
+      (click)="focusPhotoCarousel()"
+      (keydown)="onPhotoKeydown($event)"
+      (touchstart)="onPhotoTouchStart($event)"
+      (touchend)="onPhotoTouchEnd($event)">
+      <img class="dh-photo" [src]="photo.url" [alt]="fiche.name" />
+      @if ((fiche.pictures?.length ?? 0) > 1) {
+        <button type="button" class="dh-photo-nav dh-photo-prev no-print" (click)="previousPhoto()" aria-label="Photo précédente">‹</button>
+        <button type="button" class="dh-photo-nav dh-photo-next no-print" (click)="nextPhoto()" aria-label="Photo suivante">›</button>
+        <div class="dh-photo-thumbs no-print">
+          @for (p of fiche.pictures; track p.id; let i = $index) {
+            <button
+              type="button"
+              class="dh-photo-thumb-btn"
+              [class.active]="i === photoIndex()"
+              (click)="selectPhoto(i)"
+              [attr.aria-label]="'Photo ' + (i + 1)">
+              <img [src]="p.url" [alt]="'Photo ' + (i + 1)" />
+            </button>
+          }
+        </div>
+      }
+    </div>
   }
 
   <div class="detail-header">
