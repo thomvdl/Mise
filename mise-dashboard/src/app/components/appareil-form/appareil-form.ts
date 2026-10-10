@@ -27,6 +27,7 @@ export class AppareilForm implements OnInit {
     fonction: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     temperature_min: new FormControl<number | null>(null),
     temperature_max: new FormControl<number | null>(null),
+    zigbee_device_id: new FormControl<string | null>(null),
   });
 
   ngOnInit(): void {
@@ -49,6 +50,7 @@ export class AppareilForm implements OnInit {
           fonction: appareil.fonction,
           temperature_min: appareil.temperature_min,
           temperature_max: appareil.temperature_max,
+          zigbee_device_id: appareil.zigbee_device_id,
         });
       });
     }

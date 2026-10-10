@@ -5,6 +5,7 @@ export interface Appareil {
   fonction: string;
   temperature_min: number | null;
   temperature_max: number | null;
+  zigbee_device_id: string | null;
 }
 
 export type AppareilPayload = Omit<Appareil, 'id'>;
