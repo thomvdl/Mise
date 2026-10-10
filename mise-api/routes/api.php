@@ -24,6 +24,7 @@ use App\Http\Controllers\PrintedLabelController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShoppingItemController;
 use App\Http\Controllers\StationController;
+use App\Http\Controllers\TemperatureAlertController;
 use App\Http\Controllers\TemperatureReleveController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,11 @@ use Illuminate\Support\Facades\Route;
 // pour proposer un sélecteur de compte plutôt que de faire taper le nom.
 Route::post('auth/login', [AuthController::class, 'login']);
 Route::get('auth/users', [AuthController::class, 'publicUsers']);
+
+// Pas de compte/token côté mise-app (l'app de bureau, voir mise-app/) — public comme les deux
+// routes ci-dessus, pour la même raison. Interrogé en tâche de fond pour la notification de
+// bureau en cas de dépassement de seuil, voir App\Http\Controllers\TemperatureAlertController.
+Route::get('temperature-alerts/active', [TemperatureAlertController::class, 'active']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);

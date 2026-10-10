@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TemperatureReleve extends Model
 {
-    protected $fillable = ['appareil_id', 'temperature', 'recorded_at'];
+    protected $fillable = ['appareil_id', 'temperature', 'recorded_at', 'source'];
 
     protected $casts = [
         'temperature' => 'float',

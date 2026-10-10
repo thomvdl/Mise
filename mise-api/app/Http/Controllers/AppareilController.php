@@ -27,6 +27,9 @@ class AppareilController extends Controller
             'fonction' => ['required', 'string', 'max:255'],
             'temperature_min' => ['nullable', 'numeric'],
             'temperature_max' => ['nullable', 'numeric', Rule::when($request->filled('temperature_min'), ['gte:temperature_min'])],
+            // Nom donné au capteur dans Zigbee2MQTT (friendly_name) — relie les relevés
+            // automatiques publiés sur zigbee2mqtt/<zigbee_device_id> à cet appareil.
+            'zigbee_device_id' => ['nullable', 'string', 'max:255', 'unique:appareils,zigbee_device_id'],
         ]);
 
         $appareil = Appareil::create($validated);
@@ -53,6 +56,7 @@ class AppareilController extends Controller
             'fonction' => ['sometimes', 'required', 'string', 'max:255'],
             'temperature_min' => ['nullable', 'numeric'],
             'temperature_max' => ['nullable', 'numeric', Rule::when($request->filled('temperature_min'), ['gte:temperature_min'])],
+            'zigbee_device_id' => ['nullable', 'string', 'max:255', Rule::unique('appareils', 'zigbee_device_id')->ignore($appareil->id)],
         ]);
 
         $appareil->update($validated);
