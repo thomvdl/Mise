@@ -40,9 +40,12 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
     et enregistré dans le gestionnaire d'identifiants du système (jamais dans la config de l'app
     ni dans l'URL du remote) ;
   - **Mettre à jour** (visible une fois installé) : sauvegarde la base (reproduit la procédure de
-    la section 7 ci-dessous), puis `git pull` + `docker compose up -d --build` — jamais automatique
-    ni silencieux, uniquement sur ce clic, précisément pour garder la main en cas d'échec d'une
-    migration (voir DEPLOY.md §8) ;
+    la section 7 ci-dessous), puis bascule sur la dernière **release** GitHub publiée (interroge
+    `/releases/latest`, `git fetch --tags` + `git checkout` du tag — pas juste le dernier commit
+    de la branche principale, qui peut être en plein développement) et `docker compose up -d
+    --build` — jamais automatique ni silencieux, uniquement sur ce clic, précisément pour garder
+    la main en cas d'échec d'une migration (voir DEPLOY.md §8). Si l'API GitHub est injoignable
+    (pas de connexion, releases désactivées...), se rabat sur `git pull` de la branche principale ;
   - **Sauvegarder** : lance un dump manuel à la demande (même procédure que la sauvegarde
     automatique quotidienne, voir section 7 ci-dessous), utile avant une manipulation risquée sans
     attendre le prochain passage planifié ;
@@ -92,9 +95,10 @@ L'app détecte leur absence et affiche un message clair plutôt que d'échouer s
 4. À chaque démarrage de l'app par la suite, elle relance `docker compose up -d` (sans rebuild)
    pour s'assurer que tout tourne — pas besoin de retaper de commande Docker au quotidien.
 5. Pour une mise à jour future : bouton **Mettre à jour** dans la même section — sauvegarde la
-   base automatiquement (même procédure que `DEPLOY.md` §7), puis `git pull` + rebuild. Ce n'est
-   **jamais automatique ni silencieux** : uniquement sur ce clic, pour garder la main en cas
-   d'échec d'une migration sans personne sur place pour intervenir (voir `DEPLOY.md` §8).
+   base automatiquement (même procédure que `DEPLOY.md` §7), puis bascule sur la dernière release
+   GitHub publiée (pas juste le dernier commit) et rebuild. Ce n'est **jamais automatique ni
+   silencieux** : uniquement sur ce clic, pour garder la main en cas d'échec d'une migration sans
+   personne sur place pour intervenir (voir `DEPLOY.md` §8).
 
 Toutes ces opérations tournent en tâche de fond ; la fenêtre de statut peut être fermée et
 rouverte pendant qu'une installation/mise à jour est en cours, le journal "Activité récente"

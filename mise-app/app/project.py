@@ -8,16 +8,23 @@ une méthode Tkinter : seul `events.EventLog.add` (thread-safe, pas de widget) e
 """
 
 import datetime
+import json
 import os
 import re
 import secrets
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
 REPO_URL = "https://github.com/thomvdl/Mise.git"
+# "thomvdl/Mise" dérivé de REPO_URL plutôt que redupliqué en dur — sert à l'appel à l'API GitHub
+# ci-dessous (releases), pas au clone/pull lui-même (qui continue d'utiliser REPO_URL tel quel).
+_REPO_SLUG = urlparse(REPO_URL).path.strip("/").removesuffix(".git")
+_GITHUB_API_LATEST_RELEASE = f"https://api.github.com/repos/{_REPO_SLUG}/releases/latest"
 LogFn = Callable[[str], None]
 # Build Docker compris : peut être long au premier lancement (images à télécharger/construire).
 _TIMEOUT_SECONDS = 1800
@@ -162,6 +169,54 @@ def current_commit(repo_path: Path) -> str:
         return _run(["git", "rev-parse", "--short", "HEAD"], cwd=repo_path).strip()
     except CommandError:
         return "?"
+
+
+def current_version(repo_path: Path) -> str:
+    """Nom de la release si HEAD est exactement dessus (ex. "1.2.0"), sinon le hash court — un
+    clone qui n'a jamais encore suivi de release (vieille installation, ou mise à jour qui a
+    échoué avant le checkout) doit quand même afficher quelque chose d'exploitable."""
+    try:
+        return _run(
+            ["git", "describe", "--tags", "--exact-match"],
+            cwd=repo_path,
+            timeout=_QUICK_TIMEOUT_SECONDS,
+        ).strip()
+    except CommandError:
+        return current_commit(repo_path)
+
+
+def latest_release_tag(log: LogFn | None = None) -> Optional[str]:
+    """Nom du tag de la dernière release GitHub publiée (ex. "1.2.0"), ou None si l'appel échoue
+    (API injoignable, aucune release publiée...) — l'appelant doit alors se rabattre sur la
+    branche par défaut plutôt que d'échouer : l'absence de release ne doit jamais bloquer
+    l'installation ou la mise à jour, qui marchaient très bien avant que ça existe."""
+    request = urllib.request.Request(
+        _GITHUB_API_LATEST_RELEASE,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "Mise-App"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_QUICK_TIMEOUT_SECONDS) as response:
+            data = json.loads(response.read())
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        if log:
+            log(f"Impossible de récupérer la dernière release GitHub : {exc}")
+        return None
+
+    tag = data.get("tag_name")
+    return tag or None
+
+
+def checkout_release(repo_path: Path, tag: str, log: LogFn) -> None:
+    """Bascule le clone local sur le tag d'une release — `fetch --tags` d'abord, le clone initial
+    ne récupère pas forcément les tags créés après (ou le dépôt a été cloné avant que ce tag
+    n'existe). `advice.detachedHead=false` tait juste l'avertissement informatif de Git ; on est
+    volontairement en detached HEAD, pas une erreur à expliquer dans le journal de l'app."""
+    _run(["git", "fetch", "--tags"], cwd=repo_path, log=log)
+    _run(
+        ["git", "-c", "advice.detachedHead=false", "checkout", f"tags/{tag}"],
+        cwd=repo_path,
+        log=log,
+    )
 
 
 def clone(repo_path: Path, log: LogFn) -> None:
@@ -370,6 +425,14 @@ def install(
         authenticate_git(github_token, log)
     log(f"Clonage de {REPO_URL}...")
     clone(repo_path, log)
+
+    tag = latest_release_tag(log)
+    if tag:
+        log(f"Passage sur la dernière release ({tag})...")
+        checkout_release(repo_path, tag, log)
+    else:
+        log("Impossible de déterminer la dernière release — on reste sur la branche principale.")
+
     bootstrap_env(repo_path, admin_name, admin_password, log)
     log(
         "Démarrage de la pile Docker (peut prendre plusieurs minutes au premier lancement) — "
@@ -383,8 +446,15 @@ def install(
 def update(repo_path: Path, log: LogFn) -> None:
     log("Sauvegarde de la base avant mise à jour...")
     backup_db(repo_path, log)
-    log("Récupération du dernier code (git pull)...")
-    pull(repo_path, log)
+
+    tag = latest_release_tag(log)
+    if tag:
+        log(f"Passage sur la dernière release ({tag})...")
+        checkout_release(repo_path, tag, log)
+    else:
+        log("Impossible de déterminer la dernière release — récupération du dernier code (git pull)...")
+        pull(repo_path, log)
+
     log("Reconstruction et redémarrage des conteneurs...")
     docker_up(repo_path, log, build=True)
     log("Mise à jour terminée.")

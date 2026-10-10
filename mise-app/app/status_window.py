@@ -452,8 +452,8 @@ class StatusWindow:
 
         cloned = project.is_repo_cloned(repo_path)
         if cloned:
-            commit = project.current_commit(repo_path)
-            self.project_status_label.config(text=f"✅ Installé — commit {commit}")
+            version = project.current_version(repo_path)
+            self.project_status_label.config(text=f"✅ Installé — version {version}")
         else:
             self.project_status_label.config(text="⬜ Pas encore installé dans ce dossier")
 
