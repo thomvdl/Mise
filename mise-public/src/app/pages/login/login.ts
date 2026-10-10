@@ -5,6 +5,11 @@ import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 
+// Longueur fixe des codes générés par UserController::generateBarcode côté API — déclenche la
+// connexion dès que le scanner a fini de "taper" le code, sans attendre son Entrée de fin (tous
+// les scanners n'en envoient pas une, selon leur config).
+const LOGIN_BARCODE_LENGTH = 12;
+
 @Component({
   selector: 'app-login',
   imports: [FormsModule],
@@ -23,9 +28,40 @@ export class Login {
   saving = signal(false);
   errorMessage = signal<string | null>(null);
 
+  barcode = signal('');
+  barcodeSaving = signal(false);
+  barcodeError = signal<string | null>(null);
+
   selectUser(name: string): void {
     this.name.set(name);
     this.errorMessage.set(null);
+  }
+
+  onBarcodeInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.barcode.set(value);
+    this.barcodeError.set(null);
+
+    if (value.length >= LOGIN_BARCODE_LENGTH) {
+      this.submitBarcode();
+    }
+  }
+
+  submitBarcode(): void {
+    const barcode = this.barcode().trim();
+    if (!barcode || this.barcodeSaving()) return;
+
+    this.barcodeSaving.set(true);
+    this.barcodeError.set(null);
+
+    this.auth.loginBarcode(barcode).subscribe({
+      next: () => this.router.navigateByUrl('/'),
+      error: () => {
+        this.barcodeSaving.set(false);
+        this.barcodeError.set('Badge non reconnu.');
+        this.barcode.set('');
+      },
+    });
   }
 
   submit(): void {

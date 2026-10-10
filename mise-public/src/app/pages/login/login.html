@@ -3,6 +3,25 @@
     <div class="login-brand">MISE<span>.</span></div>
     <p class="login-sub">Connexion à l'application de cuisine.</p>
 
+    <div class="form-block">
+      <label class="form-label" for="barcode">Badge de connexion</label>
+      <input
+        id="barcode"
+        class="text-input"
+        type="text"
+        autofocus
+        autocomplete="off"
+        placeholder="Scannez votre badge…"
+        [value]="barcode()"
+        (input)="onBarcodeInput($event)"
+        (keydown.enter)="submitBarcode()" />
+      @if (barcodeError()) {
+        <p class="form-error">{{ barcodeError() }}</p>
+      }
+    </div>
+
+    <p class="login-divider">ou</p>
+
     @if (users().length > 0) {
       <div class="form-block">
         <span class="form-label">Qui êtes-vous ?</span>

@@ -40,6 +40,18 @@ export class AuthService {
     );
   }
 
+  /** Connexion par badge scanné — pas de mot de passe, voir AuthController::loginBarcode côté API. */
+  loginBarcode(barcode: string) {
+    return this.http.post<{ token: string; user: AuthUser }>(`${this.baseUrl}/login-barcode`, { barcode }).pipe(
+      tap(({ token, user }) => {
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        this.token.set(token);
+        this.user.set(user);
+      }),
+    );
+  }
+
   /** Clears local session state regardless of whether the server call succeeds. */
   logout(): void {
     const token = this.token();
