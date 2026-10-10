@@ -262,3 +262,94 @@ docker stats                        # conso CPU/mémoire en direct
 
 Les logs applicatifs sont bornés (10 Mo × 5 fichiers par service) pour ne pas remplir le disque
 au fil des mois.
+
+## 10. Capteurs de température (Zigbee)
+
+Suivi automatique de température (frigos/congélateurs) via des capteurs Zigbee Sonoff
+(SNZB-02D + sonde externe) — vient compléter, sans la remplacer, la saisie manuelle existante
+(écran Températures de `mise-public`).
+
+**Architecture** : capteur Zigbee → coordinateur USB (dongle Zigbee 3.0, ou ConBee II) →
+Zigbee2MQTT → broker `mosquitto` → `mise-api` (commande `temperature:listen`, tourne dans le
+conteneur `temperature-listener`) qui enregistre chaque relevé dans `temperature_releves` (colonne
+`source = 'capteur'`). Où tourne Zigbee2MQTT dépend de l'OS du mini PC :
+
+| | **Linux** | **Windows** | **macOS** |
+|---|---|---|---|
+| Où | Conteneur Docker (`zigbee2mqtt`) | Conteneur Docker (`zigbee2mqtt`) | Nativement sur la machine, hors Docker |
+| Pourquoi | Docker y passe le périphérique USB directement au conteneur | Pas de passthrough USB natif, mais possible via WSL2 + `usbipd-win` (voir §A) | Docker Desktop n'a aucun équivalent d'`usbipd-win` — aucun passthrough USB possible, même indirect |
+| Mis en place par | Manuellement (voir §A/§B) | `mise-app` (bouton "Connecter") ou manuellement | `mise-app` (bouton "Installer" puis "Connecter") |
+
+Dans les trois cas, Zigbee2MQTT publie sur le même broker MQTT (`mosquitto`, dockerisé) et son
+interface d'appairage reste sur `http://localhost:8084`.
+
+### A. Linux / Windows — passer le dongle à Docker (une fois par machine)
+
+**Sous Linux**, le périphérique est déjà visible nativement — passez directement à l'étape B.
+
+**Sous Windows**, `mise-app` (section "Capteur Zigbee" de la fenêtre de statut → "Détecter" puis
+"Connecter") fait tout ce qui suit automatiquement. Procédure manuelle (repli, ou pour comprendre
+ce que fait le bouton) :
+
+1. Installer [usbipd-win](https://github.com/dorssel/usbipd-win/releases) (admin requis).
+2. PowerShell en administrateur :
+   ```powershell
+   usbipd list
+   ```
+   Repérer le `BUSID` du dongle Zigbee (ex. `CP2102`/`CC2652P` dans la description) parmi les
+   périphériques USB connectés.
+3. Lier puis attacher ce périphérique à la distribution WSL utilisée par Docker Desktop —
+   `docker-desktop`, pas la distribution par défaut (`Ubuntu` ou autre) :
+   ```powershell
+   usbipd bind --busid <BUSID>
+   usbipd attach --wsl --distribution docker-desktop --busid <BUSID> --auto-attach
+   ```
+   `bind` demande une élévation (UAC) mais est persistant (une seule fois). `attach --auto-attach`
+   n'en demande plus jamais, mais doit être relancé à chaque démarrage de Windows — ce que
+   `mise-app` fait lui-même automatiquement s'il a déjà servi une fois (voir
+   `app/zigbee_windows.py::ensure_attached`).
+4. Vérifier qu'il apparaît dans le moteur Docker :
+   ```powershell
+   wsl -d docker-desktop -- ls -l /dev/serial/by-id/
+   ```
+   Noter le nom affiché (ex. `usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_xxxxx-if00-port0`).
+5. ```bash
+   cp zigbee2mqtt/configuration.yaml.example zigbee2mqtt/configuration.yaml
+   ```
+   Remplacer `serial.port` par le chemin relevé à l'étape 4 (Windows) ou par `ls -l
+   /dev/serial/by-id/` directement (Linux).
+6. Dans `.env`, renseigner `ZIGBEE_SERIAL_DEVICE=` avec ce même chemin complet, puis :
+   ```bash
+   docker compose up -d zigbee2mqtt
+   ```
+
+### B. macOS — installer Zigbee2MQTT nativement
+
+`mise-app` (section "Capteur Zigbee") fait tout ce qui suit via ses boutons "Installer" (clone +
+`npm ci` + `npm run build` dans le dossier de données de l'app, pas dans le clone du projet) puis
+"Détecter"/"Connecter" (écrit `data/configuration.yaml` avec `mqtt.server: mqtt://localhost:1883`
+et le `/dev/cu.*` choisi, puis lance `npm start` en tâche de fond — voir `app/zigbee_macos.py`).
+Prérequis : Node.js (`brew install node` si besoin, pas installé automatiquement par l'app).
+
+Procédure manuelle équivalente si besoin de dépanner : cloner
+[Zigbee2MQTT](https://github.com/Koenkk/zigbee2mqtt), `npm ci && npm run build`, écrire
+`data/configuration.yaml` à la main (voir `zigbee2mqtt/configuration.yaml.example` pour le
+contenu — seul `mqtt.server` change, en `mqtt://localhost:1883`), puis `npm start`.
+
+### C. Appairer un capteur
+
+Une fois Zigbee2MQTT démarré (Docker ou natif, peu importe) :
+
+1. Interface d'appairage sur `http://localhost:8084` → bouton **Permit join** → allumer/réveiller
+   le capteur (SNZB-02D : appui sur le petit bouton au dos) pour qu'il apparaisse dans la liste.
+2. Le renommer (friendly name) avec un nom clair (ex. `Frigo cuisine`) — ce nom doit être recopié
+   **tel quel** dans le champ "Capteur Zigbee" du formulaire d'appareil, côté `mise-dashboard`
+   (Appareils → modifier), pour relier le capteur physique à l'appareil suivi.
+
+### D. Configurer les seuils d'alerte
+
+Dans `mise-dashboard` (Appareils → modifier), renseignez `temperature_min`/`temperature_max` pour
+chaque appareil équipé d'un capteur. `mise-app` interroge `GET /api/temperature-alerts/active`
+toutes les minutes et affiche une notification de bureau (son + popup) si un appareil équipé
+dépasse sa plage, avec un rappel toutes les 30 minutes tant que ça reste hors plage — jamais plus
+souvent, pour ne pas devenir inutilisable la nuit si un appareil tombe réellement en panne.

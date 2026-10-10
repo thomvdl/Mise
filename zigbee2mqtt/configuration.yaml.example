@@ -1,0 +1,21 @@
+# Copier ce fichier en "configuration.yaml" (même dossier) puis adapter serial.port — voir
+# DEPLOY.md §10.A pour la procédure complète (coordinateur, appairage, usbipd-win sous Windows).
+
+mqtt:
+  # Nom du service Docker Compose, pas localhost : zigbee2mqtt et mosquitto sont deux conteneurs
+  # du même réseau compose (voir docker-compose.yml).
+  server: 'mqtt://mosquitto:1883'
+
+serial:
+  # Chemin stable du dongle (ne change pas selon le port USB utilisé, contrairement à /dev/ttyUSBx)
+  # — à relever avec `ls -l /dev/serial/by-id/` une fois le dongle branché (ou côté Windows, après
+  # l'avoir attaché à la distribution WSL "docker-desktop" avec usbipd-win, depuis un `wsl` shell).
+  port: /dev/serial/by-id/REPLACE_WITH_YOUR_DEVICE_ID
+  # "zstack" pour le dongle Sonoff Zigbee 3.0 USB Dongle Plus (CC2652P) ; "deconz" pour un ConBee II.
+  adapter: zstack
+
+frontend:
+  port: 8080
+
+homeassistant:
+  enabled: false

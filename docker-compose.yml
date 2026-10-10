@@ -71,6 +71,80 @@ services:
     mem_limit: 512m
     logging: *default-logging
 
+  # Broker MQTT local pour les capteurs de température Zigbee (voir §10 de DEPLOY.md). Port publié
+  # comme pour "db" plus haut, pour du débogage ponctuel depuis l'hôte (mosquitto_sub) — zigbee2mqtt
+  # et temperature-listener, eux, se connectent par le réseau interne du compose (mosquitto:1883).
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mise_mosquitto_data:/mosquitto/data
+    ports:
+      - "1883:1883"
+    mem_limit: 64m
+    logging: *default-logging
+
+  # Pont Zigbee -> MQTT (capteurs de température, voir §10 de DEPLOY.md). Passthrough USB du
+  # dongle vers le conteneur — marche aussi sous Docker Desktop/Windows (moteur WSL2), à condition
+  # d'avoir attaché le périphérique à la distribution WSL "docker-desktop" au préalable avec
+  # usbipd-win (voir DEPLOY.md §10.A) ; sous Linux, le device existe déjà nativement, rien de plus
+  # à faire. ZIGBEE_SERIAL_DEVICE vient de .env (comme CLOUDFLARE_TUNNEL_ARGS plus haut), pas écrit
+  # en dur ici : propre à chaque machine, et mise-app l'y écrit lui-même sous Windows (bouton
+  # "Connecter", voir app/zigbee_windows.py) sans jamais toucher à ce fichier, qui reste suivi par
+  # git. "configuration.yaml" n'est pas versionné non plus (même raison) — copier
+  # configuration.yaml.example pour démarrer à la main, voir DEPLOY.md §10.A.
+  #
+  # Inutilisé sous macOS : Docker Desktop y est sans équivalent d'usbipd-win (aucun passthrough
+  # USB possible, même indirect), donc Zigbee2MQTT y tourne nativement hors Docker à la place (voir
+  # app/zigbee_macos.py) — ce service reste simplement arrêté sur cet OS.
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_started
+    devices:
+      - ${ZIGBEE_SERIAL_DEVICE:-/dev/null}:${ZIGBEE_SERIAL_DEVICE:-/dev/null}
+    volumes:
+      - ./zigbee2mqtt:/app/data
+    environment:
+      TZ: Europe/Brussels
+    ports:
+      # Interface web d'appairage (boutons "Permit join", renommage des capteurs) — 8084 côté hôte
+      # pour ne pas entrer en conflit avec le port interne par défaut de l'image (8080).
+      - "8084:8080"
+    mem_limit: 256m
+    logging: *default-logging
+
+  # Écoute en continu les relevés publiés par Zigbee2MQTT (voir mosquitto ci-dessus et
+  # App\Console\Commands\ListenTemperatureSensors) et les enregistre dans temperature_releves.
+  # Entrypoint/commande volontairement réécrits ici (pas d'entrypoint.sh ni d'apache-foreground,
+  # voir mise-api/docker/entrypoint.sh) : migrations/seed sont déjà gérées par le conteneur "api",
+  # les lancer deux fois en parallèle au démarrage risquerait une collision.
+  temperature-listener:
+    build: ./mise-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    env_file: .env
+    environment:
+      DB_HOST: db
+    entrypoint: ["/bin/sh", "-c"]
+    # "$$" (pas "$") : sinon docker-compose interpole DB_HOST/DB_PORT lui-même au moment de lire ce
+    # fichier (avec la valeur de l'hôte, 127.0.0.1) plutôt que de laisser le shell du conteneur les
+    # lire à l'exécution (valeur réelle, "db" — voir "environment" ci-dessus).
+    command:
+      - >
+        until php -r "new PDO('mysql:host=$$DB_HOST;port=$$DB_PORT', getenv('DB_USERNAME'), getenv('DB_PASSWORD'));" 2>/dev/null;
+        do sleep 2; done;
+        php artisan temperature:listen
+    mem_limit: 128m
+    logging: *default-logging
+
   adminer:
     image: adminer:latest
     restart: unless-stopped
@@ -127,3 +201,4 @@ volumes:
   mise_db_data:
   mise_api_storage:
   mise_db_backups:
+  mise_mosquitto_data:

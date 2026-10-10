@@ -1,4 +1,9 @@
 /.env
+# Zigbee2MQTT écrit tout son état runtime ici (database.db, state.json, coordinator_backup*.json,
+# log/) en plus de configuration.yaml — propre à chaque machine (chemin du dongle, pairings),
+# comme .env ci-dessus. configuration.yaml.example reste versionné.
+/zigbee2mqtt/*
+!/zigbee2mqtt/configuration.yaml.example
 *.sql
 *.sql.gz
 /backups/
