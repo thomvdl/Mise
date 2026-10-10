@@ -21,6 +21,9 @@ class LabelTypeSeeder extends Seeder
             ['key' => 'congele', 'name' => 'CONGELÉ LE', 'jplus_days' => null, 'icon_key' => 'flocon', 'position' => 2],
             ['key' => 'decongele', 'name' => 'DÉCONGELÉ LE', 'jplus_days' => 2, 'icon_key' => 'goutte', 'position' => 3],
             ['key' => 'jeter', 'name' => 'À JETER LE', 'jplus_days' => 3, 'icon_key' => 'poubelle', 'position' => 4],
+            // Contenu libre — pas de date/DLC, voir ZplLabelBuilder::build() $freeContent (déclenché
+            // sur key === 'libre').
+            ['key' => 'libre', 'name' => 'LIBRE', 'jplus_days' => null, 'icon_key' => 'generique', 'position' => 5],
         ];
 
         foreach ($types as $type) {

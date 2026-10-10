@@ -36,6 +36,11 @@ class ZplLabelBuilder
      * `$iconKey` viennent du `LabelType` résolu par le contrôleur (table `label_types`,
      * configurable — voir LabelTypeController) : ce service reste un pur générateur ZPL à partir
      * de primitives, sans dépendance Eloquent.
+     *
+     * `$freeContent` (type `LIBRE`, voir LabelTypeSeeder) saute entièrement la ligne type -> date
+     * et la DLC — un texte libre n'a ni type HACCP ni échéance, les afficher n'aurait pas de sens.
+     * `$productName` sert alors de contenu libre (même champ, même validation côté contrôleur —
+     * pas de colonne dédiée) et récupère tout l'espace économisé sur ces deux lignes.
      */
     public static function build(
         string $title,
@@ -50,7 +55,20 @@ class ZplLabelBuilder
         ?string $userName = null,
         ?string $iconKey = null,
         float $topOffsetMm = 0,
+        bool $freeContent = false,
     ): string {
+        if ($freeContent) {
+            $fields = [
+                ['text' => self::sanitize($productName), 'lines' => 5],
+            ];
+
+            if ($userName) {
+                $fields[] = ['text' => self::sanitize($userName), 'lines' => 1];
+            }
+
+            return self::render($widthMm, $heightMm, $dpi, $rotate90, $fields, $quantity, $topOffsetMm);
+        }
+
         $typeLine = $title . ' -> ' . self::formatDate($date);
         $dlcLine = $useByDate ? 'DLC -> ' . self::formatDate($useByDate) : null;
 

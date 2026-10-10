@@ -65,6 +65,11 @@ export class Labels {
   /** Number of copies of the label being composed to add to the queue at once (1-10). */
   printQuantity = signal(MIN_PRINT_QUANTITY);
 
+  /** Type "LIBRE" (voir LabelTypeSeeder) : pas de date/DLC sur ce genre d'étiquette, juste le
+   *  texte saisi — ZplLabelBuilder::build() saute entièrement la ligne type -> date côté serveur
+   *  quand ce type est sélectionné (voir `$freeContent`). */
+  readonly isFreeContent = computed(() => this.selectedType().key === 'libre');
+
   /** Product names pulled from the catalogs, offered as suggestions — the field itself stays free text. */
   suggestions = computed(() => {
     const names = new Set<string>();

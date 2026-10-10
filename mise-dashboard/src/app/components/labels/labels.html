@@ -33,15 +33,15 @@
 
     <div class="form-block">
       <div class="form-label-row">
-        <label class="form-label" for="product-name">Produit</label>
+        <label class="form-label" for="product-name">{{ isFreeContent() ? 'Contenu de l\'étiquette' : 'Produit' }}</label>
         <span class="char-counter">{{ productName().length }}/{{ productNameMaxLength }}</span>
       </div>
       <input
         id="product-name"
         class="text-input"
         type="text"
-        list="product-suggestions"
-        placeholder="Nom du produit…"
+        [attr.list]="isFreeContent() ? null : 'product-suggestions'"
+        [placeholder]="isFreeContent() ? 'Texte à imprimer…' : 'Nom du produit…'"
         [attr.maxlength]="productNameMaxLength"
         [value]="productName()"
         (input)="onNameInput($event)"
@@ -53,6 +53,7 @@
       </datalist>
     </div>
 
+    @if (!isFreeContent()) {
     <div class="form-block">
       <label class="form-label" for="use-by-date">DLC (à consommer avant le)</label>
       <div class="date-quick-choices">
@@ -79,6 +80,7 @@
       }
       <p class="form-hint disclaimer">Suggestion indicative — à ajuster selon votre PMS (plan de maîtrise sanitaire).</p>
     </div>
+    }
 
     <div class="form-block">
       <span class="form-label">Quantité</span>
@@ -93,7 +95,7 @@
       + Ajouter à la liste{{ printQuantity() > 1 ? ' (' + printQuantity() + ')' : '' }}
     </button>
     @if (!productName().trim()) {
-      <p class="form-hint">Indiquez un produit pour l'ajouter à la liste d'impression.</p>
+      <p class="form-hint">{{ isFreeContent() ? 'Saisissez un texte pour l\'ajouter à la liste d\'impression.' : 'Indiquez un produit pour l\'ajouter à la liste d\'impression.' }}</p>
     }
   </div>
 
@@ -131,7 +133,10 @@
         <li class="queue-row">
           <span class="queue-swatch" [attr.data-type]="item.type.key"></span>
           <span class="queue-text">
-            <strong>{{ item.type.title }}</strong> — {{ item.productName }} — {{ formatDate(item.date) }}
+            <strong>{{ item.type.title }}</strong> — {{ item.productName }}
+            @if (item.type.key !== 'libre') {
+              — {{ formatDate(item.date) }}
+            }
             @if (item.useByDate) {
               <span class="queue-dlc">
                 · DLC {{ formatDate(item.useByDate) }}

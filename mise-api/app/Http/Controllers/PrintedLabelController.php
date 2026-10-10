@@ -97,6 +97,7 @@ class PrintedLabelController extends Controller
             $request->user()->name,
             $type->icon_key,
             (float) Setting::get('label_top_offset_mm', '0'),
+            freeContent: $type->key === 'libre',
         );
 
         if ($error = ZplPrinter::send($zpl)) {
