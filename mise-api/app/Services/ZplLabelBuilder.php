@@ -117,6 +117,83 @@ class ZplLabelBuilder
     }
 
     /**
+     * Badge de connexion d'un utilisateur : son nom suivi d'un code-barres Code128 (`$barcode`,
+     * généré par UserController::generateBarcode — un identifiant opaque interne, pas un EAN
+     * produit) à scanner sur l'écran de connexion de mise-public. Mise en page fixe à deux champs
+     * plutôt que de passer par `render()` ci-dessous : contrairement aux étiquettes HACCP, un
+     * badge n'a jamais plus que ces deux éléments, pas besoin du moteur multi-champs générique.
+     * Pas de ligne de lecture humaine sous le code-barres (`^BC...N,N,N`) — jamais tapé à la
+     * main, seulement scanné, autant garder les barres aussi hautes que possible pour la fiabilité
+     * du scan plutôt que de réserver de la place à du texte que personne ne lira.
+     */
+    public static function buildUserBarcodeLabel(
+        string $userName,
+        string $barcode,
+        int $dpi = 203,
+        float $widthMm = 57,
+        float $heightMm = 32,
+        bool $rotate90 = false,
+        float $topOffsetMm = 0,
+    ): string {
+        $dotsPerMm = $dpi / 25.4;
+        $physicalWidthDots = (int) round($widthMm * $dotsPerMm);
+        $physicalHeightDots = (int) round($heightMm * $dotsPerMm);
+        $topOffsetDots = (int) round($topOffsetMm * $dotsPerMm);
+        $stackDots = $rotate90 ? $physicalWidthDots : $physicalHeightDots;
+        $advanceDots = $rotate90 ? $physicalHeightDots : $physicalWidthDots;
+
+        $stackMargin = (int) round($stackDots * self::MARGIN_RATIO);
+        $advanceMargin = (int) round($advanceDots * self::MARGIN_RATIO);
+        $stackStartMargin = $stackMargin + (! $rotate90 ? $topOffsetDots : 0);
+        $advanceStartMargin = $advanceMargin + ($rotate90 ? $topOffsetDots : 0);
+        $innerAdvance = max(1, $advanceDots - $advanceStartMargin - $advanceMargin);
+        $innerStack = max(1, $stackDots - $stackStartMargin - $stackMargin);
+
+        $nameSlot = max(1, (int) floor($innerStack * 0.28));
+        $barcodeSlot = max(1, $innerStack - $nameSlot);
+
+        $lines = ['^XA', '^CI28', "^PW{$physicalWidthDots}", "^LL{$physicalHeightDots}"];
+        $lines[] = $rotate90 ? '^FWR' : '^FWN';
+
+        $stackPos = $rotate90 ? ($stackMargin + $innerStack) : $stackStartMargin;
+        $next = function (int $slot) use (&$stackPos, $rotate90): int {
+            if ($rotate90) {
+                $stackPos -= $slot;
+
+                return $stackPos;
+            }
+
+            $pos = $stackPos;
+            $stackPos += $slot;
+
+            return $pos;
+        };
+
+        $name = self::sanitize($userName);
+        $namePos = $next($nameSlot);
+        $font = self::fitFont($name, $innerAdvance, $nameSlot, 1);
+        $lines[] = "^CF0,{$font}";
+        $lines[] = '^FO' . self::fo($rotate90, $namePos, $advanceStartMargin)
+            . "^FB{$innerAdvance},1,0,C,0^FD{$name}^FS";
+
+        $barcodePos = $next($barcodeSlot);
+        // ~11 dots/caractère encodé + ~35 dots de marge fixe (start/stop/check) pour le Code128,
+        // approximation volontairement généreuse — mieux vaut un code-barres un peu petit
+        // qu'un code-barres tronqué. Borné à [2,6] : en dessous de 2 les barres deviennent peu
+        // fiables au scan, au-dessus de 6 un code court déborderait sur une grande étiquette.
+        $moduleWidth = max(2, min(6, (int) floor($innerAdvance / (strlen($barcode) * 11 + 35))));
+        $orientation = $rotate90 ? 'R' : 'N';
+        $lines[] = "^BY{$moduleWidth}";
+        $lines[] = '^FO' . self::fo($rotate90, $barcodePos, $advanceStartMargin)
+            . "^BC{$orientation},{$barcodeSlot},N,N,N^FD{$barcode}^FS";
+
+        $lines[] = '^PQ1';
+        $lines[] = '^XZ';
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Moteur de rendu commun : place une liste de champs (texte + nombre de lignes réservées) en
      * les empilant pour remplir l'espace disponible, police dimensionnée au cas par cas.
      *

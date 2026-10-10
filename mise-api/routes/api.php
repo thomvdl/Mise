@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Route;
 // Publiques — la liste ne renvoie que id/name, utilisée par l'écran de connexion public
 // pour proposer un sélecteur de compte plutôt que de faire taper le nom.
 Route::post('auth/login', [AuthController::class, 'login']);
+Route::post('auth/login-barcode', [AuthController::class, 'loginBarcode']);
 Route::get('auth/users', [AuthController::class, 'publicUsers']);
 
 // Pas de compte/token côté mise-app (l'app de bureau, voir mise-app/) — public comme les deux
@@ -138,6 +139,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['friteuses' => 'friteuse']);
         Route::apiResource('pictures', PictureController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('users/{user}/generate-barcode', [UserController::class, 'generateBarcode']);
+        Route::post('users/{user}/print-barcode', [UserController::class, 'printBarcode']);
         Route::apiResource('channels', ChannelController::class)->only(['store', 'destroy']);
         Route::apiResource('messages', MessageController::class)->only(['destroy']);
         Route::apiResource('shopping-items', ShoppingItemController::class)->only(['update', 'destroy'])

@@ -46,6 +46,31 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Connexion par badge scanné (écran de connexion de mise-public, voir login.ts côté front) —
+     * pas de mot de passe : le code imprimé sur le badge EST le credential, comme une pointeuse.
+     * Public comme login() ci-dessus, pour la même raison (même écran, même niveau de confiance).
+     */
+    public function loginBarcode(Request $request)
+    {
+        $validated = $request->validate([
+            'barcode' => ['required', 'string'],
+        ]);
+
+        $user = User::where('login_barcode', $validated['barcode'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'barcode' => ["Badge non reconnu."],
+            ]);
+        }
+
+        return response()->json([
+            'token' => $user->createToken('api')->plainTextToken,
+            'user' => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role],
+        ]);
+    }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
