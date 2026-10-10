@@ -206,6 +206,7 @@ export class FicheTechniqueImport {
         name: line.name,
         slug: slugify(line.name),
         unit: line.unit || 'unité',
+        barcode: null,
         price: null,
         ingredient_category_id: null,
         allergen_ids: [],

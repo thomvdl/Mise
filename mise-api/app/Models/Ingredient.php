@@ -13,6 +13,7 @@ class Ingredient extends Model
         'name',
         'slug',
         'unit',
+        'barcode',
         'price',
         'ingredient_category_id',
     ];

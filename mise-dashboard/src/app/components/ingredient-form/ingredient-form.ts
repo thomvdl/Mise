@@ -39,6 +39,7 @@ export class IngredientForm implements OnInit {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     slug: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     unit: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    barcode: new FormControl<string | null>(null),
     price: new FormControl<number | null>(null),
     ingredient_category_id: new FormControl<number | null>(null),
   });
@@ -66,6 +67,7 @@ export class IngredientForm implements OnInit {
           name: ingredient.name,
           slug: ingredient.slug,
           unit: ingredient.unit,
+          barcode: ingredient.barcode,
           price: ingredient.price !== null ? Number(ingredient.price) : null,
           ingredient_category_id: ingredient.ingredient_category_id,
         });
@@ -98,6 +100,19 @@ export class IngredientForm implements OnInit {
     this.pictures.removeAt(index);
   }
 
+  /** Masque l'aperçu tant que l'URL en cours de saisie ne pointe pas (encore) vers une image
+   *  valide — évite l'icône "image cassée" du navigateur pendant que le chef tape/colle l'URL. */
+  onPreviewError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
+  }
+
+  /** Ré-affiche l'aperçu si l'URL corrigée charge finalement une vraie image — sans ça, l'état
+   *  "display:none" posé par onPreviewError() resterait collé sur ce <img> (même élément DOM
+   *  réutilisé par Angular tant que la ligne existe) même après correction de l'URL. */
+  onPreviewLoad(event: Event): void {
+    (event.target as HTMLImageElement).style.display = '';
+  }
+
   save(): void {
     if (this.form.invalid || this.pictures.invalid) {
       this.form.markAllAsTouched();
@@ -110,6 +125,7 @@ export class IngredientForm implements OnInit {
       name: value.name,
       slug: value.slug,
       unit: value.unit,
+      barcode: value.barcode?.trim() || null,
       price: value.price,
       ingredient_category_id: value.ingredient_category_id,
       allergen_ids: [...this.selectedAllergenIds()],

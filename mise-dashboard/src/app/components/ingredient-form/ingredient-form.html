@@ -48,6 +48,12 @@
       </div>
 
       <div class="form-field">
+        <label class="form-label" for="barcode">Code-barres</label>
+        <input id="barcode" class="form-input" type="text" inputmode="numeric" formControlName="barcode" placeholder="EAN du produit…" />
+        <span class="form-hint">Optionnel — utilisé par la recherche code-barres des étiquettes pour retrouver ce nom sans passer par Internet.</span>
+      </div>
+
+      <div class="form-field">
         <label class="form-label" for="price">Prix (par unité)</label>
         <input id="price" class="form-input" type="number" step="0.01" min="0" formControlName="price" />
       </div>
@@ -81,6 +87,9 @@
     <div class="editable-list">
       @for (control of pictures.controls; track $index) {
         <div class="editable-row">
+          @if (control.value) {
+            <img class="photo-preview" [src]="control.value" alt="Aperçu" loading="lazy" (error)="onPreviewError($event)" (load)="onPreviewLoad($event)" />
+          }
           <div class="form-field">
             <input class="form-input" type="url" [formControl]="control" placeholder="https://…" />
           </div>

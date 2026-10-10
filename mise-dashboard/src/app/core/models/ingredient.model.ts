@@ -8,6 +8,7 @@ export interface Ingredient {
   name: string;
   slug: string;
   unit: string;
+  barcode: string | null;
   price: string | null;
   ingredient_category_id: number | null;
   category?: IngredientCategory | null;
@@ -20,6 +21,7 @@ export interface IngredientPayload {
   name: string;
   slug: string;
   unit: string;
+  barcode: string | null;
   price: number | null;
   ingredient_category_id: number | null;
   allergen_ids: number[];
