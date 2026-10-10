@@ -22,6 +22,12 @@ def _config_file() -> Path:
     return _config_dir() / "config.json"
 
 
+def app_data_dir() -> Path:
+    """Dossier de données de l'app, pour tout ce qui n'est pas config.json lui-même — par
+    exemple l'installation native de Zigbee2MQTT sur macOS (voir zigbee_macos.py)."""
+    return _config_dir()
+
+
 def load() -> dict:
     path = _config_file()
     if not path.exists():

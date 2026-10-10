@@ -31,6 +31,23 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
   raccourci dans le dossier Démarrage côté Windows) — plus besoin de suivre les étapes manuelles
   des sections "Démarrage automatique" ci-dessous, qui restent documentées seulement pour les
   anciens scripts/le dépannage ;
+- une notification de bureau (popup + son) si un appareil équipé d'un capteur de température
+  Zigbee dépasse sa plage (voir `app/temperature_alerts.py` et DEPLOY.md §10) — vérifié une fois
+  par minute, avec un rappel toutes les 30 minutes tant que ça reste hors plage, jamais plus
+  souvent ;
+- une section **"Capteur de température (Zigbee)"** dans la fenêtre de statut, qui connecte le
+  dongle Zigbee tout seul (sans ligne de commande) — voir DEPLOY.md §10 pour l'architecture
+  complète :
+  - **Windows** (`app/zigbee_windows.py`) : "Détecter" liste les périphériques USB (`usbipd
+    list`), "Connecter" partage puis attache le dongle choisi à la distribution WSL de Docker
+    Desktop, résout son chemin et met à jour `.env`/`zigbee2mqtt/configuration.yaml` avant de
+    relancer le conteneur `zigbee2mqtt` — réattaché automatiquement à chaque démarrage de l'app
+    (l'attache seule, pas le partage, ne survit pas à un redémarrage de Windows) ;
+  - **macOS** (`app/zigbee_macos.py`) : Docker Desktop n'ayant aucun moyen de passthrough USB,
+    "Installer" clone et compile Zigbee2MQTT dans le dossier de données de l'app (pas dans le
+    projet), puis "Détecter"/"Connecter" le démarre nativement, connecté au broker MQTT dockerisé
+    via son port publié — relancé tout seul à chaque démarrage de l'app, arrêté proprement à la
+    fermeture.
 - une section **"Projet Mise"** dans cette même fenêtre qui gère aussi le cycle de vie du projet
   entier (pas juste le pont ZPL), pour que le mini PC n'ait qu'une seule app à lancer :
   - **Installer** (visible si le dossier choisi n'est pas encore un clone du projet) : clone le

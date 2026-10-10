@@ -21,7 +21,7 @@ import time
 import tkinter as tk
 from pathlib import Path
 
-from . import autostart, config, kiosk, project
+from . import autostart, config, kiosk, project, temperature_alerts
 from .bridge_server import BridgeServer
 from .events import EventLog
 from .status_window import StatusWindow
@@ -74,6 +74,36 @@ def ensure_project_running(events: EventLog) -> None:
             project.docker_up(repo_path, events.add)
         except project.CommandError as exc:
             events.add(f"Échec du démarrage automatique de la pile Docker : {exc}", level="error")
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def ensure_zigbee_connected(events: EventLog) -> None:
+    """Relance ce qui doit l'être pour que le capteur de température Zigbee reste joignable après
+    un redémarrage de la machine — rien à faire tant que personne n'a jamais cliqué « Connecter »
+    dans la fenêtre de statut (voir status_window.py::_connect_zigbee).
+
+    Sur Windows, `usbipd attach --auto-attach` ne survit pas à lui seul à un redémarrage de
+    Windows (contrairement au `bind`, lui persistant) — voir zigbee_windows.py. Sur macOS,
+    Zigbee2MQTT est un process natif que mise-app doit relancer lui-même, comme docker_up
+    ci-dessus pour la pile du projet."""
+    cfg = config.load()
+
+    def run() -> None:
+        try:
+            if sys.platform == "win32":
+                from . import zigbee_windows
+
+                busid = cfg.get("zigbee_busid")
+                if busid:
+                    zigbee_windows.ensure_attached(busid, events.add)
+            elif sys.platform == "darwin":
+                from . import zigbee_macos
+
+                zigbee_macos.ensure_running(cfg.get("zigbee_device_path"), events.add)
+        except Exception as exc:  # noqa: BLE001 — un capteur qui ne se reconnecte pas ne doit pas
+            # empêcher le reste de l'app (pont ZPL, Docker) de démarrer.
+            events.add(f"Échec de la reconnexion automatique du capteur Zigbee : {exc}", level="error")
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -135,6 +165,7 @@ def main() -> None:
     events.add("Pont démarré")
 
     ensure_project_running(events)
+    ensure_zigbee_connected(events)
     maybe_launch_kiosk(events)
     maybe_check_for_updates(events)
 
@@ -151,6 +182,13 @@ def main() -> None:
     )
 
     def do_quit() -> None:
+        if sys.platform == "darwin":
+            from . import zigbee_macos
+
+            # Sans ça, le process Node reste orphelin après la fermeture de l'app (rien d'autre ne
+            # le pilote — voir zigbee_macos.py, contrairement à Windows où usbipd/WSL tournent
+            # indépendamment de mise-app).
+            zigbee_macos.stop(events.add)
         bridge.stop()
         icon.stop()
         root.quit()
@@ -181,6 +219,7 @@ def main() -> None:
         # _UPDATE_CHECK_INTERVAL_S. Ici plutôt qu'au seul lancement : une app qui tourne plusieurs
         # jours sans redémarrer doit quand même revérifier.
         maybe_check_for_updates(events)
+        temperature_alerts.check_once(icon, events)
         root.after(REFRESH_INTERVAL_MS, tick)
 
     icon.run_detached()

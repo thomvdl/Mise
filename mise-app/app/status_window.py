@@ -12,6 +12,11 @@ from typing import Callable, Optional
 
 from . import config, kiosk, network, project
 
+if sys.platform == "win32":
+    from . import zigbee_windows as zigbee_backend
+elif sys.platform == "darwin":
+    from . import zigbee_macos as zigbee_backend
+
 # Ports publiés par docker-compose.yml pour les apps web (voir aussi le défaut de kiosk_url
 # ci-dessous, déjà calé sur 8082) — fixes pour ce projet, pas de config nécessaire.
 _PUBLIC_PORT = 8082
@@ -232,6 +237,11 @@ class StatusWindow:
         right_column.grid(row=0, column=1, sticky="new", padx=(7, 0))
 
         self._build_project_section(left_column)
+        # Colonne gauche nettement moins chargée que la droite (voir le commentaire au-dessus de
+        # `columns` : la fenêtre a une hauteur fixe, pensée pour tenir sur un écran de laptop) —
+        # la section Zigbee va ici plutôt qu'à droite pour rester équilibré, pas pour une raison
+        # thématique.
+        self._build_zigbee_section(left_column)
 
         if sys.platform == "win32":
             self._build_printer_picker(right_column)
@@ -434,6 +444,118 @@ class StatusWindow:
             # laisser remonter jusqu'à l'UI.
             self.events.add(f"Échec du lancement du mode kiosque : {exc}", level="error")
         self.refresh()
+
+    def _build_zigbee_section(self, parent: tk.Misc) -> None:
+        frame = ttk.LabelFrame(parent, text="Capteur de température (Zigbee)")
+        frame.pack(fill="x", pady=(0, 10))
+
+        self.zigbee_status_label = ttk.Label(frame, text="…", wraplength=440, justify="left")
+        self.zigbee_status_label.pack(anchor="w", padx=8, pady=(8, 4))
+
+        picker_row = ttk.Frame(frame)
+        picker_row.pack(fill="x", padx=8, pady=(0, 6))
+        self.zigbee_device_var = tk.StringVar()
+        self.zigbee_picker = ttk.Combobox(picker_row, textvariable=self.zigbee_device_var, state="readonly")
+        self.zigbee_picker.pack(side="left", fill="x", expand=True)
+        ttk.Button(picker_row, text="Détecter", command=self._detect_zigbee_devices).pack(
+            side="left", padx=(6, 0)
+        )
+        self._zigbee_display_to_id: dict[str, str] = {}
+
+        btn_row = ttk.Frame(frame)
+        btn_row.pack(fill="x", padx=8, pady=(0, 8))
+        if sys.platform == "darwin":
+            # Sur Windows, rien à installer : usbipd-win est un prérequis système (voir
+            # DEPLOY.md §10.A), pas quelque chose que mise-app peut cloner/compiler lui-même.
+            self.zigbee_install_button = ttk.Button(btn_row, text="Installer", command=self._install_zigbee)
+            self.zigbee_install_button.pack(side="left")
+        self.zigbee_connect_button = ttk.Button(btn_row, text="Connecter", command=self._connect_zigbee)
+        self.zigbee_connect_button.pack(side="left", padx=(6, 0) if sys.platform == "darwin" else 0)
+
+    def _detect_zigbee_devices(self) -> None:
+        candidates = zigbee_backend.list_candidate_devices()
+        self._zigbee_display_to_id = {}
+        displays = []
+        for candidate in candidates:
+            star = "★ " if candidate["likely"] else ""
+            if sys.platform == "win32":
+                label = f"{star}{candidate['busid']} — {candidate['device']} ({candidate['state']})"
+                candidate_id = candidate["busid"]
+            else:
+                label = f"{star}{candidate['device']}"
+                candidate_id = candidate["path"]
+            displays.append(label)
+            self._zigbee_display_to_id[label] = candidate_id
+
+        self.zigbee_picker.config(values=displays)
+        if displays:
+            self.zigbee_device_var.set(displays[0])
+        self.events.add(f"{len(displays)} périphérique(s) USB détecté(s).")
+
+    def _install_zigbee(self) -> None:
+        if self._busy:
+            return
+        self._activate()
+        if not zigbee_backend.is_node_available():
+            messagebox.showerror(
+                "Mise",
+                "Node.js n'est pas installé (ou pas dans le PATH) — nécessaire pour Zigbee2MQTT.\n\n"
+                "Installer via Homebrew : brew install node",
+            )
+            return
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(zigbee_backend.install, ()),
+            daemon=True,
+        ).start()
+
+    def _connect_zigbee(self) -> None:
+        if self._busy:
+            return
+        selected = self.zigbee_device_var.get()
+        candidate_id = self._zigbee_display_to_id.get(selected)
+        if not candidate_id:
+            messagebox.showerror("Mise", "Choisir d'abord un périphérique (bouton « Détecter »).")
+            return
+        self._activate()
+
+        cfg = config.load()
+        if sys.platform == "win32":
+            cfg["zigbee_busid"] = candidate_id
+            args: tuple = (candidate_id, self._repo_path())
+        else:
+            cfg["zigbee_device_path"] = candidate_id
+            args = (candidate_id,)
+        config.save(cfg)
+
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(zigbee_backend.connect, args),
+            daemon=True,
+        ).start()
+
+    def _refresh_zigbee(self) -> None:
+        cfg = config.load()
+        configured = cfg.get("zigbee_busid") if sys.platform == "win32" else cfg.get("zigbee_device_path")
+
+        if not configured:
+            self.zigbee_status_label.config(text="Aucun capteur connecté encore.")
+        elif sys.platform == "darwin":
+            running = "démarré" if zigbee_backend.is_running() else "arrêté"
+            self.zigbee_status_label.config(text=f"Capteur : {configured} ({running})")
+        else:
+            self.zigbee_status_label.config(text=f"Capteur : {configured}")
+
+        if sys.platform == "darwin":
+            self.zigbee_install_button.config(
+                state="disabled" if (self._busy or zigbee_backend.is_installed()) else "normal"
+            )
+        self.zigbee_connect_button.config(state="disabled" if self._busy else "normal")
 
     def _choose_repo_folder(self) -> None:
         chosen = filedialog.askdirectory(
@@ -713,6 +835,7 @@ class StatusWindow:
         self.status_label.config(text=f"{prefix} {self.backend.describe()}")
 
         self._refresh_project()
+        self._refresh_zigbee()
 
         self.events_list.delete(0, tk.END)
         for timestamp, level, message in self.events.recent():

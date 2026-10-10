@@ -228,7 +228,7 @@ def _generate_secret(length: int = 16) -> str:
     return secrets.token_urlsafe(length)
 
 
-def _set_env_var(content: str, key: str, value: str) -> str:
+def set_env_var(content: str, key: str, value: str) -> str:
     pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
     replacement = f"{key}={value}"
     if pattern.search(content):
@@ -262,10 +262,10 @@ def bootstrap_env(repo_path: Path, admin_name: str, admin_password: str, log: Lo
         return
 
     content = (repo_path / ".env.example").read_text(encoding="utf-8")
-    content = _set_env_var(content, "DB_PASSWORD", _generate_secret())
-    content = _set_env_var(content, "DB_ROOT_PASSWORD", _generate_secret())
-    content = _set_env_var(content, "ADMIN_NAME", admin_name)
-    content = _set_env_var(content, "ADMIN_PASSWORD", admin_password)
+    content = set_env_var(content, "DB_PASSWORD", _generate_secret())
+    content = set_env_var(content, "DB_ROOT_PASSWORD", _generate_secret())
+    content = set_env_var(content, "ADMIN_NAME", admin_name)
+    content = set_env_var(content, "ADMIN_PASSWORD", admin_password)
     env_path.write_text(content, encoding="utf-8")
     log(".env créé à partir de .env.example")
 
@@ -276,7 +276,7 @@ def bootstrap_env(repo_path: Path, admin_name: str, admin_password: str, log: Lo
         log=log,
     ).strip()
     content = env_path.read_text(encoding="utf-8")
-    env_path.write_text(_set_env_var(content, "APP_KEY", app_key), encoding="utf-8")
+    env_path.write_text(set_env_var(content, "APP_KEY", app_key), encoding="utf-8")
     log("APP_KEY généré")
 
 
