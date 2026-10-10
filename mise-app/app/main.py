@@ -17,6 +17,7 @@ contentent donc de déposer une action dans une `queue.Queue` thread-safe, et c'
 import queue
 import sys
 import threading
+import time
 import tkinter as tk
 from pathlib import Path
 
@@ -37,6 +38,10 @@ else:
     )
 
 REFRESH_INTERVAL_MS = 3000
+
+# Une fois par jour, pas à chaque lancement/tick — une vérification réseau (appel à l'API GitHub)
+# à chaque rafraîchissement de 3s serait à la fois inutile et discourtois envers cette API.
+_UPDATE_CHECK_INTERVAL_S = 24 * 60 * 60
 
 
 def get_executable_path() -> str:
@@ -85,6 +90,42 @@ def maybe_launch_kiosk(events: EventLog) -> None:
         events.add(f"Échec du lancement automatique du mode kiosque : {exc}", level="error")
 
 
+def maybe_check_for_updates(events: EventLog) -> None:
+    """Vérifie, au plus une fois par jour, si une release GitHub plus récente que celle installée
+    est disponible — jamais appliquée automatiquement (voir project.update(), toujours déclenché à
+    la main depuis la fenêtre de statut), juste signalée. Le résultat vit dans config.json plutôt
+    que dans une variable en mémoire : lu par status_window.refresh() à chaque rafraîchissement
+    (3s) sans jamais retaper l'appel réseau lui-même, qui ne tourne qu'ici, en tâche de fond."""
+    cfg = config.load()
+    repo_path_str = cfg.get("repo_path")
+    if not repo_path_str:
+        return
+    repo_path = Path(repo_path_str)
+    if not project.is_repo_cloned(repo_path):
+        return
+
+    last_checked = cfg.get("last_update_check_at")
+    if isinstance(last_checked, (int, float)) and (time.time() - last_checked) < _UPDATE_CHECK_INTERVAL_S:
+        return
+
+    def run() -> None:
+        tag = project.latest_release_tag(events.add)
+        current = project.current_version(repo_path)
+
+        cfg = config.load()
+        cfg["last_update_check_at"] = time.time()
+        # None (pas juste absent) si à jour ou si l'appel a échoué — status_window doit pouvoir
+        # distinguer "pas de mise à jour" de "n'a encore jamais vérifié", mais pas ici : les deux
+        # se traitent pareil côté affichage (rien à montrer).
+        cfg["update_available"] = tag if (tag and tag != current) else None
+        config.save(cfg)
+
+        if tag and tag != current:
+            events.add(f"Nouvelle version disponible : {tag}")
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 def main() -> None:
     events = EventLog()
     backend = build_backend()
@@ -95,6 +136,7 @@ def main() -> None:
 
     ensure_project_running(events)
     maybe_launch_kiosk(events)
+    maybe_check_for_updates(events)
 
     root = tk.Tk()
     root.withdraw()
@@ -134,6 +176,11 @@ def main() -> None:
         update_icon(icon, backend.is_available())
         if status_window.window.state() != "withdrawn":
             status_window.refresh()
+        # No-op la quasi-totalité des ticks (juste une lecture de config.json + comparaison
+        # d'horodatage) — ne lance l'appel réseau en tâche de fond qu'une fois par jour, voir
+        # _UPDATE_CHECK_INTERVAL_S. Ici plutôt qu'au seul lancement : une app qui tourne plusieurs
+        # jours sans redémarrer doit quand même revérifier.
+        maybe_check_for_updates(events)
         root.after(REFRESH_INTERVAL_MS, tick)
 
     icon.run_detached()

@@ -451,11 +451,22 @@ class StatusWindow:
         self.project_path_label.config(text=str(repo_path))
 
         cloned = project.is_repo_cloned(repo_path)
+        # Écrit par main.py::maybe_check_for_updates (une fois par jour, en tâche de fond) — lu
+        # ici, jamais recalculé depuis l'UI, pour ne jamais faire d'appel réseau à chaque
+        # rafraîchissement (3s).
+        update_available = config.load().get("update_available") if cloned else None
         if cloned:
             version = project.current_version(repo_path)
-            self.project_status_label.config(text=f"✅ Installé — version {version}")
+            status_text = f"✅ Installé — version {version}"
+            if update_available:
+                status_text += f"  ·  🆕 {update_available} disponible"
+            self.project_status_label.config(text=status_text)
         else:
             self.project_status_label.config(text="⬜ Pas encore installé dans ce dossier")
+
+        self.update_button.config(
+            text=f"Mettre à jour → {update_available}" if update_available else "Mettre à jour"
+        )
 
         self.install_button.config(state="disabled" if (self._busy or cloned) else "normal")
         self.update_button.config(state="normal" if (not self._busy and cloned) else "disabled")
@@ -543,6 +554,14 @@ class StatusWindow:
         if not project.is_docker_available():
             messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
             return
+
+        # Optimiste : on vise justement cette version-là. Si la mise à jour échoue en route, la
+        # prochaine vérification quotidienne (ou un redémarrage de l'app) la re-détectera de toute
+        # façon — pas la peine d'attendre la confirmation pour arrêter d'afficher un badge "1.3.0
+        # disponible" pendant qu'on est justement en train de l'installer.
+        cfg = config.load()
+        cfg["update_available"] = None
+        config.save(cfg)
 
         self._busy = True
         self.refresh()
