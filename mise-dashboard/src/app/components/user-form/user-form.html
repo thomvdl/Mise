@@ -42,6 +42,30 @@
     </div>
   </div>
 
+  @if (isEdit()) {
+    <div class="form-grid">
+      <div class="form-field span-2">
+        <label class="form-label">Badge de connexion</label>
+        @if (loginBarcode()) {
+          <span class="form-hint">Code actuel : {{ loginBarcode() }} — scannable sur l'écran de connexion de mise-public.</span>
+        } @else {
+          <span class="form-hint">Pas encore de badge pour cet utilisateur.</span>
+        }
+        <div class="form-actions" style="justify-content: flex-start; margin-top: 6px;">
+          <button type="button" class="btn btn-ghost" [disabled]="barcodeBusy()" (click)="generateBarcode()">
+            {{ loginBarcode() ? 'Régénérer' : 'Générer un code-barres' }}
+          </button>
+          <button type="button" class="btn btn-ghost" [disabled]="barcodeBusy() || !loginBarcode()" (click)="printBarcode()">
+            Imprimer
+          </button>
+        </div>
+        @if (barcodeError()) {
+          <span class="form-error">{{ barcodeError() }}</span>
+        }
+      </div>
+    </div>
+  }
+
   @if (errorMessage()) {
     <p class="form-error">{{ errorMessage() }}</p>
   }

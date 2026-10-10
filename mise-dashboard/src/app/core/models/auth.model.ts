@@ -10,6 +10,7 @@ export interface ManagedUser {
   id: number;
   name: string;
   role: UserRole;
+  login_barcode: string | null;
 }
 
 export interface ManagedUserPayload {

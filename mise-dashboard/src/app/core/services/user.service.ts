@@ -24,4 +24,12 @@ export class UserService {
   delete(id: number) {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  generateBarcode(id: number) {
+    return this.http.post<ManagedUser>(`${this.baseUrl}/${id}/generate-barcode`, {});
+  }
+
+  printBarcode(id: number) {
+    return this.http.post<void>(`${this.baseUrl}/${id}/print-barcode`, {});
+  }
 }
