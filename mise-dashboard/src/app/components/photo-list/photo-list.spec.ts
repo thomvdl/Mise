@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 
 import { PhotoList } from './photo-list';
 import { environment } from '../../../environments/environment';
@@ -13,7 +14,7 @@ describe('PhotoList', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PhotoList],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PhotoList);
@@ -23,10 +24,15 @@ describe('PhotoList', () => {
     fixture.detectChanges();
     httpMock.expectOne(`${environment.apiUrl}/pictures`).flush([
       { id: 1, url: 'http://localhost:8000/storage/pictures/a.jpg', fiche_technique: null },
+      {
+        id: 2,
+        url: 'http://localhost:8000/storage/pictures/b.jpg',
+        fiche_technique: { id: 7, name: 'Pain perdu', slug: 'pain-perdu' },
+      },
     ]);
-    httpMock.expectOne(`${environment.apiUrl}/fiche-techniques`).flush([]);
 
     await fixture.whenStable();
+    fixture.detectChanges();
   });
 
   afterEach(() => {
@@ -37,68 +43,26 @@ describe('PhotoList', () => {
     expect(component).toBeTruthy();
   });
 
-  it('loads the picture library', () => {
-    expect(component.pictures()).toHaveLength(1);
-    expect(component.pictures()[0].fiche_technique).toBeNull();
+  it('loads the full picture library but only shows pictures linked to a fiche technique', () => {
+    expect(component.pictures()).toHaveLength(2);
+    expect(component.linkedPictures()).toHaveLength(1);
+    expect(component.linkedPictures()[0].id).toBe(2);
   });
 
-  it('links a picture to a fiche technique', () => {
-    component.onLinkChange(component.pictures()[0], { target: { value: '7' } } as unknown as Event);
-
-    const req = httpMock.expectOne(`${environment.apiUrl}/pictures/1`);
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ fiche_technique_id: 7 });
-    req.flush({ id: 1, url: 'http://localhost:8000/storage/pictures/a.jpg', fiche_technique: { id: 7, name: 'Test', slug: 'test' } });
-
-    expect(component.pictures()[0].fiche_technique?.id).toBe(7);
+  it('shows the linked picture with the fiche technique name overlaid as a caption', () => {
+    const caption: HTMLElement = fixture.nativeElement.querySelector('.photo-tile-caption');
+    expect(caption.textContent?.trim()).toBe('Pain perdu');
   });
-});
 
-describe('PhotoList — dropdown selection when the catalog resolves after the pictures', () => {
-  let fixture: ComponentFixture<PhotoList>;
-  let httpMock: HttpTestingController;
+  it('opens a lightbox with the full-size picture on click', () => {
+    expect(component.lightboxPicture()).toBeNull();
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [PhotoList],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(PhotoList);
-    httpMock = TestBed.inject(HttpTestingController);
-
+    const thumbButton: HTMLButtonElement = fixture.nativeElement.querySelector('.photo-tile');
+    thumbButton.click();
     fixture.detectChanges();
 
-    // Pictures resolve first, already linked to fiche technique 7 — before the fiche
-    // technique catalog (used to populate the <option> list) has loaded. A plain
-    // [value] binding on the <select> only applies once and misses options added
-    // afterward, so this reproduces the reported bug.
-    httpMock
-      .expectOne(`${environment.apiUrl}/pictures`)
-      .flush([
-        {
-          id: 1,
-          url: 'http://localhost:8000/storage/pictures/a.jpg',
-          fiche_technique: { id: 7, name: 'Pain perdu', slug: 'pain-perdu' },
-        },
-      ]);
-    fixture.detectChanges();
-
-    httpMock.expectOne(`${environment.apiUrl}/fiche-techniques`).flush([
-      { id: 7, name: 'Pain perdu', slug: 'pain-perdu' },
-    ] as unknown as never[]);
-
-    await fixture.whenStable();
-    fixture.detectChanges();
-  });
-
-  afterEach(() => {
-    httpMock.verify();
-  });
-
-  it('shows the already-linked fiche technique as the selected option', () => {
-    const select: HTMLSelectElement = fixture.nativeElement.querySelector('select.form-select');
-    expect(select.value).toBe('7');
-    expect(select.selectedOptions[0].textContent?.trim()).toBe('Pain perdu');
+    expect(component.lightboxPicture()?.id).toBe(2);
+    const lightboxImage: HTMLImageElement = fixture.nativeElement.querySelector('.lightbox-image');
+    expect(lightboxImage.src).toContain('b.jpg');
   });
 });

@@ -1,94 +1,49 @@
-import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { PictureService } from '../../core/services/picture.service';
-import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { Picture } from '../../core/models/picture.model';
-import { FicheTechnique } from '../../core/models/fiche-technique.model';
-import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
+/**
+ * Galerie en lecture seule — l'import, la liaison et la suppression d'une photo se gèrent depuis
+ * la fiche technique concernée (voir fiche-technique-form), pas ici. Cette page ne fait plus que
+ * montrer l'ensemble des photos déjà importées et où chacune est utilisée, pour s'y retrouver
+ * dans la photothèque sans devoir ouvrir chaque fiche une par une.
+ *
+ * N'affiche que les photos liées à une fiche technique — une photo non liée n'a pas sa place dans
+ * cette galerie de consultation (elle traîne dans la base mais n'intéresse personne tant qu'elle
+ * n'est pas rattachée à quelque chose).
+ */
 @Component({
   selector: 'app-photo-list',
-  imports: [ConfirmDialog],
+  imports: [RouterLink],
   templateUrl: './photo-list.html',
   styleUrl: './photo-list.css',
 })
 export class PhotoList implements OnInit {
   private readonly pictureService = inject(PictureService);
-  private readonly ficheTechniqueService = inject(FicheTechniqueService);
-
-  fileInput = viewChild.required<ElementRef<HTMLInputElement>>('fileInput');
 
   pictures = signal<Picture[]>([]);
-  ficheTechniques = signal<FicheTechnique[]>([]);
-  uploading = signal(false);
-  errorMessage = signal<string | null>(null);
-  pendingDelete = signal<Picture | null>(null);
+  lightboxPicture = signal<Picture | null>(null);
 
-  deleteMessage = computed(() => {
-    const picture = this.pendingDelete();
-    return picture ? 'Supprimer cette photo ? Cette action est irréversible.' : '';
-  });
+  linkedPictures = computed(() => this.pictures().filter((picture) => picture.fiche_technique !== null));
 
   ngOnInit(): void {
-    this.reload();
-    this.ficheTechniqueService.list().subscribe((items) => this.ficheTechniques.set(items));
-  }
-
-  reload(): void {
     this.pictureService.list().subscribe((items) => this.pictures.set(items));
   }
 
-  triggerUpload(): void {
-    this.fileInput().nativeElement.click();
+  openLightbox(picture: Picture): void {
+    this.lightboxPicture.set(picture);
   }
 
-  onFilesSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const files = input.files ? Array.from(input.files) : [];
-    input.value = '';
-    if (files.length === 0) return;
-
-    this.uploading.set(true);
-    this.errorMessage.set(null);
-
-    this.pictureService.upload(files).subscribe({
-      next: (uploaded) => {
-        this.uploading.set(false);
-        this.pictures.update((items) => [...uploaded, ...items]);
-      },
-      error: () => {
-        this.uploading.set(false);
-        this.errorMessage.set(
-          "Une erreur est survenue lors de l'import (formats acceptés : jpg, png, gif, webp — 2 Mo max par fichier).",
-        );
-      },
-    });
+  closeLightbox(): void {
+    this.lightboxPicture.set(null);
   }
 
-  onLinkChange(picture: Picture, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    const ficheTechniqueId = value ? Number(value) : null;
-
-    this.pictureService.link(picture.id, ficheTechniqueId).subscribe((updated) => {
-      this.pictures.update((items) => items.map((item) => (item.id === updated.id ? updated : item)));
-    });
-  }
-
-  confirmDelete(picture: Picture): void {
-    this.pendingDelete.set(picture);
-  }
-
-  cancelDelete(): void {
-    this.pendingDelete.set(null);
-  }
-
-  deleteConfirmed(): void {
-    const picture = this.pendingDelete();
-    if (!picture) return;
-
-    this.pictureService.delete(picture.id).subscribe(() => {
-      this.pictures.update((items) => items.filter((item) => item.id !== picture.id));
-      this.pendingDelete.set(null);
-    });
+  /** Document-wide plutôt que scopé à un élément : le lightbox est une superposition plein écran,
+   *  rien d'autre sur la page ne doit intercepter Échap pendant qu'il est ouvert. No-op si fermé. */
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.closeLightbox();
   }
 }

@@ -27,8 +27,14 @@ class PictureController extends Controller
             'files.*' => ['image', 'max:2048'],
         ]);
 
+        // URL relative (jamais `Storage::disk('public')->url()`, qui préfixe avec APP_URL — figé
+        // sur une seule origine, ex. http://localhost:8000) : le dashboard/public sont accédés
+        // depuis plusieurs origines (IP locale, tunnel Cloudflare...), et une URL absolue ne
+        // charge que depuis celle correspondant à APP_URL. Une URL relative laisse le navigateur
+        // la résoudre contre l'origine courante, via le même proxy nginx /storage/ que /api/
+        // (voir nginx.conf des deux apps).
         $pictures = collect($validated['files'])->map(
-            fn ($file) => Picture::create(['url' => Storage::disk('public')->url($file->store('pictures', 'public'))])
+            fn ($file) => Picture::create(['url' => '/storage/'.$file->store('pictures', 'public')])
         );
 
         return response()->json($pictures->values(), 201);
