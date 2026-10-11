@@ -326,15 +326,18 @@ ce que fait le bouton) :
 ### B. macOS — installer Zigbee2MQTT nativement
 
 `mise-app` (section "Capteur Zigbee") fait tout ce qui suit via ses boutons "Installer" (clone +
-`npm ci` + `npm run build` dans le dossier de données de l'app, pas dans le clone du projet) puis
-"Détecter"/"Connecter" (écrit `data/configuration.yaml` avec `mqtt.server: mqtt://localhost:1883`
-et le `/dev/cu.*` choisi, puis lance `npm start` en tâche de fond — voir `app/zigbee_macos.py`).
-Prérequis : Node.js (`brew install node` si besoin, pas installé automatiquement par l'app).
+`pnpm install` + `pnpm run build` dans le dossier de données de l'app, pas dans le clone du
+projet — Zigbee2MQTT utilise pnpm, pas npm, voir son `package.json`/`pnpm-lock.yaml`, lancé via
+`corepack pnpm ...` pour ne rien avoir à installer séparément) puis "Détecter"/"Connecter" (écrit
+`data/configuration.yaml` avec `mqtt.server: mqtt://localhost:1883` et le `/dev/cu.*` choisi, puis
+lance `node index.js` en tâche de fond — voir `app/zigbee_macos.py`). Prérequis : Node.js (`brew
+install node` si besoin, pas installé automatiquement par l'app — `corepack` est livré avec).
 
 Procédure manuelle équivalente si besoin de dépanner : cloner
-[Zigbee2MQTT](https://github.com/Koenkk/zigbee2mqtt), `npm ci && npm run build`, écrire
-`data/configuration.yaml` à la main (voir `zigbee2mqtt/configuration.yaml.example` pour le
-contenu — seul `mqtt.server` change, en `mqtt://localhost:1883`), puis `npm start`.
+[Zigbee2MQTT](https://github.com/Koenkk/zigbee2mqtt), `corepack pnpm install --frozen-lockfile &&
+corepack pnpm run build`, écrire `data/configuration.yaml` à la main (voir
+`zigbee2mqtt/configuration.yaml.example` pour le contenu — seul `mqtt.server` change, en
+`mqtt://localhost:1883`), puis `node index.js`.
 
 ### C. Appairer un capteur
 
