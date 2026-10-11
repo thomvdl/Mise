@@ -1,10 +1,7 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import QRCode from 'qrcode';
 
 import { AuthService } from '../../core/services/auth.service';
-
-const CONNECT_URL_STORAGE_KEY = 'mise-public-connect-url';
 
 interface HomeTile {
   label: string;
@@ -31,50 +28,6 @@ export class Accueil {
     if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
   });
-
-  /**
-   * Adresse à encoder dans le QR. Pas de tunnel Cloudflare pour l'app publique (volontairement
-   * laissée purement locale, voir docker-compose.yml) — on part donc de l'origine courante, utile
-   * si la page a été ouverte via l'IP réseau de la machine. Reste éditable (mémorisé en
-   * localStorage) pour couvrir le cas où elle a été ouverte via `localhost`.
-   */
-  connectionUrl = signal(this.loadSavedUrl() ?? window.location.origin);
-  showConnect = signal(false);
-  qrDataUrl = signal<string | null>(null);
-
-  constructor() {
-    effect(() => {
-      const url = this.connectionUrl();
-      if (!this.showConnect() || !url) return;
-
-      QRCode.toDataURL(url, { width: 180, margin: 1 })
-        .then((dataUrl) => this.qrDataUrl.set(dataUrl))
-        .catch(() => this.qrDataUrl.set(null));
-    });
-  }
-
-  toggleConnect(): void {
-    this.showConnect.update((shown) => !shown);
-  }
-
-  onUrlInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value.trim();
-    this.connectionUrl.set(value);
-    try {
-      localStorage.setItem(CONNECT_URL_STORAGE_KEY, value);
-    } catch {
-      // Stockage indisponible (navigation privée, site data bloqué…) — tant pis, l'URL reste
-      // utilisable pour cette session, juste pas mémorisée pour la prochaine.
-    }
-  }
-
-  private loadSavedUrl(): string | null {
-    try {
-      return localStorage.getItem(CONNECT_URL_STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  }
 
   readonly tiles: HomeTile[] = [
     {

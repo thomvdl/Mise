@@ -1,43 +1,10 @@
 <div class="page">
-  <div class="intro intro-row">
-    <div>
-      <h1 class="page-title">
-        {{ greeting() }}{{ currentUser() ? ', ' + currentUser()!.name : '' }}
-      </h1>
-      <p class="page-sub">Voici les outils de la brigade, tous accessibles depuis cet écran.</p>
-    </div>
-    <button type="button" class="btn-ghost" (click)="toggleConnect()">
-      {{ showConnect() ? 'Fermer' : 'Connecter un appareil' }}
-    </button>
+  <div class="intro">
+    <h1 class="page-title">
+      {{ greeting() }}{{ currentUser() ? ', ' + currentUser()!.name : '' }}
+    </h1>
+    <p class="page-sub">Voici les outils de la brigade, tous accessibles depuis cet écran.</p>
   </div>
-
-  @if (showConnect()) {
-    <div class="connect-card">
-      @if (qrDataUrl()) {
-        <img class="connect-qr" [src]="qrDataUrl()" alt="QR code de connexion" width="150" height="150" />
-      }
-      <div class="connect-text">
-        <h2 class="connect-title">Connexion rapide</h2>
-        <p class="connect-desc">
-          Scannez ce code pour ouvrir l'app directement sur un autre appareil du même réseau,
-          sans retaper l'adresse.
-        </p>
-        <label class="connect-label" for="connect-url">Adresse de connexion</label>
-        <input
-          id="connect-url"
-          class="connect-input"
-          type="text"
-          placeholder="ex. 192.168.1.23:8082"
-          [value]="connectionUrl()"
-          (input)="onUrlInput($event)" />
-        <p class="connect-hint">
-          Par défaut, l'adresse de cette page. Si elle a été ouverte via « localhost », remplacez
-          par l'IP réseau de ce PC (port inclus) — sinon l'appareil qui scanne se connecterait à
-          lui-même.
-        </p>
-      </div>
-    </div>
-  }
 
   <div class="tile-grid">
     @for (tile of tiles; track tile.path) {

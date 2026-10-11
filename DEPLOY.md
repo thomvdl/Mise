@@ -57,10 +57,10 @@ automatiquement à chaque démarrage du conteneur `api` (sans danger, idempotent
 
 N'importe quel appareil sur le même réseau atteint directement `http://<IP-locale-du-PC>:8081`
 (dashboard) ou `:8082` (public) — pas de domaine ni de certificat nécessaire pour un usage sur
-place. Chaque app propose un bouton **"Connecter un appareil"** sur son écran d'accueil, qui
-affiche un QR code de l'adresse à utiliser (pratique pour un téléphone/tablette en cuisine).
-`mise-app` (section "QR codes de connexion" de la fenêtre de statut) propose la même chose en
-version imprimée sur étiquette Zebra, détection de l'IP locale automatique.
+place. Pour connecter un téléphone/tablette sans retaper l'adresse, imprimez une étiquette QR
+depuis `mise-app` (section "QR codes de connexion" de la fenêtre de statut, détection de l'IP
+locale automatique) — seule source de QR de connexion, volontairement pas de bouton équivalent
+sur l'écran d'accueil du dashboard ou de l'app publique.
 
 ## 4. Accès depuis l'extérieur du réseau (tunnel Cloudflare — dashboard uniquement)
 
@@ -82,10 +82,10 @@ mode "quick tunnel") :
 docker compose logs cloudflared-dashboard | grep trycloudflare.com
 ```
 
-Ça ressemble à `https://mots-aleatoires.trycloudflare.com`. Collez-la dans le champ du bouton
-"Connecter un appareil" du dashboard pour que son QR code pointe vers cette adresse plutôt que
-vers l'adresse locale — pratique pour que quelqu'un hors du réseau scanne et se connecte
-directement.
+Ça ressemble à `https://mots-aleatoires.trycloudflare.com`. Renseignez-la dans
+`CLOUDFLARE_DASHBOARD_URL` (`.env`) pour que le bouton "Dashboard (tunnel)" de `mise-app` imprime
+un QR pointant vers cette adresse plutôt que vers l'adresse locale — pratique pour que quelqu'un
+hors du réseau scanne et se connecte directement.
 
 **Important — cette URL est publique sur internet.** Le "quick tunnel" ne protège l'accès par
 rien d'autre que le login de l'application elle-même. Pour un usage ponctuel/de test, ça suffit.
