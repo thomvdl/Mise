@@ -376,6 +376,12 @@
     color: var(--text-dim);
     margin: 0 0 12px;
   }
+  .prereqs-note {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    opacity: 0.8;
+    margin: 12px 0 0;
+  }
   .prereqs-list {
     display: flex;
     gap: 10px;
@@ -783,8 +789,8 @@ docker compose up -d --build</code></pre>
   <div class="wrap">
     <div class="app-header">
       <span class="app-tag">App de bureau</span>
-      <h2>Pont imprimante &amp; installateur</h2>
-      <p>Une petite app de barre système (macOS / Windows) qui relie une étiqueteuse Zebra branchée en USB au réseau local, et qui installe/met à jour le projet sur le mini PC de cuisine.</p>
+      <h2>Mise App</h2>
+      <p>Une petite app de barre système (macOS / Windows) qui réunit tout ce que le mini PC de cuisine doit faire par lui-même : pont imprimante (relie une étiqueteuse Zebra USB au réseau local), installation et mise à jour du projet, sauvegardes, et serveur MQTT pour les objets connectés (capteurs de température Zigbee).</p>
     </div>
 
     <div class="prereqs">
@@ -793,7 +799,9 @@ docker compose up -d --build</code></pre>
         <a href="https://git-scm.com/downloads" target="_blank" rel="noopener">Git</a>
         <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Docker Desktop</a>
         <a href="https://www.chromium.org/getting-involved/download-chromium/" target="_blank" rel="noopener">Chromium</a>
+        <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a>
       </div>
+      <p class="prereqs-note">Node.js n'est nécessaire que pour le serveur MQTT (objets connectés, ex. capteurs de température Zigbee) — pas pour le pont imprimante seul.</p>
     </div>
 
     <div class="downloads">
