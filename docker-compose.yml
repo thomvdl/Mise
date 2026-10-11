@@ -98,9 +98,19 @@ services:
   # Inutilisé sous macOS : Docker Desktop y est sans équivalent d'usbipd-win (aucun passthrough
   # USB possible, même indirect), donc Zigbee2MQTT y tourne nativement hors Docker à la place (voir
   # app/zigbee_macos.py) — ce service reste simplement arrêté sur cet OS.
+  #
+  # "profiles" : un `docker compose up -d` nu (sans nom de service précis — ce que fait mise-app à
+  # chaque démarrage via project.docker_up, voir main.py::ensure_project_running) ignore tout
+  # service listant un profil ici, SAUF s'il est nommé explicitement comme le fait déjà
+  # zigbee_windows.py (`docker compose up -d zigbee2mqtt`, qui cible ce service par son nom et
+  # bascule les profils — comportement Compose standard). Sans ça, constaté en conditions réelles
+  # sur macOS : chaque redémarrage de mise-app relance ce conteneur (restart: unless-stopped suffit
+  # à lui seul à le faire persister, même arrêté à la main entretemps), qui vient alors se battre
+  # avec l'instance native pour le port 8084.
   zigbee2mqtt:
     image: koenkk/zigbee2mqtt:latest
     restart: unless-stopped
+    profiles: ["zigbee-docker"]
     depends_on:
       mosquitto:
         condition: service_started
