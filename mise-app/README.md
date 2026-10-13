@@ -83,7 +83,10 @@ tout le cycle de vie du projet (plus besoin de suivre `DEPLOY.md` à la main pas
 **Prérequis à installer soi-même avant, une seule fois** (l'app ne les installe jamais
 silencieusement — trop risqué sans contrôle) :
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) ;
-- [Git](https://git-scm.com/downloads) (Git for Windows sur Windows).
+- [Git](https://git-scm.com/downloads) (Git for Windows sur Windows) ;
+- sur Windows, seulement pour le capteur de température Zigbee :
+  [usbipd-win](https://github.com/dorssel/usbipd-win) (`winget install dorssel.usbipd-win`, confirmation
+  administrateur demandée) — sans lui, "Détecter" affiche cette commande et propose de la copier.
 
 L'app détecte leur absence et affiche un message clair plutôt que d'échouer silencieusement.
 

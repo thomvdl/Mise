@@ -477,6 +477,14 @@ class StatusWindow:
             candidates = zigbee_backend.list_candidate_devices()
         except project.CommandError as exc:
             self.events.add(f"Détection impossible : {exc}", level="error")
+            install_command = getattr(exc, "install_command", None)
+            if install_command and messagebox.askyesno(
+                "Mise",
+                f"{exc}\n\nCopier la commande d'installation dans le presse-papiers ?",
+            ):
+                self.window.clipboard_clear()
+                self.window.clipboard_append(install_command)
+                self.events.add(f"Commande copiée : {install_command}")
             return
         self._zigbee_display_to_id = {}
         displays = []

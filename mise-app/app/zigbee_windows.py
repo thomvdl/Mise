@@ -37,6 +37,20 @@ _LIKELY_VENDOR_IDS = {"10c4", "1cf1", "0403", "1a86"}
 _CREATION_FLAGS = subprocess.CREATE_NO_WINDOW
 
 _USBIPD_DEFAULT_PATH = Path(r"C:\Program Files\usbipd-win\usbipd.exe")
+USBIPD_INSTALL_COMMAND = "winget install dorssel.usbipd-win"
+
+
+class UsbipdMissingError(CommandError):
+    """usbipd-win absent — porte la commande d'installation, que la fenêtre de statut propose de
+    copier (le texte d'"Activité récente" n'est pas sélectionnable)."""
+
+    install_command = USBIPD_INSTALL_COMMAND
+
+    def __init__(self) -> None:
+        super().__init__(
+            "usbipd-win n'est pas installé — dans un terminal (confirmation administrateur "
+            f"demandée) : {USBIPD_INSTALL_COMMAND}"
+        )
 
 
 def _usbipd() -> str:
@@ -53,10 +67,9 @@ def _run(args: list[str], log: LogFn | None = None, timeout: int = 30, cwd: Path
             args, cwd=cwd, capture_output=True, text=True, timeout=timeout, creationflags=_CREATION_FLAGS
         )
     except FileNotFoundError as exc:
-        raise CommandError(
-            f"« {args[0]} » introuvable — installer usbipd-win si ce n'est pas déjà fait "
-            "(voir DEPLOY.md §10.A)."
-        ) from exc
+        if Path(args[0]).stem.lower() == "usbipd":
+            raise UsbipdMissingError() from exc
+        raise CommandError(f"« {args[0]} » introuvable.") from exc
     except subprocess.TimeoutExpired as exc:
         raise CommandError(f"« {args[0]} » n'a pas répondu après {timeout}s") from exc
     if result.returncode != 0:
