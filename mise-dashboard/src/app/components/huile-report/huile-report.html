@@ -1,7 +1,7 @@
 <div class="page-header no-print">
   <h1 class="page-title">{{ reportTitle() }}</h1>
   <div class="page-actions">
-    <button type="button" class="btn btn-primary" [disabled]="!selectedFriteuse()" (click)="print()">
+    <button type="button" class="btn btn-primary" [disabled]="!selectedFriteuse() && !isAll()" (click)="print()">
       Imprimer le rapport
     </button>
   </div>
@@ -11,6 +11,9 @@
   <div class="form-field">
     <label class="form-label" for="friteuse">Friteuse</label>
     <select id="friteuse" class="form-select" (change)="onFriteuseChange($event)">
+      @if (friteuses().length > 1) {
+        <option [value]="ALL" [selected]="isAll()">Toutes les friteuses</option>
+      }
       @for (friteuse of friteuses(); track friteuse.id) {
         <option [value]="friteuse.id" [selected]="friteuse.id === selectedFriteuseId()">
           {{ friteuse.name }}
@@ -46,7 +49,97 @@
   }
 </div>
 
-@if (!selectedFriteuse()) {
+@if (isAll()) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Rapport de changement d'huile</h1>
+    <p class="report-print-subtitle">Toutes les friteuses ({{ friteuses().length }})</p>
+    <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">Toutes les friteuses — {{ periodLabel() }}</h2>
+      <div class="report-stats">
+        <span>Changements sur la période <strong>{{ changements().length }}</strong></span>
+        @if (overdueCount() > 0) {
+          <span class="report-warning">{{ overdueCount() }} friteuse(s) en retard</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <div class="section-title">Récapitulatif</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Friteuse</th>
+            <th class="num">Durée de vie</th>
+            <th class="num">Changements</th>
+            <th>Dernier changement</th>
+            <th>Prochain conseillé</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of summary(); track row.friteuse.id) {
+            <tr>
+              <td>{{ row.friteuse.name }}</td>
+              <td class="num">{{ row.friteuse.duree_vie_jours }} j</td>
+              <td class="num">{{ row.count }}</td>
+              <td>
+                @if (row.last; as last) {
+                  {{ formatDate(last) }}
+                } @else {
+                  <span class="report-missing">Jamais</span>
+                }
+              </td>
+              <td [class.report-warning]="row.overdue">
+                @if (row.next; as next) {
+                  {{ formatDate(next) }}
+                  @if (row.overdue) {
+                    <span class="report-warning-label">En retard</span>
+                  }
+                } @else {
+                  <span class="report-missing">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <div class="section-title">Historique des changements</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date de changement</th>
+            <th>Friteuse</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (changement of changements(); track changement.id) {
+            <tr>
+              <td>{{ formatDate(changement.date_changement) }}</td>
+              <td>{{ friteuseName(changement.friteuse_id) }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="2">Aucun changement sur cette période.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else if (!selectedFriteuse()) {
   <p class="report-empty no-print">Aucune friteuse enregistrée. Ajoutez-en une depuis la page Friteuses.</p>
 } @else {
   <div class="report-print-header only-print">

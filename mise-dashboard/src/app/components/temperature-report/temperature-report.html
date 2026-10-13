@@ -1,7 +1,7 @@
 <div class="page-header no-print">
   <h1 class="page-title">Températures</h1>
   <div class="page-actions">
-    <button type="button" class="btn btn-primary" [disabled]="!selectedAppareil()" (click)="print()">
+    <button type="button" class="btn btn-primary" [disabled]="!selectedAppareil() && !isAll()" (click)="print()">
       Imprimer le rapport
     </button>
   </div>
@@ -11,6 +11,9 @@
   <div class="form-field">
     <label class="form-label" for="appareil">Appareil</label>
     <select id="appareil" class="form-select" (change)="onAppareilChange($event)">
+      @if (appareils().length > 1) {
+        <option [value]="ALL" [selected]="isAll()">Tous les appareils</option>
+      }
       @for (appareil of appareils(); track appareil.id) {
         <option [value]="appareil.id" [selected]="appareil.id === selectedAppareilId()">
           {{ appareil.name }} ({{ appareil.abbreviation }})
@@ -46,7 +49,133 @@
   }
 </div>
 
-@if (!selectedAppareil()) {
+@if (isAll()) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Rapport de température</h1>
+    <p class="report-print-subtitle">Tous les appareils ({{ appareils().length }})</p>
+    <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-header">
+      <h2 class="no-print">Tous les appareils — {{ periodLabel() }}</h2>
+      <div class="report-stats">
+        <span>Relevés <strong>{{ releves().length }}</strong></span>
+        @if (outOfRangeReleves().length > 0) {
+          <span class="report-warning">{{ outOfRangeReleves().length }} relevé(s) hors plage</span>
+        }
+      </div>
+    </div>
+
+    <app-temperature-multi-chart [series]="multiSeries()" [formatDate]="formatDate()"></app-temperature-multi-chart>
+
+    @if (appareils().length > maxSeries) {
+      <p class="report-note">
+        Seuls les {{ maxSeries }} premiers appareils figurent sur ce graphique — chacun a son graphique individuel plus bas.
+      </p>
+    }
+  </div>
+
+  <div class="report-section">
+    <div class="section-title">Récapitulatif</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Appareil</th>
+            <th>Plage normale</th>
+            <th class="num">Relevés</th>
+            <th class="num">Min</th>
+            <th class="num">Max</th>
+            <th class="num">Moyenne</th>
+            <th class="num">Hors plage</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of groups(); track group.appareil.id) {
+            <tr>
+              <td>{{ group.appareil.name }} ({{ group.appareil.abbreviation }})</td>
+              <td>{{ formatRange(group.appareil) }}</td>
+              <td class="num">{{ group.releves.length }}</td>
+              @if (group.stats; as s) {
+                <td class="num">{{ s.min.toFixed(1) }}°C</td>
+                <td class="num">{{ s.max.toFixed(1) }}°C</td>
+                <td class="num">{{ s.avg.toFixed(1) }}°C</td>
+              } @else {
+                <td class="num report-missing" colspan="3">Aucun relevé</td>
+              }
+              <td class="num" [class.report-warning]="group.outOfRangeCount > 0">{{ group.outOfRangeCount }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <div class="section-title">Relevés hors plage</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Appareil</th>
+            <th>Température</th>
+            <th>Plage normale</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of outOfRangeReleves(); track item.releve.id) {
+            <tr>
+              <td>{{ formatDateTime(item.releve.recorded_at) }}</td>
+              <td>{{ item.appareil.name }}</td>
+              <td class="report-warning">{{ item.releve.temperature.toFixed(1) }}°C</td>
+              <td>{{ formatRange(item.appareil) }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="4">Aucun relevé hors plage sur cette période.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <div class="section-title">Détail par appareil</div>
+    @for (group of groups(); track group.appareil.id) {
+      <div class="report-card report-card-appareil">
+        <div class="report-card-header">
+          <h2>{{ group.appareil.name }} ({{ group.appareil.abbreviation }})</h2>
+          <div class="report-stats">
+            @if (group.appareil.temperature_min !== null || group.appareil.temperature_max !== null) {
+              <span>Plage normale <strong>{{ formatRange(group.appareil) }}</strong></span>
+            }
+            @if (group.stats; as s) {
+              <span>Min <strong>{{ s.min.toFixed(1) }}°C</strong></span>
+              <span>Max <strong>{{ s.max.toFixed(1) }}°C</strong></span>
+              <span>Moyenne <strong>{{ s.avg.toFixed(1) }}°C</strong></span>
+            }
+            @if (group.outOfRangeCount > 0) {
+              <span class="report-warning">{{ group.outOfRangeCount }} relevé(s) hors plage</span>
+            }
+          </div>
+        </div>
+
+        <app-temperature-chart
+          [points]="group.points"
+          [formatDate]="formatDate()"
+          [temperatureMin]="group.appareil.temperature_min"
+          [temperatureMax]="group.appareil.temperature_max">
+        </app-temperature-chart>
+      </div>
+    }
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else if (!selectedAppareil()) {
   <p class="report-empty no-print">Aucun appareil enregistré. Ajoutez-en un depuis la page Appareils.</p>
 } @else {
   <div class="report-print-header only-print">

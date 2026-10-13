@@ -1,0 +1,74 @@
+@if (visibleSeries().length === 0) {
+  <p class="chart-empty">Aucun relevé sur cette période.</p>
+} @else {
+  <ul class="chart-legend">
+    @for (line of lines(); track line.series.id) {
+      <li>
+        <svg class="chart-legend-swatch" viewBox="0 0 20 4" aria-hidden="true">
+          <line [class]="'chart-line dash-' + (line.series.colorIndex + 1)" x1="0" x2="20" y1="2" y2="2" [style.stroke]="line.color" />
+        </svg>
+        {{ line.series.name }}
+      </li>
+    }
+  </ul>
+
+  <div class="chart-plot">
+    <svg
+      #svgEl
+      class="chart-svg"
+      role="img"
+      [attr.aria-label]="'Températures de ' + visibleSeries().length + ' appareils'"
+      [attr.viewBox]="'0 0 ' + width + ' ' + height"
+      (mousemove)="onMove($event, $any(svgEl))"
+      (mouseleave)="onLeave()">
+      <!-- Gridlines + y-axis labels -->
+      @for (tick of yTicks(); track tick.value) {
+        <line class="chart-grid" [attr.x1]="plotLeft" [attr.x2]="plotRight()" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+        <text class="chart-axis-label" [attr.x]="plotLeft - 6" [attr.y]="tick.y" text-anchor="end" dominant-baseline="middle">
+          {{ formatTemp(tick.value) }}
+        </text>
+      }
+
+      <!-- x-axis labels -->
+      @for (tick of xTicks(); track tick.time) {
+        <text class="chart-axis-label" [attr.x]="tick.x" [attr.y]="plotBottom + 18" text-anchor="middle">
+          {{ tick.label }}
+        </text>
+      }
+
+      <!-- Une courbe par appareil -->
+      @for (line of lines(); track line.series.id) {
+        <path [class]="'chart-line dash-' + (line.series.colorIndex + 1)" [attr.d]="line.path" fill="none" [style.stroke]="line.color" />
+        <circle class="chart-end-marker" [attr.cx]="line.end.x" [attr.cy]="line.end.y" r="4" [style.fill]="line.color" />
+      }
+
+      <!-- Noms en bout de courbe (peu d'appareils seulement — sinon la légende suffit) -->
+      @for (label of endLabels(); track label.name) {
+        <text class="chart-end-label" [attr.x]="label.x" [attr.y]="label.y" dominant-baseline="middle">{{ label.name }}</text>
+      }
+
+      <!-- Hover crosshair + markers -->
+      @if (hovered(); as hover) {
+        <line class="chart-crosshair" [attr.x1]="hover.x" [attr.x2]="hover.x" [attr.y1]="plotTop" [attr.y2]="plotBottom" />
+        @for (row of hover.rows; track row.series.id) {
+          <circle class="chart-hover-marker" [attr.cx]="row.x" [attr.cy]="row.y" r="4" [style.fill]="row.color" />
+        }
+      }
+    </svg>
+
+    @if (hovered(); as hover) {
+      <div class="chart-tooltip">
+        <span class="chart-tooltip-date">{{ formatDate()(hover.date) }}</span>
+        @for (row of hover.rows; track row.series.id) {
+          <span class="chart-tooltip-row">
+            <i class="chart-tooltip-swatch" [style.background]="row.color"></i>
+            {{ row.series.name }}
+            <strong>{{ formatTemp(row.point.temperature) }}</strong>
+          </span>
+        } @empty {
+          <span>Aucun relevé à ce moment</span>
+        }
+      </div>
+    }
+  </div>
+}

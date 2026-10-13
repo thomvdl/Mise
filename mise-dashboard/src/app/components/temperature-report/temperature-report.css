@@ -101,6 +101,31 @@ td.report-warning {
   display: none;
 }
 
+/* ---------- Mode "Tous les appareils" ---------- */
+.report-section {
+  margin-bottom: 1.5rem;
+}
+
+.report-note {
+  margin: 0.75rem 0 0;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-missing {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.report-card-appareil {
+  margin-bottom: 1rem;
+}
+
 /* La mise en page d'impression commune (en-tête/pied de page, report-card, tableau, noir et
    blanc, tenue sur une page A4…) vit dans src/styles/print-report.css — ne reste ici que ce qui
    est propre à cette page : le repère "hors plage" ne peut plus compter sur la couleur rouge en
@@ -113,5 +138,14 @@ td.report-warning {
 
   td.report-warning {
     font-weight: 700;
+  }
+
+  .report-section {
+    margin-bottom: 6pt;
+  }
+
+  /* Un graphique d'appareil coupé en deux pages devient illisible. */
+  .report-card-appareil {
+    break-inside: avoid;
   }
 }
