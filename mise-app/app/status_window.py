@@ -473,7 +473,11 @@ class StatusWindow:
         self.zigbee_connect_button.pack(side="left", padx=(6, 0) if sys.platform == "darwin" else 0)
 
     def _detect_zigbee_devices(self) -> None:
-        candidates = zigbee_backend.list_candidate_devices()
+        try:
+            candidates = zigbee_backend.list_candidate_devices()
+        except project.CommandError as exc:
+            self.events.add(f"Détection impossible : {exc}", level="error")
+            return
         self._zigbee_display_to_id = {}
         displays = []
         for candidate in candidates:

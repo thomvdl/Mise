@@ -18,6 +18,7 @@ zigbee2mqtt/configuration.yaml (serial.port, non versionné lui aussi).
 """
 
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -34,6 +35,14 @@ _WSL_DISTRIBUTION = "docker-desktop"
 _LIKELY_VENDOR_IDS = {"10c4", "1cf1", "0403", "1a86"}
 
 _CREATION_FLAGS = subprocess.CREATE_NO_WINDOW
+
+_USBIPD_DEFAULT_PATH = Path(r"C:\Program Files\usbipd-win\usbipd.exe")
+
+
+def _usbipd() -> str:
+    # Emplacement d'installation par défaut en repli : une app lancée avant l'installation
+    # d'usbipd-win (ou depuis un process parent au PATH figé) ne le trouverait pas dans son PATH.
+    return shutil.which("usbipd") or (str(_USBIPD_DEFAULT_PATH) if _USBIPD_DEFAULT_PATH.exists() else "usbipd")
 
 
 def _run(args: list[str], log: LogFn | None = None, timeout: int = 30, cwd: Path | None = None) -> str:
@@ -78,11 +87,9 @@ _LIST_LINE_RE = re.compile(r"^(\S+)\s+([0-9a-fA-F]{4}:[0-9a-fA-F]{4})\s+(.+?)\s{
 def list_candidate_devices() -> list[dict]:
     """Périphériques USB connectés vus par usbipd (section "Connected:" uniquement — pas
     "Persisted", qui liste aussi des périphériques débranchés). Triés avec les vendor IDs
-    plausibles (_LIKELY_VENDOR_IDS) en tête, mais sans jamais exclure les autres."""
-    try:
-        output = _run(["usbipd", "list"])
-    except CommandError:
-        return []
+    plausibles (_LIKELY_VENDOR_IDS) en tête, mais sans jamais exclure les autres. Lève
+    CommandError si usbipd est absent ou en échec, plutôt qu'une liste vide muette."""
+    output = _run([_usbipd(), "list"])
 
     devices = []
     in_connected = False
@@ -123,7 +130,7 @@ def connect(busid: str, repo_path: Path, log: LogFn) -> None:
 
     if "Shared" not in state and "Attached" not in state:
         log(f"Partage du périphérique {busid} — une fenêtre d'autorisation Windows va s'ouvrir...")
-        _run_elevated(["usbipd", "bind", "--busid", busid], log=log)
+        _run_elevated([_usbipd(), "bind", "--busid", busid], log=log)
 
     if "Attached" not in state:
         log(f"Attache de {busid} à la distribution WSL « {_WSL_DISTRIBUTION} »...")
@@ -181,7 +188,7 @@ def _start_auto_attach(busid: str) -> None:
     # distribution : usbipd 5.x n'accepte plus "--distribution" et choisit lui-même celle de
     # Docker Desktop (le périphérique est de toute façon visible dans toutes les distributions WSL2).
     subprocess.Popen(
-        ["usbipd", "attach", "--wsl", "--busid", busid, "--auto-attach"],
+        [_usbipd(), "attach", "--wsl", "--busid", busid, "--auto-attach"],
         creationflags=_CREATION_FLAGS,
     )
 
