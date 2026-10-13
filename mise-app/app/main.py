@@ -96,7 +96,8 @@ def ensure_zigbee_connected(events: EventLog) -> None:
 
                 busid = cfg.get("zigbee_busid")
                 if busid:
-                    zigbee_windows.ensure_attached(busid, events.add)
+                    repo_path_str = cfg.get("repo_path")
+                    zigbee_windows.ensure_attached(busid, Path(repo_path_str) if repo_path_str else None, events.add)
             elif sys.platform == "darwin":
                 from . import zigbee_macos
 

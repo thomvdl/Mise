@@ -154,7 +154,7 @@ def connect(busid: str, repo_path: Path, log: LogFn) -> None:
     log("Résolution du chemin du périphérique dans WSL...")
     # /dev/serial/by-id/ d'abord (chemin stable, s'il existe), sinon le nœud brut : la distribution
     # docker-desktop n'a pas d'udev, donc pas de liens by-id — juste /dev/ttyACM0 ou /dev/ttyUSB0.
-    listing = _run(["wsl", "-d", _WSL_DISTRIBUTION, "--", "sh", "-c",
+    listing = _run(["wsl", "-d", _WSL_DISTRIBUTION, "--exec", "sh", "-c",
                     "ls -1 /dev/serial/by-id/* /dev/ttyACM* /dev/ttyUSB* 2>/dev/null; true"])
     paths = [p.strip() for p in listing.splitlines() if p.strip()]
     if not paths:
@@ -179,20 +179,44 @@ def _guess_adapter(vidpid: str) -> str:
     return "deconz" if vidpid.split(":")[0].lower() in _DECONZ_VENDOR_IDS else "zstack"
 
 
-def ensure_attached(busid: str, log: LogFn) -> None:
-    """Relance seulement l'attache (pas le bind, déjà fait et persistant) — appelée à chaque
-    démarrage de mise-app, voir docstring du module. Silencieuse si déjà attaché ou si aucun
-    busid n'a encore été configuré (reconnaît aussi ce dernier cas comme un no-op, pas une erreur :
-    tant que personne n'a cliqué "Connecter" une première fois, il n'y a rien à faire)."""
+def ensure_attached(busid: str, repo_path: Path | None, log: LogFn) -> None:
+    """Remet le capteur en service après un démarrage de mise-app (donc en général de Windows) —
+    voir docstring du module. Ne refait pas le bind (persistant). No-op tant que personne n'a
+    cliqué "Connecter" une première fois (pas de busid configuré).
+
+    L'ordre compte, d'où l'attente de Docker en premier : au démarrage de Windows, mise-app se
+    lance avant que Docker Desktop n'ait démarré sa machine virtuelle WSL, et ce démarrage efface
+    tout pilote chargé avant lui. Puis Zigbee2MQTT, lancé par Docker avant que le port série
+    n'existe, s'est arrêté en erreur — il faut le relancer une fois le port prêt."""
     if not busid:
         return
-    state = next((d["state"] for d in list_candidate_devices() if d["busid"] == busid), "")
-    if "Attached" in state:
+    if not _wait_for_docker():
+        log("Docker n'a pas démarré — capteur Zigbee non reconnecté.")
         return
-    _start_auto_attach(busid)
-    time.sleep(3)
+
+    state = next((d["state"] for d in list_candidate_devices() if d["busid"] == busid), "")
+    if not state:
+        log(f"Capteur Zigbee ({busid}) introuvable — dongle débranché ?")
+        return
+    if "Attached" not in state:
+        _start_auto_attach(busid)
+        time.sleep(3)
     _load_serial_drivers(log)
-    log(f"Capteur Zigbee ({busid}) réattaché à WSL après le démarrage de l'app.")
+
+    if repo_path:
+        _run(["docker", "compose", "up", "-d", "zigbee2mqtt"], log=log, timeout=120, cwd=repo_path)
+    log(f"Capteur Zigbee ({busid}) reconnecté après le démarrage de l'app.")
+
+
+def _wait_for_docker(timeout: int = 300) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            _run(["docker", "info"], timeout=20)
+            return True
+        except CommandError:
+            time.sleep(5)
+    return False
 
 
 def _start_auto_attach(busid: str) -> None:
@@ -216,7 +240,10 @@ def _load_serial_drivers(log: LogFn) -> None:
     log("Chargement des pilotes série USB dans WSL...")
     # Erreurs ignorées module par module : un pilote absent du noyau ne doit pas bloquer les autres,
     # et la résolution du port juste après signale de toute façon s'il n'y a rien.
-    _run(["wsl", "-d", _WSL_DISTRIBUTION, "-u", "root", "--", "sh", "-c",
+    # --exec, pas "--" : avec "--", wsl fait d'abord passer la commande par le shell par défaut de
+    # la distribution, qui remplace "$m" par une chaîne vide avant même que la boucle ne tourne —
+    # modprobe était alors appelé sans nom de module, sans la moindre erreur visible.
+    _run(["wsl", "-d", _WSL_DISTRIBUTION, "-u", "root", "--exec", "sh", "-c",
           f"for m in {' '.join(_SERIAL_MODULES)}; do modprobe $m 2>/dev/null; done; true"])
 
 
