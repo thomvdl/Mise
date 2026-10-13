@@ -298,26 +298,30 @@ ce que fait le bouton) :
    ```
    Repérer le `BUSID` du dongle Zigbee (ex. `CP2102`/`CC2652P` dans la description) parmi les
    périphériques USB connectés.
-3. Lier puis attacher ce périphérique à la distribution WSL utilisée par Docker Desktop —
-   `docker-desktop`, pas la distribution par défaut (`Ubuntu` ou autre) :
+3. Lier puis attacher ce périphérique à WSL (usbipd 5.x choisit lui-même la distribution
+   `docker-desktop` — l'ancienne option `--distribution` n'existe plus) :
    ```powershell
    usbipd bind --busid <BUSID>
-   usbipd attach --wsl --distribution docker-desktop --busid <BUSID> --auto-attach
+   usbipd attach --wsl --busid <BUSID> --auto-attach
    ```
    `bind` demande une élévation (UAC) mais est persistant (une seule fois). `attach --auto-attach`
    n'en demande plus jamais, mais doit être relancé à chaque démarrage de Windows — ce que
    `mise-app` fait lui-même automatiquement s'il a déjà servi une fois (voir
    `app/zigbee_windows.py::ensure_attached`).
-4. Vérifier qu'il apparaît dans le moteur Docker :
+4. Charger le pilote série (la distribution `docker-desktop` ne le fait pas d'elle-même, et c'est
+   à refaire après chaque redémarrage de WSL — `cdc_acm` pour un ConBee, `cp210x` pour un Sonoff),
+   puis vérifier que le port apparaît :
    ```powershell
-   wsl -d docker-desktop -- ls -l /dev/serial/by-id/
+   wsl -d docker-desktop -u root -- modprobe cdc_acm
+   wsl -d docker-desktop -- ls -l /dev/ttyACM0 /dev/ttyUSB0
    ```
-   Noter le nom affiché (ex. `usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_xxxxx-if00-port0`).
+   Pas de `/dev/serial/by-id/` ici (pas d'udev dans cette distribution) : on utilise le nœud brut.
 5. ```bash
    cp zigbee2mqtt/configuration.yaml.example zigbee2mqtt/configuration.yaml
    ```
    Remplacer `serial.port` par le chemin relevé à l'étape 4 (Windows) ou par `ls -l
-   /dev/serial/by-id/` directement (Linux).
+   /dev/serial/by-id/` directement (Linux), et `serial.adapter` par `deconz` pour un ConBee
+   (`zstack` pour un Sonoff).
 6. Dans `.env`, renseigner `ZIGBEE_SERIAL_DEVICE=` avec ce même chemin complet, puis :
    ```bash
    docker compose up -d zigbee2mqtt

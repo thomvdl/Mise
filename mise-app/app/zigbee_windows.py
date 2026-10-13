@@ -28,10 +28,10 @@ from .project import CommandError, set_env_var
 LogFn = Callable[[str], None]
 
 _WSL_DISTRIBUTION = "docker-desktop"
-# Silicon Labs CP210x (dongle Sonoff Zigbee 3.0 Plus), FTDI (ConBee II), CH340 (autres clones) —
-# juste pour mettre les candidats plausibles en tête de liste, n'importe quel périphérique listé
-# reste sélectionnable (voir list_candidate_devices).
-_LIKELY_VENDOR_IDS = {"10c4", "0403", "1a86"}
+# Silicon Labs CP210x (dongle Sonoff Zigbee 3.0 Plus), Dresden Elektronik (ConBee II/III), FTDI
+# (ConBee I), CH340 (autres clones) — juste pour mettre les candidats plausibles en tête de liste,
+# n'importe quel périphérique listé reste sélectionnable (voir list_candidate_devices).
+_LIKELY_VENDOR_IDS = {"10c4", "1cf1", "0403", "1a86"}
 
 _CREATION_FLAGS = subprocess.CREATE_NO_WINDOW
 
@@ -54,6 +54,20 @@ def _run(args: list[str], log: LogFn | None = None, timeout: int = 30, cwd: Path
         detail = (result.stderr or result.stdout or "échec sans message").strip()
         raise CommandError(detail)
     return result.stdout
+
+
+def _run_elevated(args: list[str], log: LogFn) -> None:
+    """Comme _run, mais via l'invite UAC : usbipd ne s'élève pas tout seul, il échoue juste avec
+    "Access denied" s'il n'est pas lancé en administrateur. Start-Process -Verb RunAs ouvre la
+    fenêtre d'autorisation ; un refus fait échouer Start-Process, donc un code retour non nul."""
+    log("$ " + " ".join(args) + " (en administrateur)")
+    arg_list = ",".join(f"'{a}'" for a in args[1:])
+    _run(
+        ["powershell", "-NoProfile", "-Command",
+         f"$p = Start-Process -FilePath '{args[0]}' -ArgumentList {arg_list} -Verb RunAs -Wait "
+         "-PassThru -WindowStyle Hidden; exit $p.ExitCode"],
+        timeout=120,
+    )
 
 
 # Colonnes séparées par 2 espaces ou plus (voir DEPLOY.md / usbipd list --help) : BUSID, VID:PID,
@@ -102,38 +116,47 @@ def list_candidate_devices() -> list[dict]:
 def connect(busid: str, repo_path: Path, log: LogFn) -> None:
     """Partage puis attache le dongle désigné par `busid` (voir list_candidate_devices), résout
     son chemin stable sous WSL et le propage dans .env + zigbee2mqtt/configuration.yaml."""
-    devices = list_candidate_devices()
-    state = next((d["state"] for d in devices if d["busid"] == busid), "")
-    if not state:
+    device = next((d for d in list_candidate_devices() if d["busid"] == busid), None)
+    if not device:
         raise CommandError(f"Périphérique {busid} introuvable (débranché depuis ?).")
+    state = device["state"]
 
     if "Shared" not in state and "Attached" not in state:
         log(f"Partage du périphérique {busid} — une fenêtre d'autorisation Windows va s'ouvrir...")
-        _run(["usbipd", "bind", "--busid", busid], log=log)
+        _run_elevated(["usbipd", "bind", "--busid", busid], log=log)
 
     if "Attached" not in state:
         log(f"Attache de {busid} à la distribution WSL « {_WSL_DISTRIBUTION} »...")
-        # Popen, pas _run : --auto-attach tourne en continu (pour réattacher après un
-        # débranchement/reset) et ne se termine jamais tant qu'on en a besoin.
-        subprocess.Popen(
-            ["usbipd", "attach", "--wsl", "--distribution", _WSL_DISTRIBUTION,
-             "--busid", busid, "--auto-attach"],
-            creationflags=_CREATION_FLAGS,
-        )
+        _start_auto_attach(busid)
         time.sleep(3)
+    _load_serial_drivers(log)
 
     log("Résolution du chemin du périphérique dans WSL...")
-    listing = _run(["wsl", "-d", _WSL_DISTRIBUTION, "--", "ls", "-1", "/dev/serial/by-id/"])
-    names = [n.strip() for n in listing.splitlines() if n.strip()]
-    if not names:
+    # /dev/serial/by-id/ d'abord (chemin stable, s'il existe), sinon le nœud brut : la distribution
+    # docker-desktop n'a pas d'udev, donc pas de liens by-id — juste /dev/ttyACM0 ou /dev/ttyUSB0.
+    listing = _run(["wsl", "-d", _WSL_DISTRIBUTION, "--", "sh", "-c",
+                    "ls -1 /dev/serial/by-id/* /dev/ttyACM* /dev/ttyUSB* 2>/dev/null; true"])
+    paths = [p.strip() for p in listing.splitlines() if p.strip()]
+    if not paths:
         raise CommandError(
-            "Aucun périphérique dans /dev/serial/by-id/ sous WSL — l'attache a peut-être échoué, "
+            "Aucun port série (/dev/ttyACM*, /dev/ttyUSB*) sous WSL — l'attache a peut-être échoué, "
             "ou ce dongle n'expose pas de port série standard."
         )
-    device_path = f"/dev/serial/by-id/{names[0]}"
+    device_path = paths[0]
     log(f"Périphérique résolu : {device_path}")
 
-    _propagate_device_path(repo_path, device_path, log)
+    _propagate_device_path(repo_path, device_path, _guess_adapter(device["vidpid"]), log)
+
+
+# Vendor IDs des coordinateurs deCONZ (Dresden Elektronik : ConBee II/III ; FTDI : ConBee I) — tout
+# le reste est supposé être une puce Texas Instruments (Sonoff Zigbee 3.0 Plus et clones). Comme
+# sur macOS (voir zigbee_macos._guess_adapter), serial.adapter doit toujours être fixé : un
+# "zstack" sur un ConBee ouvre bien le port, mais échoue ensuite avec "Not supported, cannot set".
+_DECONZ_VENDOR_IDS = {"1cf1", "0403"}
+
+
+def _guess_adapter(vidpid: str) -> str:
+    return "deconz" if vidpid.split(":")[0].lower() in _DECONZ_VENDOR_IDS else "zstack"
 
 
 def ensure_attached(busid: str, log: LogFn) -> None:
@@ -146,15 +169,38 @@ def ensure_attached(busid: str, log: LogFn) -> None:
     state = next((d["state"] for d in list_candidate_devices() if d["busid"] == busid), "")
     if "Attached" in state:
         return
-    subprocess.Popen(
-        ["usbipd", "attach", "--wsl", "--distribution", _WSL_DISTRIBUTION,
-         "--busid", busid, "--auto-attach"],
-        creationflags=_CREATION_FLAGS,
-    )
+    _start_auto_attach(busid)
+    time.sleep(3)
+    _load_serial_drivers(log)
     log(f"Capteur Zigbee ({busid}) réattaché à WSL après le démarrage de l'app.")
 
 
-def _propagate_device_path(repo_path: Path, device_path: str, log: LogFn) -> None:
+def _start_auto_attach(busid: str) -> None:
+    # Popen, pas _run : --auto-attach tourne en continu (pour réattacher après un
+    # débranchement/reset) et ne se termine jamais tant qu'on en a besoin. Pas de nom de
+    # distribution : usbipd 5.x n'accepte plus "--distribution" et choisit lui-même celle de
+    # Docker Desktop (le périphérique est de toute façon visible dans toutes les distributions WSL2).
+    subprocess.Popen(
+        ["usbipd", "attach", "--wsl", "--busid", busid, "--auto-attach"],
+        creationflags=_CREATION_FLAGS,
+    )
+
+
+# Pilotes série USB des dongles courants : cdc_acm (ConBee II/III), cp210x (Sonoff), ftdi_sio
+# (ConBee I), ch341 (clones). Modules du noyau WSL que la distribution docker-desktop ne charge pas
+# d'elle-même (pas d'udev), et à recharger après chaque redémarrage de WSL.
+_SERIAL_MODULES = ("cdc_acm", "cp210x", "ftdi_sio", "ch341")
+
+
+def _load_serial_drivers(log: LogFn) -> None:
+    log("Chargement des pilotes série USB dans WSL...")
+    # Erreurs ignorées module par module : un pilote absent du noyau ne doit pas bloquer les autres,
+    # et la résolution du port juste après signale de toute façon s'il n'y a rien.
+    _run(["wsl", "-d", _WSL_DISTRIBUTION, "-u", "root", "--", "sh", "-c",
+          f"for m in {' '.join(_SERIAL_MODULES)}; do modprobe $m 2>/dev/null; done; true"])
+
+
+def _propagate_device_path(repo_path: Path, device_path: str, adapter: str, log: LogFn) -> None:
     zigbee_dir = repo_path / "zigbee2mqtt"
     config_file = zigbee_dir / "configuration.yaml"
     if not config_file.exists():
@@ -170,8 +216,17 @@ def _propagate_device_path(repo_path: Path, device_path: str, log: LogFn) -> Non
     )
     if count == 0:
         raise CommandError(f"Bloc « serial: / port: » introuvable dans {config_file}.")
+    content, count = re.subn(
+        r"(serial:.*?\n\s*adapter:\s*)\S*", rf"\1{adapter}", content, count=1, flags=re.DOTALL
+    )
+    if count == 0:
+        # Pas de clé "adapter:" (config écrite à la main) : ajoutée juste sous serial.port.
+        content = re.sub(
+            r"(serial:.*?\n(\s*)port:[^\n]*)", rf"\1\n\g<2>adapter: {adapter}", content, count=1,
+            flags=re.DOTALL,
+        )
     config_file.write_text(content, encoding="utf-8")
-    log(f"{config_file} mis à jour (serial.port).")
+    log(f"{config_file} mis à jour (serial.port = {device_path}, adapter = {adapter}).")
 
     env_path = repo_path / ".env"
     env_content = env_path.read_text(encoding="utf-8")
@@ -179,5 +234,8 @@ def _propagate_device_path(repo_path: Path, device_path: str, log: LogFn) -> Non
     log(".env mis à jour (ZIGBEE_SERIAL_DEVICE).")
 
     log("Redémarrage du conteneur zigbee2mqtt...")
-    _run(["docker", "compose", "up", "-d", "zigbee2mqtt"], log=log, timeout=120, cwd=repo_path)
+    # --force-recreate : un simple "up -d" laisse tourner un conteneur déjà démarré, sans relire
+    # configuration.yaml (fichier monté, pas une option du conteneur).
+    _run(["docker", "compose", "up", "-d", "--force-recreate", "zigbee2mqtt"], log=log, timeout=120,
+         cwd=repo_path)
     log("Capteur Zigbee connecté.")
