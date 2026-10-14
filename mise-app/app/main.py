@@ -68,10 +68,11 @@ def ensure_project_running(events: EventLog) -> None:
     repo_path = Path(repo_path_str)
     if not project.is_repo_cloned(repo_path) or not project.is_docker_available():
         return
+    mode = cfg.get("project_mode") or "server"
 
     def run() -> None:
         try:
-            project.docker_up(repo_path, events.add)
+            project.docker_up(repo_path, events.add, mode=mode)
         except project.CommandError as exc:
             events.add(f"Échec du démarrage automatique de la pile Docker : {exc}", level="error")
 
@@ -88,6 +89,10 @@ def ensure_zigbee_connected(events: EventLog) -> None:
     Zigbee2MQTT est un process natif que mise-app doit relancer lui-même, comme docker_up
     ci-dessus pour la pile du projet."""
     cfg = config.load()
+    if (cfg.get("project_mode") or "server") == "public":
+        # Le capteur Zigbee reste toujours au niveau du serveur complet (lié au mosquitto qui y
+        # tourne) — rien à reconnecter ici sur un poste public seul.
+        return
 
     def run() -> None:
         try:

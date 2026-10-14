@@ -237,11 +237,16 @@ class StatusWindow:
         right_column.grid(row=0, column=1, sticky="new", padx=(7, 0))
 
         self._build_project_section(left_column)
-        # Colonne gauche nettement moins chargée que la droite (voir le commentaire au-dessus de
-        # `columns` : la fenêtre a une hauteur fixe, pensée pour tenir sur un écran de laptop) —
-        # la section Zigbee va ici plutôt qu'à droite pour rester équilibré, pas pour une raison
-        # thématique.
-        self._build_zigbee_section(left_column)
+        # Le capteur Zigbee est toujours lié au mosquitto du serveur complet (voir
+        # ensure_zigbee_connected dans main.py) — rien à proposer ici sur un poste public seul.
+        # Évalué une fois à l'ouverture : changer de mode ensuite demande de rouvrir la fenêtre
+        # (cas rare, le mode se choisit avant d'installer, voir _refresh_project).
+        if (config.load().get("project_mode") or "server") != "public":
+            # Colonne gauche nettement moins chargée que la droite (voir le commentaire au-dessus
+            # de `columns` : la fenêtre a une hauteur fixe, pensée pour tenir sur un écran de
+            # laptop) — la section Zigbee va ici plutôt qu'à droite pour rester équilibré, pas
+            # pour une raison thématique.
+            self._build_zigbee_section(left_column)
 
         if sys.platform == "win32":
             self._build_printer_picker(right_column)
@@ -340,6 +345,45 @@ class StatusWindow:
         frame = ttk.LabelFrame(parent, text="Projet Mise")
         frame.pack(fill="x", pady=(0, 10))
 
+        # Choix fait une fois pour toutes avant d'installer (désactivé une fois cloné, voir
+        # _refresh_project) : ce poste héberge-t-il toute la pile (db/api/dashboard/public/...),
+        # ou juste mise-public, parlant à l'API d'un serveur complet déjà déployé ailleurs (voir
+        # docker-compose.public.yml) ?
+        mode_row = ttk.Frame(frame)
+        mode_row.pack(fill="x", padx=8, pady=(8, 2))
+        ttk.Label(mode_row, text="Mode :").pack(side="left")
+        cfg = config.load()
+        self.project_mode_var = tk.StringVar(value=cfg.get("project_mode") or "server")
+        self.mode_server_radio = ttk.Radiobutton(
+            mode_row, text="Serveur complet", variable=self.project_mode_var, value="server",
+            command=self._save_project_mode,
+        )
+        self.mode_server_radio.pack(side="left", padx=(6, 0))
+        self.mode_public_radio = ttk.Radiobutton(
+            mode_row, text="Poste public", variable=self.project_mode_var, value="public",
+            command=self._save_project_mode,
+        )
+        self.mode_public_radio.pack(side="left", padx=(6, 0))
+
+        # Uniquement en mode poste public : adresse de l'API centrale, d'abord demandée à
+        # l'installation (voir _install), modifiable ensuite ici si le serveur change d'adresse.
+        # Construit une seule fois selon le mode choisi à l'ouverture de la fenêtre — comme pour
+        # la section Zigbee (voir __init__), changer de mode ensuite demande de rouvrir la fenêtre.
+        if self.project_mode_var.get() == "public":
+            api_row = ttk.Frame(frame)
+            api_row.pack(fill="x", padx=8, pady=(0, 2))
+            ttk.Label(api_row, text="Adresse de l'API centrale (host:port) :").pack(anchor="w")
+            repo_path = self._repo_path()
+            current_api = (
+                project.read_public_env_var(repo_path, "API_UPSTREAM")
+                if project.is_repo_cloned(repo_path)
+                else None
+            )
+            self.api_upstream_var = tk.StringVar(value=current_api or "")
+            api_entry = ttk.Entry(api_row, textvariable=self.api_upstream_var)
+            api_entry.pack(fill="x")
+            api_entry.bind("<FocusOut>", lambda _event: self._save_api_upstream())
+
         path_row = ttk.Frame(frame)
         path_row.pack(fill="x", padx=8, pady=(8, 2))
         self.project_path_label = ttk.Label(path_row, text="…")
@@ -377,6 +421,38 @@ class StatusWindow:
         cfg = config.load()
         configured = cfg.get("repo_path")
         return Path(configured) if configured else Path.home() / "Mise"
+
+    def _project_mode(self) -> str:
+        return config.load().get("project_mode") or "server"
+
+    def _save_project_mode(self) -> None:
+        cfg = config.load()
+        cfg["project_mode"] = self.project_mode_var.get()
+        config.save(cfg)
+        self.refresh()
+
+    def _save_api_upstream(self) -> None:
+        if self._busy:
+            return
+        value = self.api_upstream_var.get().strip()
+        if not value:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            # Rien à modifier avant l'installation initiale — c'est _install() qui la demandera.
+            return
+        if value == project.read_public_env_var(repo_path, "API_UPSTREAM"):
+            return  # Inchangé — pas de redémarrage Docker pour rien à chaque simple clic ailleurs.
+
+        project.set_public_env_var(repo_path, "API_UPSTREAM", value, self.events.add)
+        self.events.add("Adresse API mise à jour — redémarrage du poste public...")
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.docker_up, (repo_path,), {"mode": "public"}),
+            daemon=True,
+        ).start()
 
     def _build_kiosk_section(self, parent: tk.Misc) -> None:
         frame = ttk.LabelFrame(parent, text="Mode brigade (kiosk)")
@@ -552,6 +628,9 @@ class StatusWindow:
         ).start()
 
     def _refresh_zigbee(self) -> None:
+        if not hasattr(self, "zigbee_status_label"):
+            # Section non construite (poste public seul, voir __init__) — rien à rafraîchir.
+            return
         cfg = config.load()
         configured = cfg.get("zigbee_busid") if sys.platform == "win32" else cfg.get("zigbee_device_path")
 
@@ -581,10 +660,17 @@ class StatusWindow:
         self.refresh()
 
     def _refresh_project(self) -> None:
+        mode = self._project_mode()
         repo_path = self._repo_path()
         self.project_path_label.config(text=str(repo_path))
 
         cloned = project.is_repo_cloned(repo_path)
+        # Mode figé une fois le dossier cloné (dans un sens ou dans l'autre) — changer d'avis
+        # demande un nouveau dossier, pas la peine de gérer la bascule d'un mode à l'autre sur un
+        # projet déjà installé.
+        self.mode_server_radio.config(state="disabled" if cloned else "normal")
+        self.mode_public_radio.config(state="disabled" if cloned else "normal")
+
         # Écrit par main.py::maybe_check_for_updates (une fois par jour, en tâche de fond) — lu
         # ici, jamais recalculé depuis l'UI, pour ne jamais faire d'appel réseau à chaque
         # rafraîchissement (3s).
@@ -604,8 +690,11 @@ class StatusWindow:
 
         self.install_button.config(state="disabled" if (self._busy or cloned) else "normal")
         self.update_button.config(state="normal" if (not self._busy and cloned) else "disabled")
-        self.backup_button.config(state="normal" if (not self._busy and cloned) else "disabled")
-        self.restore_button.config(state="normal" if (not self._busy and cloned) else "disabled")
+        # Pas de base locale à sauvegarder/restaurer sur un poste public seul (voir
+        # docker-compose.public.yml, qui n'a ni `db` ni `db-backup`).
+        can_backup = not self._busy and cloned and mode == "server"
+        self.backup_button.config(state="normal" if can_backup else "disabled")
+        self.restore_button.config(state="normal" if can_backup else "disabled")
 
         if not cloned:
             self.server_status_label.config(text="")
@@ -613,7 +702,7 @@ class StatusWindow:
             self.stop_server_button.config(state="disabled")
             return
 
-        status = project.server_status(repo_path) if project.is_docker_available() else "unknown"
+        status = project.server_status(repo_path, mode) if project.is_docker_available() else "unknown"
         icons = {"running": "🟢", "partial": "🟡", "stopped": "🔴", "unknown": "⬜"}
         labels = {
             "running": "Serveur démarré",
@@ -663,6 +752,26 @@ class StatusWindow:
             if not github_token:
                 return
 
+        mode = self._project_mode()
+        if mode == "public":
+            api_upstream = _ask_string(
+                self.window,
+                "Mise",
+                "Adresse de l'API du serveur Mise central, joignable depuis ce poste "
+                "(host:port — ex. 192.168.1.10:8000, voir .env.public.example) :",
+            )
+            if not api_upstream:
+                return
+
+            self._busy = True
+            self.refresh()
+            threading.Thread(
+                target=self._run_project_task,
+                args=(project.install_public, (repo_path, api_upstream), {"github_token": github_token}),
+                daemon=True,
+            ).start()
+            return
+
         admin_name = _ask_string(self.window, "Mise", "Nom du compte administrateur :")
         if not admin_name:
             return
@@ -699,9 +808,10 @@ class StatusWindow:
 
         self._busy = True
         self.refresh()
+        update_fn = project.update_public if self._project_mode() == "public" else project.update
         threading.Thread(
             target=self._run_project_task,
-            args=(project.update, (repo_path,)),
+            args=(update_fn, (repo_path,)),
             kwargs={},
             daemon=True,
         ).start()
@@ -721,7 +831,7 @@ class StatusWindow:
         self.refresh()
         threading.Thread(
             target=self._run_project_task,
-            args=(project.start_server, (repo_path,)),
+            args=(project.start_server, (repo_path,), {"mode": self._project_mode()}),
             daemon=True,
         ).start()
 
@@ -740,7 +850,7 @@ class StatusWindow:
         self.refresh()
         threading.Thread(
             target=self._run_project_task,
-            args=(project.stop_server, (repo_path,)),
+            args=(project.stop_server, (repo_path,), {"mode": self._project_mode()}),
             daemon=True,
         ).start()
 

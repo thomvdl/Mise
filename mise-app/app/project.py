@@ -20,6 +20,14 @@ from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
+# Les deux modes gèrent le MÊME clone (le repo est un monorepo qui contient toujours les deux
+# docker-compose.yml) — seule la commande `docker compose` effectivement lancée change. "server" :
+# pile complète (db/api/dashboard/public/...), ce poste héberge tout. "public" : juste mise-public,
+# qui parle à l'API d'un serveur "server" déjà déployé ailleurs (voir docker-compose.public.yml et
+# .env.public.example à la racine du repo).
+_PUBLIC_COMPOSE_FILE = "docker-compose.public.yml"
+_PUBLIC_ENV_FILE = ".env.public"
+
 REPO_URL = "https://github.com/thomvdl/Mise.git"
 # "thomvdl/Mise" dérivé de REPO_URL plutôt que redupliqué en dur — sert à l'appel à l'API GitHub
 # ci-dessous (releases), pas au clone/pull lui-même (qui continue d'utiliser REPO_URL tel quel).
@@ -160,7 +168,18 @@ def is_docker_available() -> bool:
         return False
 
 
+def _compose_prefix(mode: str) -> list[str]:
+    """Options `docker compose` communes à toute commande de gestion du projet — vides en mode
+    serveur complet (docker-compose.yml, trouvé tout seul par `docker compose`), ou pointées sur
+    le compose minimal du poste public sinon."""
+    if mode == "public":
+        return ["-f", _PUBLIC_COMPOSE_FILE, "--env-file", _PUBLIC_ENV_FILE]
+    return []
+
+
 def is_repo_cloned(repo_path: Path) -> bool:
+    # Indépendant du mode : le monorepo contient toujours les deux docker-compose.yml, que ce
+    # poste doive au final en lancer un seul des deux (voir _compose_prefix) ou l'autre.
     return (repo_path / ".git").is_dir() and (repo_path / "docker-compose.yml").is_file()
 
 
@@ -236,12 +255,7 @@ def set_env_var(content: str, key: str, value: str) -> str:
     return content.rstrip("\n") + f"\n{replacement}\n"
 
 
-def read_env_var(repo_path: Path, key: str) -> Optional[str]:
-    """Lit une variable depuis le `.env` du projet installé (celui créé par bootstrap_env, pas la
-    config de mise-app) — ex. CLOUDFLARE_DASHBOARD_URL, posée à la main après avoir suivi
-    DEPLOY.md §4 « Tunnel nommé ». Retourne None si le fichier ou la clé n'existe pas, ou si elle
-    est vide."""
-    env_path = repo_path / ".env"
+def _read_env_file_var(env_path: Path, key: str) -> Optional[str]:
     if not env_path.exists():
         return None
     match = re.search(
@@ -250,6 +264,34 @@ def read_env_var(repo_path: Path, key: str) -> Optional[str]:
     if not match:
         return None
     return match.group(1).strip() or None
+
+
+def read_env_var(repo_path: Path, key: str) -> Optional[str]:
+    """Lit une variable depuis le `.env` du projet installé (celui créé par bootstrap_env, pas la
+    config de mise-app) — ex. CLOUDFLARE_DASHBOARD_URL, posée à la main après avoir suivi
+    DEPLOY.md §4 « Tunnel nommé ». Retourne None si le fichier ou la clé n'existe pas, ou si elle
+    est vide."""
+    return _read_env_file_var(repo_path / ".env", key)
+
+
+def read_public_env_var(repo_path: Path, key: str) -> Optional[str]:
+    """Équivalent de read_env_var ci-dessus pour `.env.public` (poste public seul)."""
+    return _read_env_file_var(repo_path / _PUBLIC_ENV_FILE, key)
+
+
+def set_public_env_var(repo_path: Path, key: str, value: str, log: LogFn) -> None:
+    """Modifie une variable de `.env.public` après coup (ex. l'adresse de l'API centrale a
+    changé) — contrairement à bootstrap_env_public, qui ne crée le fichier qu'une fois et ne le
+    touche plus jamais ensuite. N'applique rien tant que le conteneur `public` n'est pas relancé
+    (voir _save_api_upstream côté status_window.py, qui enchaîne sur un docker_up)."""
+    env_path = repo_path / _PUBLIC_ENV_FILE
+    content = (
+        env_path.read_text(encoding="utf-8")
+        if env_path.exists()
+        else (repo_path / ".env.public.example").read_text(encoding="utf-8")
+    )
+    env_path.write_text(set_env_var(content, key, value), encoding="utf-8")
+    log(f"{_PUBLIC_ENV_FILE} mis à jour ({key}).")
 
 
 def bootstrap_env(repo_path: Path, admin_name: str, admin_password: str, log: LogFn) -> None:
@@ -280,25 +322,40 @@ def bootstrap_env(repo_path: Path, admin_name: str, admin_password: str, log: Lo
     log("APP_KEY généré")
 
 
-def docker_up(repo_path: Path, log: LogFn, build: bool = False) -> None:
-    args = ["docker", "compose", "up", "-d"]
+def bootstrap_env_public(repo_path: Path, api_upstream: str, log: LogFn) -> None:
+    """Équivalent de bootstrap_env ci-dessus pour un poste public seul — juste l'adresse de l'API
+    centrale à joindre (voir docker-compose.public.yml), pas d'admin ni de clé applicative à
+    générer : ce poste n'a pas sa propre base, il parle à celle du serveur déjà installé."""
+    env_path = repo_path / _PUBLIC_ENV_FILE
+    if env_path.exists():
+        log(f"{_PUBLIC_ENV_FILE} existe déjà, pas touché")
+        return
+
+    content = (repo_path / ".env.public.example").read_text(encoding="utf-8")
+    content = set_env_var(content, "API_UPSTREAM", api_upstream)
+    env_path.write_text(content, encoding="utf-8")
+    log(f"{_PUBLIC_ENV_FILE} créé")
+
+
+def docker_up(repo_path: Path, log: LogFn, build: bool = False, mode: str = "server") -> None:
+    args = ["docker", "compose", *_compose_prefix(mode), "up", "-d"]
     if build:
         args.append("--build")
     _run(args, cwd=repo_path, log=log)
 
 
-def server_status(repo_path: Path) -> str:
+def server_status(repo_path: Path, mode: str = "server") -> str:
     """"running" (tous les services tournent), "stopped" (aucun), "partial" (certains), ou
     "unknown" (Docker indisponible, ou pas encore de conteneurs créés) — basé sur
     `docker compose ps`, pas sur `docker_up`/`stop_server` qui ne font qu'agir."""
     try:
         running = _run(
-            ["docker", "compose", "ps", "--services", "--filter", "status=running"],
+            ["docker", "compose", *_compose_prefix(mode), "ps", "--services", "--filter", "status=running"],
             cwd=repo_path,
             timeout=_QUICK_TIMEOUT_SECONDS,
         )
         all_services = _run(
-            ["docker", "compose", "config", "--services"],
+            ["docker", "compose", *_compose_prefix(mode), "config", "--services"],
             cwd=repo_path,
             timeout=_QUICK_TIMEOUT_SECONDS,
         )
@@ -316,14 +373,14 @@ def server_status(repo_path: Path) -> str:
     return "partial"
 
 
-def start_server(repo_path: Path, log: LogFn) -> None:
-    docker_up(repo_path, log)
+def start_server(repo_path: Path, log: LogFn, mode: str = "server") -> None:
+    docker_up(repo_path, log, mode=mode)
 
 
-def stop_server(repo_path: Path, log: LogFn) -> None:
+def stop_server(repo_path: Path, log: LogFn, mode: str = "server") -> None:
     # `stop` (pas `down`) : garde les conteneurs/volumes en place pour un redémarrage rapide via
     # start_server, plutôt que de tout détruire et reconstruire.
-    _run(["docker", "compose", "stop"], cwd=repo_path, log=log)
+    _run(["docker", "compose", *_compose_prefix(mode), "stop"], cwd=repo_path, log=log)
 
 
 def backup_db(repo_path: Path, log: LogFn) -> Path:
@@ -457,4 +514,45 @@ def update(repo_path: Path, log: LogFn) -> None:
 
     log("Reconstruction et redémarrage des conteneurs...")
     docker_up(repo_path, log, build=True)
+    log("Mise à jour terminée.")
+
+
+def install_public(
+    repo_path: Path,
+    api_upstream: str,
+    log: LogFn,
+    github_token: str | None = None,
+) -> None:
+    """Équivalent de install() ci-dessus pour un poste public seul."""
+    if github_token:
+        authenticate_git(github_token, log)
+    log(f"Clonage de {REPO_URL}...")
+    clone(repo_path, log)
+
+    tag = latest_release_tag(log)
+    if tag:
+        log(f"Passage sur la dernière release ({tag})...")
+        checkout_release(repo_path, tag, log)
+    else:
+        log("Impossible de déterminer la dernière release — on reste sur la branche principale.")
+
+    bootstrap_env_public(repo_path, api_upstream, log)
+    log("Démarrage du poste public (peut prendre quelques minutes au premier lancement)...")
+    docker_up(repo_path, log, build=True, mode="public")
+    log("Installation terminée.")
+
+
+def update_public(repo_path: Path, log: LogFn) -> None:
+    """Équivalent de update() ci-dessus pour un poste public seul — pas de base locale ici, donc
+    rien à sauvegarder avant de mettre à jour (contrairement au mode serveur complet)."""
+    tag = latest_release_tag(log)
+    if tag:
+        log(f"Passage sur la dernière release ({tag})...")
+        checkout_release(repo_path, tag, log)
+    else:
+        log("Impossible de déterminer la dernière release — récupération du dernier code (git pull)...")
+        pull(repo_path, log)
+
+    log("Reconstruction et redémarrage du conteneur...")
+    docker_up(repo_path, log, build=True, mode="public")
     log("Mise à jour terminée.")

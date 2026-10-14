@@ -1,0 +1,27 @@
+# Poste public "seul" : un second poste (autre machine, autre cuisine, autre caisse...) qui
+# n'a besoin que de l'interface mise-public, pas de la pile complète (db/api/mosquitto/...) — il
+# parle à l'API d'un serveur mise déjà déployé ailleurs (voir docker-compose.yml), via API_UPSTREAM
+# ci-dessous (host:port joignable depuis CE poste, ex. 192.168.1.10:8000 en LAN). Voir
+# .env.public.example pour la configurer.
+#
+# Lancement : docker compose -f docker-compose.public.yml --env-file .env.public up -d --build
+#
+# Rien d'autre ne tourne ici : si ce poste a sa propre imprimante Zebra ou un lecteur de codes-
+# barres USB, il lui faut en plus mise-app (le pont ZPL) tournant nativement sur la machine, comme
+# n'importe quel poste de la pile complète — voir mise-app/README.md. Le capteur Zigbee, lui, reste
+# toujours au niveau du serveur central (lié au broker mosquitto qui y tourne), jamais ici.
+services:
+  public:
+    build:
+      context: ./mise-public
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:?Renseigne API_UPSTREAM dans .env.public (host:port de l'API centrale, ex. 192.168.1.10:8000)}
+    ports:
+      - "8082:80"
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
