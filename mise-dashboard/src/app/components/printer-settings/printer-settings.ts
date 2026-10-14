@@ -1,29 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
 
-import { SettingService } from '../../core/services/setting.service';
-
-const IPV4_PATTERN = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-// Autorise aussi un nom d'hôte (ex. `host.docker.internal`, le nom spécial que Docker Desktop
-// résout vers la machine hôte — utile pour un pont ZPL natif tournant hors Docker sur Windows,
-// voir zpl-bridge/README.md) en plus d'une IPv4 classique pour une Zebra réseau.
-const HOSTNAME_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-function ipv4OrHostnameValidator(control: AbstractControl): ValidationErrors | null {
-  const value = (control.value ?? '').trim();
-  if (!value) return null;
-  return IPV4_PATTERN.test(value) || HOSTNAME_PATTERN.test(value) ? null : { ipv4OrHostname: true };
-}
+import { LocalPrinterService } from '../../core/services/local-printer.service';
+import { Printer, PrinterPayload } from '../../core/models/printer.model';
+import { PrinterService } from '../../core/services/printer.service';
+import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
 interface LabelFormatPreset {
   label: string;
@@ -51,113 +33,169 @@ const LABEL_FORMAT_PRESETS: LabelFormatPreset[] = [
   { label: '57 × 32 mm', widthMm: 57, heightMm: 32, rotate90: false, topOffsetMm: 7.5 },
 ];
 
+const DEFAULT_PAYLOAD: PrinterPayload = {
+  name: '',
+  ip: '',
+  dpi: 203,
+  label_width_mm: 57,
+  label_height_mm: 32,
+  rotate_90: false,
+  top_offset_mm: 0,
+  is_default: false,
+};
+
+/**
+ * Plusieurs postes, chacun avec sa Zebra et son format de rouleau (voir Printer côté API — a
+ * remplacé l'unique couple de réglages `printer_ip`/`label_*` d'avant). Quelle imprimante CE poste
+ * utilise reste un choix local au navigateur (voir LocalPrinterService), pas une donnée qu'un
+ * admin configure ici pour tout le monde.
+ */
 @Component({
   selector: 'app-printer-settings',
-  imports: [ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ConfirmDialog],
   templateUrl: './printer-settings.html',
   styleUrl: './printer-settings.css',
 })
 export class PrinterSettings implements OnInit {
-  private readonly settingService = inject(SettingService);
-
-  saving = signal(false);
-  saved = signal(false);
-  errorMessage = signal<string | null>(null);
+  private readonly printerService = inject(PrinterService);
+  readonly localPrinter = inject(LocalPrinterService);
 
   readonly labelFormatPresets = LABEL_FORMAT_PRESETS;
 
-  form = new FormGroup({
-    printer_ip: new FormControl('', {
-      nonNullable: true,
-      validators: [ipv4OrHostnameValidator],
-    }),
-    printer_dpi: new FormControl('203', { nonNullable: true, validators: [Validators.required] }),
-    label_width_mm: new FormControl(57, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)],
-    }),
-    label_height_mm: new FormControl(32, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)],
-    }),
-    label_rotate_90: new FormControl(false, { nonNullable: true }),
-    label_top_offset_mm: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
+  printers = signal<Printer[]>([]);
+  loading = signal(true);
+  errorMessage = signal<string | null>(null);
+
+  editingId = signal<number | 'new' | null>(null);
+  editForm = signal<PrinterPayload>({ ...DEFAULT_PAYLOAD });
+  saving = signal(false);
+  saveError = signal<string | null>(null);
+
+  pendingDelete = signal<Printer | null>(null);
+
+  canSave = computed(() => this.editForm().name.trim().length > 0 && this.editForm().ip.trim().length > 0);
+
+  activePresetLabel = computed(() => {
+    const value = this.editForm();
+    const match = this.labelFormatPresets.find(
+      (preset) =>
+        value.label_width_mm === preset.widthMm &&
+        value.label_height_mm === preset.heightMm &&
+        value.rotate_90 === preset.rotate90 &&
+        value.top_offset_mm === preset.topOffsetMm,
+    );
+    return match?.label ?? '';
   });
 
   ngOnInit(): void {
-    this.settingService.list().subscribe((settings) => {
-      const byKey = new Map(settings.map((s) => [s.key, s.value]));
+    this.reload();
+  }
 
-      this.form.patchValue({
-        printer_ip: byKey.get('printer_ip') ?? '',
-        printer_dpi: byKey.get('printer_dpi') ?? '203',
-        label_width_mm: byKey.get('label_width_mm') ? Number(byKey.get('label_width_mm')) : 57,
-        label_height_mm: byKey.get('label_height_mm') ? Number(byKey.get('label_height_mm')) : 32,
-        label_rotate_90: byKey.get('label_rotate_90') === '1',
-        label_top_offset_mm: byKey.get('label_top_offset_mm') ? Number(byKey.get('label_top_offset_mm')) : 0,
-      });
+  reload(): void {
+    this.loading.set(true);
+    this.printerService.list().subscribe({
+      next: (printers) => {
+        this.printers.set(printers);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Impossible de charger les imprimantes.');
+        this.loading.set(false);
+      },
     });
   }
 
-  /** Préréglage actif correspondant aux valeurs actuelles du formulaire, s'il y en a un. */
-  activePresetLabel(): string {
-    const value = this.form.getRawValue();
-    const match = this.labelFormatPresets.find(
-      (preset) =>
-        Number(value.label_width_mm) === preset.widthMm &&
-        Number(value.label_height_mm) === preset.heightMm &&
-        value.label_rotate_90 === preset.rotate90 &&
-        Number(value.label_top_offset_mm) === preset.topOffsetMm,
-    );
-
-    return match?.label ?? '';
+  /** Change l'imprimante de CE poste — réglage local au navigateur, pas envoyé au serveur. */
+  selectLocalPrinter(value: string): void {
+    this.localPrinter.set(value === '' ? null : Number(value));
   }
 
-  /**
-   * Remplit largeur/hauteur/rotation depuis un préréglage choisi dans la liste déroulante et
-   * enregistre tout de suite — un changement de rouleau ne doit pas dépendre de ne pas oublier de
-   * cliquer "Enregistrer" en plus.
-   */
+  startCreate(): void {
+    this.editingId.set('new');
+    this.editForm.set({ ...DEFAULT_PAYLOAD, is_default: this.printers().length === 0 });
+    this.saveError.set(null);
+  }
+
+  startEdit(printer: Printer): void {
+    this.editingId.set(printer.id);
+    this.editForm.set({
+      name: printer.name,
+      ip: printer.ip,
+      dpi: printer.dpi,
+      label_width_mm: printer.label_width_mm,
+      label_height_mm: printer.label_height_mm,
+      rotate_90: printer.rotate_90,
+      top_offset_mm: printer.top_offset_mm,
+      is_default: printer.is_default,
+    });
+    this.saveError.set(null);
+  }
+
+  cancelEdit(): void {
+    this.editingId.set(null);
+  }
+
+  patchForm(patch: Partial<PrinterPayload>): void {
+    this.editForm.update((form) => ({ ...form, ...patch }));
+  }
+
   selectPreset(label: string): void {
     const preset = this.labelFormatPresets.find((p) => p.label === label);
     if (!preset) return;
 
-    this.form.patchValue({
+    this.patchForm({
       label_width_mm: preset.widthMm,
       label_height_mm: preset.heightMm,
-      label_rotate_90: preset.rotate90,
-      label_top_offset_mm: preset.topOffsetMm,
+      rotate_90: preset.rotate90,
+      top_offset_mm: preset.topOffsetMm,
     });
-    this.save();
   }
 
   save(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    if (!this.canSave() || this.saving()) return;
 
-    const value = this.form.getRawValue();
+    const editingId = this.editingId();
+    const payload: PrinterPayload = { ...this.editForm(), name: this.editForm().name.trim(), ip: this.editForm().ip.trim() };
 
     this.saving.set(true);
-    this.saved.set(false);
-    this.errorMessage.set(null);
+    this.saveError.set(null);
 
-    forkJoin([
-      this.settingService.update('printer_ip', value.printer_ip.trim() || null),
-      this.settingService.update('printer_dpi', value.printer_dpi),
-      this.settingService.update('label_width_mm', String(value.label_width_mm)),
-      this.settingService.update('label_height_mm', String(value.label_height_mm)),
-      this.settingService.update('label_rotate_90', value.label_rotate_90 ? '1' : '0'),
-      this.settingService.update('label_top_offset_mm', String(value.label_top_offset_mm)),
-    ]).subscribe({
+    const request = editingId === 'new' ? this.printerService.create(payload) : this.printerService.update(editingId!, payload);
+
+    request.subscribe({
       next: () => {
         this.saving.set(false);
-        this.saved.set(true);
+        this.editingId.set(null);
+        this.reload();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.saveError.set(err?.error?.message ?? "Une erreur est survenue lors de l'enregistrement.");
+      },
+    });
+  }
+
+  confirmDelete(printer: Printer): void {
+    this.pendingDelete.set(printer);
+  }
+
+  cancelDelete(): void {
+    this.pendingDelete.set(null);
+  }
+
+  deleteConfirmed(): void {
+    const printer = this.pendingDelete();
+    if (!printer) return;
+
+    this.printerService.delete(printer.id).subscribe({
+      next: () => {
+        this.pendingDelete.set(null);
+        if (this.localPrinter.printerId() === printer.id) this.localPrinter.set(null);
+        this.reload();
       },
       error: () => {
-        this.saving.set(false);
-        this.errorMessage.set("Une erreur est survenue lors de l'enregistrement.");
+        this.pendingDelete.set(null);
+        this.errorMessage.set("Suppression impossible — réessayez, ou contactez l'administrateur.");
       },
     });
   }

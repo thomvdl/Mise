@@ -20,6 +20,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PictureController;
+use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\PrintedLabelController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShoppingItemController;
@@ -81,6 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // apps), écriture réservée à l'admin (groupe role:admin plus bas).
     Route::apiResource('label-types', LabelTypeController::class)->only(['index'])
         ->parameters(['label-types' => 'label_type']);
+
+    // Imprimantes — référentiel comme label-types ci-dessus : lecture ouverte à tout utilisateur
+    // connecté (c'est ce que consomme le sélecteur "imprimante de ce poste" de chaque navigateur,
+    // dashboard comme public), écriture réservée à l'admin (groupe role:admin plus bas).
+    Route::apiResource('printers', PrinterController::class)->only(['index']);
 
     // Recherche du nom d'un produit par code-barres EAN (proxy Open Food Facts) — voir
     // BarcodeController. Ouvert à tout utilisateur connecté, même niveau que label-types ci-dessus.
@@ -153,9 +159,10 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['label-lists' => 'label_list']);
         Route::apiResource('label-types', LabelTypeController::class)->except(['index'])
             ->parameters(['label-types' => 'label_type']);
+        Route::apiResource('printers', PrinterController::class)->except(['index']);
 
-        // Config globale de l'app (ex. IP de l'imprimante d'étiquettes) — dashboard uniquement,
-        // mise-public n'y a jamais accès directement (voir PrintedLabelController::printZebra).
+        // Config globale de l'app — dashboard uniquement, mise-public n'y a jamais accès
+        // directement (voir PrintedLabelController::printZebra).
         Route::get('settings', [SettingController::class, 'index']);
         Route::put('settings/{key}', [SettingController::class, 'update']);
     });

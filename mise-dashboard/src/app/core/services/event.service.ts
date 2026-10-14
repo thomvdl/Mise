@@ -3,10 +3,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { environment } from '../../../environments/environment';
 import { CalendarEvent, CalendarEventPayload } from '../models/calendar-event.model';
+import { LocalPrinterService } from './local-printer.service';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private readonly http = inject(HttpClient);
+  private readonly localPrinter = inject(LocalPrinterService);
   private readonly baseUrl = `${environment.apiUrl}/events`;
 
   list(month: number, year: number) {
@@ -33,6 +35,8 @@ export class EventService {
   }
 
   printLabel(id: number) {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/print-label`, {});
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/print-label`, {
+      printer_id: this.localPrinter.printerId(),
+    });
   }
 }

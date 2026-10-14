@@ -3,10 +3,12 @@ import { HttpClient } from '@angular/common/http';
 
 import { environment } from '../../../environments/environment';
 import { ManagedUser, ManagedUserPayload } from '../models/auth.model';
+import { LocalPrinterService } from './local-printer.service';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private readonly http = inject(HttpClient);
+  private readonly localPrinter = inject(LocalPrinterService);
   private readonly baseUrl = `${environment.apiUrl}/users`;
 
   list() {
@@ -30,6 +32,8 @@ export class UserService {
   }
 
   printBarcode(id: number) {
-    return this.http.post<void>(`${this.baseUrl}/${id}/print-barcode`, {});
+    return this.http.post<void>(`${this.baseUrl}/${id}/print-barcode`, {
+      printer_id: this.localPrinter.printerId(),
+    });
   }
 }

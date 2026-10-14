@@ -1,135 +1,185 @@
 <div class="page-header">
-  <h1 class="page-title">Impression d'étiquettes</h1>
+  <h1 class="page-title">Imprimantes</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/parametres">Retour</a>
+    <button type="button" class="btn btn-primary" (click)="startCreate()">+ Nouvelle imprimante</button>
+  </div>
 </div>
 
-<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
-  <div class="form-field span-2">
-    <label class="form-label" for="label_format_preset">Format du support chargé</label>
-    <select
-      id="label_format_preset"
-      class="form-select"
-      [disabled]="saving()"
-      [ngModel]="activePresetLabel()"
-      [ngModelOptions]="{ standalone: true }"
-      (ngModelChange)="selectPreset($event)">
-      <option value="" disabled>Choisir un format…</option>
-      @for (preset of labelFormatPresets; track preset.label) {
-        <option [value]="preset.label">{{ preset.label }}</option>
+<div class="form-field span-2 local-printer-field">
+  <label class="form-label" for="local_printer">Imprimante de ce poste</label>
+  <select
+    id="local_printer"
+    class="form-select"
+    [ngModel]="localPrinter.printerId() ?? ''"
+    (ngModelChange)="selectLocalPrinter($event)">
+    <option value="">Imprimante par défaut</option>
+    @for (printer of printers(); track printer.id) {
+      <option [value]="printer.id">{{ printer.name }}</option>
+    }
+  </select>
+  <p class="form-hint">
+    Propre à ce navigateur — chaque poste choisit ici sa propre imprimante, indépendamment des
+    autres. "Imprimante par défaut" suit celle cochée comme telle dans la liste ci-dessous.
+  </p>
+</div>
+
+@if (errorMessage()) {
+  <p class="form-error">{{ errorMessage() }}</p>
+}
+
+@if (loading()) {
+  <p class="form-hint">Chargement…</p>
+} @else if (printers().length === 0) {
+  <p class="form-hint">Aucune imprimante configurée pour l'instant.</p>
+} @else {
+  <ul class="type-list">
+    @for (printer of printers(); track printer.id) {
+      <li class="type-row">
+        <span class="type-row-main">
+          <strong>{{ printer.name }}</strong>
+          <span class="type-row-key">{{ printer.ip }}</span>
+        </span>
+        @if (printer.is_default) {
+          <span class="type-row-jplus">Par défaut</span>
+        }
+        <span class="type-row-actions">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="startEdit(printer)">Modifier</button>
+          <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(printer)">Supprimer</button>
+        </span>
+      </li>
+    }
+  </ul>
+}
+
+@if (editingId() !== null) {
+  <div class="modal-backdrop" (click)="cancelEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 class="modal-title">{{ editingId() === 'new' ? 'Nouvelle imprimante' : "Modifier l'imprimante" }}</h2>
+
+      <div class="form-field">
+        <label class="form-label" for="printer-name">Nom</label>
+        <input
+          id="printer-name"
+          class="form-input"
+          type="text"
+          placeholder="Ex. Cuisine, Comptoir"
+          [ngModel]="editForm().name"
+          (ngModelChange)="patchForm({ name: $event })" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="printer-ip">Adresse</label>
+        <input
+          id="printer-ip"
+          class="form-input"
+          type="text"
+          placeholder="Ex. 192.168.1.50 ou host.docker.internal"
+          [ngModel]="editForm().ip"
+          (ngModelChange)="patchForm({ ip: $event })" />
+        <p class="form-hint">
+          Toujours le port 9100 (ZPL/JetDirect). Pour une Zebra en réseau (Ethernet/Wi-Fi) : son IP
+          (ex. 192.168.1.50). Pour une Zebra en USB sur un poste (via mise-app) : l'IP de ce poste
+          sur le réseau local.
+        </p>
+      </div>
+
+      <div class="form-field span-2">
+        <label class="form-label" for="printer-format-preset">Format du support chargé</label>
+        <select
+          id="printer-format-preset"
+          class="form-select"
+          [ngModel]="activePresetLabel()"
+          (ngModelChange)="selectPreset($event)">
+          <option value="" disabled>Choisir un format…</option>
+          @for (preset of labelFormatPresets; track preset.label) {
+            <option [value]="preset.label">{{ preset.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label" for="printer-dpi">Résolution</label>
+          <select
+            id="printer-dpi"
+            class="form-select"
+            [ngModel]="editForm().dpi"
+            (ngModelChange)="patchForm({ dpi: $event })">
+            <option [value]="203">203 dpi (standard)</option>
+            <option [value]="300">300 dpi</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="printer-width">Largeur de l'étiquette (mm)</label>
+          <input
+            id="printer-width"
+            class="form-input"
+            type="number"
+            min="1"
+            step="0.5"
+            [ngModel]="editForm().label_width_mm"
+            (ngModelChange)="patchForm({ label_width_mm: $event })" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="printer-height">Hauteur de l'étiquette (mm)</label>
+          <input
+            id="printer-height"
+            class="form-input"
+            type="number"
+            min="1"
+            step="0.5"
+            [ngModel]="editForm().label_height_mm"
+            (ngModelChange)="patchForm({ label_height_mm: $event })" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="printer-offset">Zone morte en haut (mm)</label>
+          <input
+            id="printer-offset"
+            class="form-input"
+            type="number"
+            min="0"
+            step="0.5"
+            [ngModel]="editForm().top_offset_mm"
+            (ngModelChange)="patchForm({ top_offset_mm: $event })" />
+        </div>
+
+        <div class="form-field span-2">
+          <label class="checkbox-chip" [class.checked]="editForm().rotate_90">
+            <input type="checkbox" [ngModel]="editForm().rotate_90" (ngModelChange)="patchForm({ rotate_90: $event })" />
+            Faire pivoter le texte à 90°
+          </label>
+        </div>
+
+        <div class="form-field span-2">
+          <label class="checkbox-chip" [class.checked]="editForm().is_default">
+            <input type="checkbox" [ngModel]="editForm().is_default" (ngModelChange)="patchForm({ is_default: $event })" />
+            Imprimante par défaut
+          </label>
+          <p class="form-hint">Utilisée par les postes qui n'ont pas choisi d'imprimante spécifique ci-dessus.</p>
+        </div>
+      </div>
+
+      @if (saveError()) {
+        <p class="form-error">{{ saveError() }}</p>
       }
-    </select>
-    <p class="form-hint">
-      Change et enregistre directement largeur/hauteur/rotation ci-dessous pour le rouleau chargé.
-      Après un changement de rouleau, utilise aussi le bouton "Recalibrer" dans l'app Mise (menu
-      barre de menu) — sinon l'imprimante peut continuer à mal reconnaître les étiquettes.
-    </p>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelEdit()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
   </div>
+}
 
-  <div class="form-grid">
-    <div class="form-field">
-      <label class="form-label" for="printer_ip">Adresse de l'imprimante</label>
-      <input
-        id="printer_ip"
-        class="form-input"
-        type="text"
-        formControlName="printer_ip"
-        placeholder="Ex. 192.168.1.50 ou host.docker.internal"
-        [class.has-error]="form.controls.printer_ip.invalid && form.controls.printer_ip.touched" />
-      @if (form.controls.printer_ip.invalid && form.controls.printer_ip.touched) {
-        <span class="form-error">Adresse IPv4 ou nom d'hôte invalide.</span>
-      }
-      <p class="form-hint">
-        Toujours le port 9100 (ZPL/JetDirect). Pour une Zebra en réseau (Ethernet/Wi-Fi) : son IP
-        (ex. 192.168.1.50). Pour une Zebra en USB sur ce PC (via le pont zpl-bridge, voir
-        zpl-bridge/README.md) : <code>host.docker.internal</code>, l'adresse spéciale que Docker
-        résout vers cette machine. Laisser vide pour désactiver l'impression directe — la page
-        Étiquettes proposera alors uniquement le fallback navigateur.
-      </p>
-    </div>
-
-    <div class="form-field">
-      <label class="form-label" for="printer_dpi">Résolution de l'imprimante</label>
-      <select id="printer_dpi" class="form-select" formControlName="printer_dpi">
-        <option value="203">203 dpi (standard)</option>
-        <option value="300">300 dpi</option>
-        <option value="600">600 dpi</option>
-      </select>
-      <p class="form-hint">Se trouve sur la fiche technique du modèle Zebra utilisé.</p>
-    </div>
-
-    <div class="form-field">
-      <label class="form-label" for="label_width_mm">Largeur de l'étiquette (mm)</label>
-      <input
-        id="label_width_mm"
-        class="form-input"
-        type="number"
-        min="1"
-        step="0.5"
-        formControlName="label_width_mm"
-        [class.has-error]="form.controls.label_width_mm.invalid && form.controls.label_width_mm.touched" />
-      @if (form.controls.label_width_mm.invalid && form.controls.label_width_mm.touched) {
-        <span class="form-error">Indiquez une largeur valide.</span>
-      }
-    </div>
-
-    <div class="form-field">
-      <label class="form-label" for="label_height_mm">Hauteur de l'étiquette (mm)</label>
-      <input
-        id="label_height_mm"
-        class="form-input"
-        type="number"
-        min="1"
-        step="0.5"
-        formControlName="label_height_mm"
-        [class.has-error]="form.controls.label_height_mm.invalid && form.controls.label_height_mm.touched" />
-      @if (form.controls.label_height_mm.invalid && form.controls.label_height_mm.touched) {
-        <span class="form-error">Indiquez une hauteur valide.</span>
-      }
-      <p class="form-hint">
-        Taille du support chargé dans l'imprimante — la mise en page de l'étiquette s'adapte
-        automatiquement à la résolution et à ces dimensions.
-      </p>
-    </div>
-
-    <div class="form-field span-2">
-      <label class="checkbox-chip" [class.checked]="form.controls.label_rotate_90.value">
-        <input type="checkbox" formControlName="label_rotate_90" />
-        Faire pivoter le texte à 90°
-      </label>
-      <p class="form-hint">
-        À activer pour une étiquette rectangulaire plus haute que large (ex. 38 x 89mm) quand on
-        veut que le texte se lise à l'horizontale une fois l'étiquette posée dans l'autre sens — le
-        sens de défilement du papier dans l'imprimante ne change pas, seul le contenu pivote.
-      </p>
-    </div>
-
-    <div class="form-field">
-      <label class="form-label" for="label_top_offset_mm">Zone morte en haut de l'étiquette (mm)</label>
-      <input
-        id="label_top_offset_mm"
-        class="form-input"
-        type="number"
-        min="0"
-        step="0.5"
-        formControlName="label_top_offset_mm" />
-      <p class="form-hint">
-        Décalage mécanique propre à l'imprimante (pas au support) où rien ne s'imprime en haut de
-        chaque étiquette — à mesurer une fois par imprimante avec le bouton "Étiquette de mesure"
-        dans l'app Mise, pas à deviner. Rempli automatiquement par le format choisi ci-dessus.
-      </p>
-    </div>
-  </div>
-
-  @if (errorMessage()) {
-    <p class="form-error">{{ errorMessage() }}</p>
-  }
-  @if (saved()) {
-    <p class="form-success">Enregistré.</p>
-  }
-
-  <div class="form-actions">
-    <a class="btn btn-ghost" routerLink="..">Retour</a>
-    <button type="submit" class="btn btn-primary" [disabled]="saving()">
-      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
-    </button>
-  </div>
-</form>
+<app-confirm-dialog
+  [open]="pendingDelete() !== null"
+  [message]="'Supprimer l\'imprimante « ' + (pendingDelete()?.name ?? '') + ' » ?'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>

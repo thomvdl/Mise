@@ -27,4 +27,5 @@ export interface ZebraPrintPayload {
   date: string;
   use_by_date?: string | null;
   quantity: number;
+  printer_id?: number | null;
 }

@@ -1,7 +1,11 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
+import { LocalPrinterService } from '../../core/services/local-printer.service';
+import { Printer } from '../../core/models/printer.model';
+import { PrinterService } from '../../core/services/printer.service';
 
 interface NavLink {
   label: string;
@@ -10,15 +14,21 @@ interface NavLink {
 
 @Component({
   selector: 'app-topbar',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, FormsModule],
   templateUrl: './topbar.html',
   styleUrl: './topbar.css',
 })
-export class Topbar {
+export class Topbar implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly printerService = inject(PrinterService);
+  readonly localPrinter = inject(LocalPrinterService);
 
   currentUser = this.auth.user;
+
+  /** Pour le sélecteur "imprimante de ce poste" — vide tant qu'aucune imprimante n'est configurée,
+   *  auquel cas le sélecteur ne s'affiche pas du tout (rien à choisir). */
+  printers = signal<Printer[]>([]);
 
   /** Below the breakpoint where nav-links no longer fit, they collapse into this dropdown. */
   menuOpen = signal(false);
@@ -53,6 +63,14 @@ export class Topbar {
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     });
+  }
+
+  ngOnInit(): void {
+    this.printerService.list().subscribe({ next: (printers) => this.printers.set(printers) });
+  }
+
+  selectLocalPrinter(value: string): void {
+    this.localPrinter.set(value === '' ? null : Number(value));
   }
 
   toggleMenu(): void {

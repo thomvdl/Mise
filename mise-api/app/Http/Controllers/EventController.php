@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
-use App\Models\Setting;
+use App\Models\Printer;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
 use Illuminate\Http\Request;
@@ -94,20 +94,22 @@ class EventController extends Controller
      * journal d'historique contrairement à PrintedLabelController::printZebra, ce n'est pas une
      * étiquette HACCP traçable, juste une aide en cuisine.
      */
-    public function printLabel(Event $event)
+    public function printLabel(Request $request, Event $event)
     {
+        $printer = Printer::resolve($request->integer('printer_id') ?: null);
+
         $zpl = ZplLabelBuilder::buildEventLabel(
             $event->name,
             $event->couverts,
             $event->start_date->format('Y-m-d'),
-            (int) Setting::get('printer_dpi', '203'),
-            (float) Setting::get('label_width_mm', '57'),
-            (float) Setting::get('label_height_mm', '32'),
-            Setting::get('label_rotate_90', '0') === '1',
-            (float) Setting::get('label_top_offset_mm', '0'),
+            $printer->dpi ?? 203,
+            $printer->label_width_mm ?? 57,
+            $printer->label_height_mm ?? 32,
+            $printer->rotate_90 ?? false,
+            $printer->top_offset_mm ?? 0,
         );
 
-        if ($error = ZplPrinter::send($zpl)) {
+        if ($error = ZplPrinter::send($zpl, $printer)) {
             return response()->json(['message' => $error], str_contains($error, 'configurée') ? 422 : 502);
         }
 

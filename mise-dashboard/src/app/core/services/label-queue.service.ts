@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { concatMap, from, map } from 'rxjs';
 
 import { AuthService } from './auth.service';
+import { LocalPrinterService } from './local-printer.service';
 import { PrintedLabelService } from './printed-label.service';
 import { QueuedLabel } from '../models/label.model';
 
@@ -15,6 +16,7 @@ import { QueuedLabel } from '../models/label.model';
 export class LabelQueueService {
   private readonly auth = inject(AuthService);
   private readonly printedLabelService = inject(PrintedLabelService);
+  private readonly localPrinter = inject(LocalPrinterService);
 
   private nextId = 0;
 
@@ -80,6 +82,7 @@ export class LabelQueueService {
               date: item.date,
               use_by_date: item.useByDate,
               quantity: item.quantity,
+              printer_id: this.localPrinter.printerId(),
             })
             // On a besoin de savoir QUEL item vient de s'imprimer pour le retirer de la file
             // juste en dessous — printZebra() ne renvoie que l'étiquette journalisée, pas l'item

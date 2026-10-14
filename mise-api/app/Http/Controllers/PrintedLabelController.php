@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\LabelType;
+use App\Models\Printer;
 use App\Models\PrintedLabel;
-use App\Models\Setting;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
 use Illuminate\Http\Request;
@@ -80,9 +80,11 @@ class PrintedLabelController extends Controller
             'date' => ['required', 'date'],
             'use_by_date' => ['nullable', 'date'],
             'quantity' => ['required', 'integer', 'between:1,10'],
+            'printer_id' => ['nullable', 'integer'],
         ]);
 
         $type = LabelType::where('key', $validated['type_key'])->first();
+        $printer = Printer::resolve($validated['printer_id'] ?? null);
 
         $zpl = ZplLabelBuilder::build(
             $type->name,
@@ -90,17 +92,17 @@ class PrintedLabelController extends Controller
             $validated['date'],
             $validated['use_by_date'] ?? null,
             $validated['quantity'],
-            (int) Setting::get('printer_dpi', '203'),
-            (float) Setting::get('label_width_mm', '57'),
-            (float) Setting::get('label_height_mm', '32'),
-            Setting::get('label_rotate_90', '0') === '1',
+            $printer->dpi ?? 203,
+            $printer->label_width_mm ?? 57,
+            $printer->label_height_mm ?? 32,
+            $printer->rotate_90 ?? false,
             $request->user()->name,
             $type->icon_key,
-            (float) Setting::get('label_top_offset_mm', '0'),
+            $printer->top_offset_mm ?? 0,
             freeContent: $type->key === 'libre',
         );
 
-        if ($error = ZplPrinter::send($zpl)) {
+        if ($error = ZplPrinter::send($zpl, $printer)) {
             return response()->json(['message' => $error], str_contains($error, 'configurée') ? 422 : 502);
         }
 

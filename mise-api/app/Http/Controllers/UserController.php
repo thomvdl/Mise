@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
+use App\Models\Printer;
 use App\Models\User;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
@@ -95,23 +95,25 @@ class UserController extends Controller
      * Imprime le badge sur la Zebra configurée (même mécanisme que PrintedLabelController::printZebra,
      * mais pas journalisé dans printed_labels : ce n'est pas une étiquette HACCP).
      */
-    public function printBarcode(User $user)
+    public function printBarcode(Request $request, User $user)
     {
         if (! $user->login_barcode) {
             return response()->json(['message' => "Cet utilisateur n'a pas encore de code-barres généré."], 422);
         }
 
+        $printer = Printer::resolve($request->integer('printer_id') ?: null);
+
         $zpl = ZplLabelBuilder::buildUserBarcodeLabel(
             $user->name,
             $user->login_barcode,
-            (int) Setting::get('printer_dpi', '203'),
-            (float) Setting::get('label_width_mm', '57'),
-            (float) Setting::get('label_height_mm', '32'),
-            Setting::get('label_rotate_90', '0') === '1',
-            (float) Setting::get('label_top_offset_mm', '0'),
+            $printer->dpi ?? 203,
+            $printer->label_width_mm ?? 57,
+            $printer->label_height_mm ?? 32,
+            $printer->rotate_90 ?? false,
+            $printer->top_offset_mm ?? 0,
         );
 
-        if ($error = ZplPrinter::send($zpl)) {
+        if ($error = ZplPrinter::send($zpl, $printer)) {
             return response()->json(['message' => $error], str_contains($error, 'configurée') ? 422 : 502);
         }
 
