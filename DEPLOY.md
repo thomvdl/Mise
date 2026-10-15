@@ -58,7 +58,7 @@ automatiquement à chaque démarrage du conteneur `api` (sans danger, idempotent
 N'importe quel appareil sur le même réseau atteint directement `http://<IP-locale-du-PC>:8081`
 (dashboard) ou `:8082` (public) — pas de domaine ni de certificat nécessaire pour un usage sur
 place. Pour connecter un téléphone/tablette sans retaper l'adresse, imprimez une étiquette QR
-depuis `mise-app` (section "QR codes de connexion" de la fenêtre de statut, détection de l'IP
+depuis `mise-app` (onglet "QR codes de connexion" de la fenêtre de statut, détection de l'IP
 locale automatique) — seule source de QR de connexion, volontairement pas de bouton équivalent
 sur l'écran d'accueil du dashboard ou de l'app publique.
 
@@ -287,7 +287,7 @@ interface d'appairage reste sur `http://localhost:8084`.
 
 **Sous Linux**, le périphérique est déjà visible nativement — passez directement à l'étape B.
 
-**Sous Windows**, `mise-app` (section "Capteur Zigbee" de la fenêtre de statut → "Détecter" puis
+**Sous Windows**, `mise-app` (onglet "Pont Zigbee" de la fenêtre de statut → "Détecter" puis
 "Connecter") fait tout ce qui suit automatiquement. Procédure manuelle (repli, ou pour comprendre
 ce que fait le bouton) :
 
@@ -329,7 +329,7 @@ ce que fait le bouton) :
 
 ### B. macOS — installer Zigbee2MQTT nativement
 
-`mise-app` (section "Capteur Zigbee") fait tout ce qui suit via ses boutons "Installer" (clone +
+`mise-app` (onglet "Pont Zigbee") fait tout ce qui suit via ses boutons "Installer" (clone +
 `pnpm install` + `pnpm run build` dans le dossier de données de l'app, pas dans le clone du
 projet — Zigbee2MQTT utilise pnpm, pas npm, voir son `package.json`/`pnpm-lock.yaml`, lancé via
 `corepack pnpm ...` pour ne rien avoir à installer séparément) puis "Détecter"/"Connecter" (écrit

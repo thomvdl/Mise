@@ -13,6 +13,7 @@ from typing import Callable, Optional
 from . import config, kiosk, network, project
 
 if sys.platform == "win32":
+    from . import firewall_windows
     from . import zigbee_windows as zigbee_backend
 elif sys.platform == "darwin":
     from . import zigbee_macos as zigbee_backend
@@ -214,7 +215,7 @@ class StatusWindow:
 
         self.window = tk.Toplevel(root)
         self.window.title("Mise")
-        self.window.geometry("1000x700")
+        self.window.geometry("820x620")
         self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self.window.withdraw)
@@ -222,59 +223,67 @@ class StatusWindow:
         self.status_label = ttk.Label(self.window, text="…", font=("TkDefaultFont", 12, "bold"))
         self.status_label.pack(anchor="w", padx=14, pady=(14, 6))
 
-        # Deux colonnes côte à côte plutôt que tout empiler verticalement — la fenêtre a fini par
-        # dépasser la hauteur d'un écran de laptop à force d'ajouter des sections (étiquettes,
-        # QR, format...). Projet à gauche (section la plus "métier") ; tout ce qui touche à
-        # l'imprimante/au kiosque à droite.
-        columns = ttk.Frame(self.window)
-        columns.pack(fill="x", padx=14)
-        columns.columnconfigure(0, weight=1, uniform="col")
-        columns.columnconfigure(1, weight=1, uniform="col")
+        # Un onglet par sujet plutôt que toutes les sections empilées sur deux colonnes — la
+        # fenêtre devenait difficile à lire à force d'ajouter des sections. Journal, démarrage
+        # automatique et Quitter restent en dessous, visibles quel que soit l'onglet.
+        notebook = ttk.Notebook(self.window)
+        notebook.pack(fill="x", padx=14)
 
-        left_column = ttk.Frame(columns)
-        left_column.grid(row=0, column=0, sticky="new", padx=(0, 7))
-        right_column = ttk.Frame(columns)
-        right_column.grid(row=0, column=1, sticky="new", padx=(7, 0))
+        def add_tab(title: str) -> ttk.Frame:
+            tab = ttk.Frame(notebook, padding=10)
+            notebook.add(tab, text=title)
+            return tab
 
-        self._build_project_section(left_column)
-        # Le capteur Zigbee est toujours lié au mosquitto du serveur complet (voir
-        # ensure_zigbee_connected dans main.py) — rien à proposer ici sur un poste public seul.
-        # Évalué une fois à l'ouverture : changer de mode ensuite demande de rouvrir la fenêtre
-        # (cas rare, le mode se choisit avant d'installer, voir _refresh_project).
-        if (config.load().get("project_mode") or "server") != "public":
-            # Colonne gauche nettement moins chargée que la droite (voir le commentaire au-dessus
-            # de `columns` : la fenêtre a une hauteur fixe, pensée pour tenir sur un écran de
-            # laptop) — la section Zigbee va ici plutôt qu'à droite pour rester équilibré, pas
-            # pour une raison thématique.
-            self._build_zigbee_section(left_column)
+        self._build_project_section(add_tab("Serveur et mises à jour"))
 
+        # Cadre intérieur avec la même marge que les sections des autres onglets (padx=8 sur
+        # chaque ligne), pour que les contenus soient alignés d'un onglet à l'autre.
+        printer_tab = ttk.Frame(add_tab("Imprimante"))
+        printer_tab.pack(fill="x", padx=8, pady=(8, 0))
         if sys.platform == "win32":
-            self._build_printer_picker(right_column)
-        self._build_kiosk_section(right_column)
-        self._build_connect_section(right_column)
-        self._build_label_format_picker(right_column)
+            self._build_printer_picker(printer_tab)
+            self._build_firewall_row(printer_tab)
+        self._build_label_format_picker(printer_tab)
 
-        printer_btn_row = ttk.Frame(right_column)
+        printer_btn_row = ttk.Frame(printer_tab)
         printer_btn_row.pack(fill="x", pady=(0, 6))
         ttk.Button(printer_btn_row, text="Imprimer une étiquette de test", command=self._print_test).pack(
             side="left"
+        )
+        ttk.Button(printer_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(
+            side="left", padx=(6, 0)
         )
         ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
             side="left", padx=(6, 0)
         )
 
-        measure_btn_row = ttk.Frame(right_column)
-        measure_btn_row.pack(fill="x", pady=(0, 6))
-        ttk.Button(measure_btn_row, text="Étiquette de mesure", command=self._print_ruler).pack(side="left")
+        zigbee_tab = add_tab("Pont Zigbee")
+        # Le capteur Zigbee est toujours lié au mosquitto du serveur complet (voir
+        # ensure_zigbee_connected dans main.py) — rien à proposer ici sur un poste public seul.
+        # Évalué une fois à l'ouverture : changer de mode ensuite demande de rouvrir la fenêtre
+        # (cas rare, le mode se choisit avant d'installer, voir _refresh_project).
+        if (config.load().get("project_mode") or "server") != "public":
+            self._build_zigbee_section(zigbee_tab)
+        else:
+            ttk.Label(
+                zigbee_tab,
+                text="Poste public : le capteur de température se branche sur le serveur "
+                "complet, pas sur ce poste.",
+                wraplength=900,
+                justify="left",
+            ).pack(anchor="w")
 
-        ttk.Label(self.window, text="Activité récente").pack(anchor="w", padx=14)
+        self._build_connect_section(add_tab("QR codes de connexion"))
+        self._build_kiosk_section(add_tab("Mode kiosque"))
+
+        ttk.Label(self.window, text="Activité récente").pack(anchor="w", padx=14, pady=(10, 0))
         self.events_list = tk.Listbox(self.window, height=7)
         self.events_list.pack(fill="both", expand=True, padx=14, pady=(2, 8))
 
         self.autostart_var = tk.BooleanVar(value=self.autostart.is_enabled())
         ttk.Checkbutton(
             self.window,
-            text="Lancer au démarrage",
+            text="Lancer Mise au démarrage de l'ordinateur",
             variable=self.autostart_var,
             command=self._toggle_autostart,
         ).pack(anchor="w", padx=14, pady=(0, 8))
@@ -307,6 +316,41 @@ class StatusWindow:
         cfg = config.load()
         cfg["windows_printer_name"] = self.printer_var.get().strip() or None
         config.save(cfg)
+
+    def _build_firewall_row(self, parent: tk.Misc) -> None:
+        # Le serveur (API) se connecte à CE poste pour imprimer — connexion entrante bloquée par
+        # défaut par le pare-feu Windows, voir firewall_windows.py. Symptôme côté dashboard/public :
+        # "Impossible de contacter l'imprimante à <ip> : Connection timed out".
+        # Une seule ligne : la fenêtre a une hauteur fixe déjà presque pleine (voir `columns`).
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        self.firewall_label = ttk.Label(frame, text="…")
+        self.firewall_label.pack(side="left")
+        self.firewall_button = ttk.Button(
+            frame, text="Autoriser dans le pare-feu", command=self._allow_firewall
+        )
+        self.firewall_button.pack(side="right")
+
+    def _refresh_firewall(self) -> None:
+        if sys.platform != "win32":
+            return
+        if firewall_windows.is_bridge_port_allowed():
+            self.firewall_label.config(text="Pare-feu : impression réseau autorisée ✓")
+            self.firewall_button.config(state="disabled")
+        else:
+            self.firewall_label.config(text="⚠ Pare-feu : impression réseau non autorisée")
+            self.firewall_button.config(state="disabled" if self._busy else "normal")
+
+    def _allow_firewall(self) -> None:
+        if self._busy:
+            return
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(firewall_windows.allow_bridge_port, ()),
+            daemon=True,
+        ).start()
 
     def _build_label_format_picker(self, parent: tk.Misc) -> None:
         # Format du rouleau actuellement chargé dans l'imprimante — pilote uniquement les
@@ -342,7 +386,7 @@ class StatusWindow:
         config.save(cfg)
 
     def _build_project_section(self, parent: tk.Misc) -> None:
-        frame = ttk.LabelFrame(parent, text="Projet Mise")
+        frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=(0, 10))
 
         # Choix fait une fois pour toutes avant d'installer (désactivé une fois cloné, voir
@@ -455,10 +499,13 @@ class StatusWindow:
         ).start()
 
     def _build_kiosk_section(self, parent: tk.Misc) -> None:
-        frame = ttk.LabelFrame(parent, text="Mode brigade (kiosk)")
+        frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=(0, 10))
 
-        ttk.Label(frame, text="Adresse mise-public :").pack(anchor="w", padx=8, pady=(8, 2))
+        ttk.Label(
+            frame, text="Ouvre mise-public en plein écran, pour l'écran de la brigade en cuisine."
+        ).pack(anchor="w", padx=8, pady=(8, 6))
+        ttk.Label(frame, text="Adresse mise-public :").pack(anchor="w", padx=8, pady=(0, 2))
         cfg = config.load()
         self.kiosk_url_var = tk.StringVar(value=cfg.get("kiosk_url") or "http://localhost:8082")
         url_entry = ttk.Entry(frame, textvariable=self.kiosk_url_var, width=40)
@@ -488,13 +535,13 @@ class StatusWindow:
         config.save(cfg)
 
     def _build_connect_section(self, parent: tk.Misc) -> None:
-        frame = ttk.LabelFrame(parent, text="QR codes de connexion")
+        frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=(0, 10))
         ttk.Label(
             frame,
             text="Imprime une étiquette avec un QR code vers l'app — pratique pour connecter un "
             "appareil (téléphone, tablette) sans retaper l'adresse.",
-            wraplength=440,
+            wraplength=900,
             justify="left",
         ).pack(anchor="w", padx=8, pady=(8, 6))
 
@@ -522,10 +569,10 @@ class StatusWindow:
         self.refresh()
 
     def _build_zigbee_section(self, parent: tk.Misc) -> None:
-        frame = ttk.LabelFrame(parent, text="Capteur de température (Zigbee)")
+        frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=(0, 10))
 
-        self.zigbee_status_label = ttk.Label(frame, text="…", wraplength=440, justify="left")
+        self.zigbee_status_label = ttk.Label(frame, text="…", wraplength=900, justify="left")
         self.zigbee_status_label.pack(anchor="w", padx=8, pady=(8, 4))
 
         picker_row = ttk.Frame(frame)
@@ -958,6 +1005,7 @@ class StatusWindow:
 
         self._refresh_project()
         self._refresh_zigbee()
+        self._refresh_firewall()
 
         self.events_list.delete(0, tk.END)
         for timestamp, level, message in self.events.recent():

@@ -35,7 +35,7 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
   Zigbee dépasse sa plage (voir `app/temperature_alerts.py` et DEPLOY.md §10) — vérifié une fois
   par minute, avec un rappel toutes les 30 minutes tant que ça reste hors plage, jamais plus
   souvent ;
-- une section **"Capteur de température (Zigbee)"** dans la fenêtre de statut, qui connecte le
+- un onglet **"Pont Zigbee"** dans la fenêtre de statut, qui connecte le
   dongle Zigbee tout seul (sans ligne de commande) — voir DEPLOY.md §10 pour l'architecture
   complète :
   - **Windows** (`app/zigbee_windows.py`) : "Détecter" liste les périphériques USB (`usbipd
@@ -48,7 +48,7 @@ dossier pour un usage manuel/dépannage en ligne de commande), plus :
     projet), puis "Détecter"/"Connecter" le démarre nativement, connecté au broker MQTT dockerisé
     via son port publié — relancé tout seul à chaque démarrage de l'app, arrêté proprement à la
     fermeture.
-- une section **"Projet Mise"** dans cette même fenêtre qui gère aussi le cycle de vie du projet
+- un onglet **"Serveur et mises à jour"** dans cette même fenêtre qui gère aussi le cycle de vie du projet
   entier (pas juste le pont ZPL), pour que le mini PC n'ait qu'une seule app à lancer :
   - **Installer** (visible si le dossier choisi n'est pas encore un clone du projet) : clone le
     repo, crée `.env` à partir de `.env.example` avec des secrets générés automatiquement (sauf
@@ -99,7 +99,7 @@ L'app détecte leur absence et affiche un message clair plutôt que d'échouer s
    désinstallation dans Paramètres → Applications, puis propose de la lancer. Relancer un
    `Mise-Setup.exe` plus récent met à jour l'installation existante. Une icône apparaît dans la
    barre système.
-2. Cliquez sur l'icône → **Ouvrir**, puis dans la section **"Projet Mise"** :
+2. Cliquez sur l'icône → **Ouvrir**, puis dans l'onglet **"Serveur et mises à jour"** :
    - **Dossier…** pour choisir où installer le projet (par défaut `~/Mise`) ;
    - **Installer** : clone le dépôt, crée `.env` avec des mots de passe générés automatiquement
      (seuls le nom et le mot de passe du compte admin sont demandés, dans deux boîtes de
@@ -169,6 +169,12 @@ nettement ces détections sans les supprimer à coup sûr.
   (https://www.microsoft.com/en-us/wdsi/filesubmission, à refaire à chaque nouvelle version) ou
   ajoutez une exclusion Defender sur le dossier de l'app. La solution définitive est de signer
   l'exécutable avec un certificat de signature de code.
+- **« Impossible de contacter l'imprimante à <ip> : Connection timed out »** (Windows) : c'est le
+  serveur qui se connecte au port 9100 de ce poste pour imprimer, et le pare-feu Windows bloque
+  cette connexion entrante par défaut. Bouton **« Autoriser dans le pare-feu »** dans la fenêtre de
+  l'app (confirmation administrateur) : crée une règle sur le port 9100 pour tous les profils
+  réseau, et désactive les éventuelles règles « Bloquer » créées en fermant sans cliquer la fenêtre
+  « Autoriser l'accès » de Windows au premier lancement.
 - **macOS refuse de lancer l'app** (non signée) : clic droit → Ouvrir, puis confirmer dans la
   boîte de dialogue Gatekeeper (une seule fois).
 - Pour le reste (imprimante introuvable, étiquette mal formatée…), voir les sections de
