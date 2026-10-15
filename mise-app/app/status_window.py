@@ -1016,8 +1016,31 @@ class StatusWindow:
         self._print_connection_qr(url, "Public")
 
     def _print_qr_dashboard_lan(self) -> None:
-        url = f"http://{network.local_ip()}:{_DASHBOARD_PORT}"
+        # Contrairement à "Public" ci-dessus (qui tourne sur CE poste dans les deux modes), le
+        # dashboard ne tourne jamais sur un poste public — il faut pointer vers le serveur central
+        # (voir _central_api_host), pas vers l'IP de cette machine.
+        if self._project_mode() == "public":
+            host = self._central_api_host()
+            if not host:
+                messagebox.showerror(
+                    "Mise",
+                    "Adresse de l'API centrale inconnue — renseigne-la dans la section Projet "
+                    "(champ sous le choix de mode) avant d'imprimer ce QR code.",
+                )
+                return
+        else:
+            host = network.local_ip()
+        url = f"http://{host}:{_DASHBOARD_PORT}"
         self._print_connection_qr(url, "Dashboard (local)")
+
+    def _central_api_host(self) -> Optional[str]:
+        """Hôte (sans port) du serveur central déduit d'API_UPSTREAM dans .env.public — None si
+        pas encore installé/renseigné."""
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return None
+        api_upstream = project.read_public_env_var(repo_path, "API_UPSTREAM")
+        return api_upstream.split(":")[0] if api_upstream else None
 
     def _print_qr_dashboard_domain(self) -> None:
         repo_path = self._repo_path()
