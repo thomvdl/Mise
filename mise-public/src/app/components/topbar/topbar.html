@@ -31,6 +31,21 @@
           {{ link.label }}
         </a>
       }
+
+      @if (printers().length > 0) {
+        <label class="nav-printer-picker">
+          <span>Imprimante de ce poste</span>
+          <select
+            title="Imprimante utilisée par ce poste pour les étiquettes"
+            [ngModel]="localPrinter.printerId() ?? ''"
+            (ngModelChange)="selectLocalPrinter($event)">
+            <option value="">Imprimante par défaut</option>
+            @for (printer of printers(); track printer.id) {
+              <option [value]="printer.id">{{ printer.name }}</option>
+            }
+          </select>
+        </label>
+      }
     </nav>
 
     <div class="topbar-actions">
@@ -38,19 +53,6 @@
         <span class="offline-badge" title="Connexion indisponible — vous consultez la dernière version enregistrée.">
           Hors ligne
         </span>
-      }
-
-      @if (printers().length > 0) {
-        <select
-          class="printer-picker"
-          title="Imprimante utilisée par ce poste pour les étiquettes"
-          [ngModel]="localPrinter.printerId() ?? ''"
-          (ngModelChange)="selectLocalPrinter($event)">
-          <option value="">Imprimante par défaut</option>
-          @for (printer of printers(); track printer.id) {
-            <option [value]="printer.id">{{ printer.name }}</option>
-          }
-        </select>
       }
 
       <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème" (click)="toggle()">

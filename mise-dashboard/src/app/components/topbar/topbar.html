@@ -30,6 +30,21 @@
     <a class="nav-link nav-link-settings" [routerLink]="settingsLink.path" routerLinkActive="active" (click)="closeMenu()">
       {{ settingsLink.label }}
     </a>
+
+    @if (printers().length > 0) {
+      <label class="nav-printer-picker">
+        <span>Imprimante de ce poste</span>
+        <select
+          title="Imprimante utilisée par ce poste pour les étiquettes"
+          [ngModel]="localPrinter.printerId() ?? ''"
+          (ngModelChange)="selectLocalPrinter($event)">
+          <option value="">Imprimante par défaut</option>
+          @for (printer of printers(); track printer.id) {
+            <option [value]="printer.id">{{ printer.name }}</option>
+          }
+        </select>
+      </label>
+    }
   </nav>
 
   <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème" (click)="toggle()">
