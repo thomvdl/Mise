@@ -31,7 +31,7 @@
       {{ settingsLink.label }}
     </a>
 
-    @if (printers().length > 0) {
+    @if (labelPrinters().length > 0) {
       <label class="nav-printer-picker">
         <span>Imprimante de ce poste</span>
         <select
@@ -39,7 +39,21 @@
           [ngModel]="localPrinter.printerId() ?? ''"
           (ngModelChange)="selectLocalPrinter($event)">
           <option value="">Imprimante par défaut</option>
-          @for (printer of printers(); track printer.id) {
+          @for (printer of labelPrinters(); track printer.id) {
+            <option [value]="printer.id">{{ printer.name }}</option>
+          }
+        </select>
+      </label>
+    }
+    @if (thermalPrinters().length > 0) {
+      <label class="nav-printer-picker">
+        <span>Ticket de ce poste</span>
+        <select
+          title="Imprimante utilisée par ce poste pour le ticket de cuisine"
+          [ngModel]="localPrinter.thermalPrinterId() ?? ''"
+          (ngModelChange)="selectLocalThermalPrinter($event)">
+          <option value="">Ticket par défaut</option>
+          @for (printer of thermalPrinters(); track printer.id) {
             <option [value]="printer.id">{{ printer.name }}</option>
           }
         </select>

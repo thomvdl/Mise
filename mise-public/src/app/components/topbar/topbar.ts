@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
@@ -29,6 +29,8 @@ export class Topbar implements OnInit {
   /** Pour le sélecteur "imprimante de ce poste" — vide tant qu'aucune imprimante n'est configurée,
    *  auquel cas le sélecteur ne s'affiche pas du tout (rien à choisir). */
   printers = signal<Printer[]>([]);
+  labelPrinters = computed(() => this.printers().filter((p) => p.type === 'label'));
+  thermalPrinters = computed(() => this.printers().filter((p) => p.type === 'thermal'));
 
   /** Below the breakpoint where nav-links no longer fit, they collapse into this dropdown. */
   menuOpen = signal(false);
@@ -71,6 +73,10 @@ export class Topbar implements OnInit {
 
   selectLocalPrinter(value: string): void {
     this.localPrinter.set(value === '' ? null : Number(value));
+  }
+
+  selectLocalThermalPrinter(value: string): void {
+    this.localPrinter.setThermal(value === '' ? null : Number(value));
   }
 
   toggleMenu(): void {

@@ -15,6 +15,33 @@ La solution dépend de l'OS du mini PC :
 | Adresse à renseigner dans Paramètres → Impression d'étiquettes | `zpl-bridge` (nom du service Docker) | `host.docker.internal` (adresse spéciale résolue par Docker Desktop vers la machine hôte) | `host.docker.internal` (idem, Docker Desktop le résout aussi sur macOS) |
 | Fichiers | `docker-compose.linux-usb-printer.yml` (racine du projet) | `app/` empaqueté en `.exe` (voir ci-dessous) | `app/` empaqueté en `.app` (voir ci-dessous) |
 
+### Ticket thermique (ESC/POS, ex. Epson TM-m30) pour les fiches techniques
+
+Même principe que ci-dessus, mais pour imprimer les fiches techniques en cuisine (voir
+`EscposFicheTechniqueBuilder`/`EscposPrinter` côté API) plutôt que des étiquettes HACCP : un
+second pont, sur le port **9101** cette fois, tourne en parallèle du pont 9100 — l'appli Windows/
+macOS démarre toujours les deux (voir `main.py`), même sur un poste qui n'a en pratique qu'une
+des deux imprimantes branchées (l'autre reste juste "indisponible", sans rien casser).
+
+Pas d'installation séparée : une fois l'appli `app/` installée pour les étiquettes (voir les
+sections OS ci-dessous), le ticket se configure depuis le même endroit — onglet **« Ticket
+(cuisine) »** de la fenêtre de statut :
+
+- **macOS** : détection automatique sur l'USB par vendor ID Epson, comme la Zebra — rien à
+  configurer.
+- **Windows** : imprimante installée dans Windows (pilote **Generic / Text Only** recommandé,
+  même raison que pour la Zebra — voir plus bas), à choisir dans le sélecteur de l'onglet, puis
+  bouton **« Autoriser dans le pare-feu »** pour le port 9101 (règle indépendante de celle du
+  port 9100).
+- **Linux** (`docker-compose.linux-usb-printer.yml`) : pas encore couvert — ce fichier ne relaie
+  aujourd'hui que le port 9100 vers l'imprimante USB ; une install Linux avec ticket thermique
+  demanderait d'y ajouter un second service `socat` sur le port 9101.
+
+Côté dashboard, l'adresse à renseigner pour cette imprimante (Paramètres → Imprimantes, ligne de
+type "Ticket thermique") est la même IP que la Zebra de ce poste — seul le port diffère, et il
+n'y a rien à saisir pour lui : `EscposPrinter` le connaît déjà (9101), tout comme `ZplPrinter`
+connaît déjà 9100.
+
 ## Windows et macOS : l'appli de barre système (`app/`)
 
 Sur Windows et macOS, le pont tourne désormais sous la forme d'une petite appli native avec icône

@@ -3,6 +3,26 @@
   margin: 20px 0 28px;
 }
 
+/* Un ".section-title" (global, voir styles.css) par type d'imprimante plutôt qu'une liste unique
+ * — étiquettes et tickets sont deux matériels indépendants, pas la peine de les distinguer par un
+ * badge dans chaque ligne. */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.section-header .section-title {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.section-header + .type-list,
+.section-header + .form-hint {
+  margin-top: 10px;
+}
+
 .type-list {
   list-style: none;
   margin: 0;

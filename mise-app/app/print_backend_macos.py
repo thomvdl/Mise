@@ -1,8 +1,12 @@
-"""Backend d'impression macOS : parle directement au périphérique USB de la Zebra via `pyusb`,
+"""Backend d'impression macOS : parle directement au périphérique USB de l'imprimante via `pyusb`,
 sans passer par CUPS — macOS récent a retiré le support des files d'attente "brutes"
 (`lpadmin -m raw` échoue), donc pas d'impression RAW possible via le spouleur système comme sur
 Windows. Détection automatique par vendor ID USB, pas de configuration requise (contrairement à
 `print_backend_windows.py`, qui doit connaître un nom d'imprimante installé).
+
+Une classe générique paramétrée par vendor ID plutôt qu'une classe par marque : les étiquettes
+Zebra et le ticket thermique Epson utilisent le même mécanisme (écriture brute sur l'endpoint OUT
+de l'interface USB), seul le vendor ID à chercher change.
 
 En dev, `pyusb` trouve `libusb` tout seul (installé via `brew install libusb`, voir README). Mais
 le mini PC cible n'a pas forcément Homebrew — on bundle donc le `.dylib` dans l'app empaquetée
@@ -18,6 +22,9 @@ import usb.core
 import usb.util
 
 VENDOR_ID_ZEBRA = 0x0A5F
+# Vendor ID USB officiel Epson — couvre aussi bien les TM-m30/TM-T20/TM-T88 que les autres
+# imprimantes Epson, mais c'est la seule marque de ticket thermique visée ici.
+VENDOR_ID_EPSON = 0x04B8
 
 
 def _bundled_backend():
@@ -30,11 +37,13 @@ def _bundled_backend():
 
 
 class MacOsPrintBackend:
-    def __init__(self) -> None:
+    def __init__(self, vendor_id: int = VENDOR_ID_ZEBRA, label: str = "Zebra") -> None:
+        self._vendor_id = vendor_id
+        self._label = label
         self._backend = _bundled_backend()
 
     def _find_device(self):
-        return usb.core.find(idVendor=VENDOR_ID_ZEBRA, backend=self._backend)
+        return usb.core.find(idVendor=self._vendor_id, backend=self._backend)
 
     def is_available(self) -> bool:
         return self._find_device() is not None
@@ -42,16 +51,16 @@ class MacOsPrintBackend:
     def describe(self) -> str:
         dev = self._find_device()
         if dev is None:
-            return "Aucune imprimante Zebra détectée sur l'USB"
+            return f"Aucune imprimante {self._label} détectée sur l'USB"
         try:
             return f"{dev.manufacturer} {dev.product} (série {dev.serial_number})"
         except Exception:  # noqa: BLE001 — lecture des chaînes USB best-effort pour l'affichage
-            return "Imprimante Zebra détectée (USB)"
+            return f"Imprimante {self._label} détectée (USB)"
 
     def send(self, data: bytes) -> None:
         dev = self._find_device()
         if dev is None:
-            raise RuntimeError("Imprimante Zebra introuvable sur l'USB")
+            raise RuntimeError(f"Imprimante {self._label} introuvable sur l'USB")
 
         try:
             cfg = dev.get_active_configuration()
