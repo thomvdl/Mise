@@ -27,15 +27,35 @@ Pas d'installation séparée : une fois l'appli `app/` installée pour les étiq
 sections OS ci-dessous), le ticket se configure depuis le même endroit — onglet **« Ticket
 (cuisine) »** de la fenêtre de statut :
 
-- **macOS** : détection automatique sur l'USB par vendor ID Epson, comme la Zebra — rien à
-  configurer.
-- **Windows** : imprimante installée dans Windows (pilote **Generic / Text Only** recommandé,
-  même raison que pour la Zebra — voir plus bas), à choisir dans le sélecteur de l'onglet, puis
-  bouton **« Autoriser dans le pare-feu »** pour le port 9101 (règle indépendante de celle du
-  port 9100).
-- **Linux** (`docker-compose.linux-usb-printer.yml`) : pas encore couvert — ce fichier ne relaie
-  aujourd'hui que le port 9100 vers l'imprimante USB ; une install Linux avec ticket thermique
-  demanderait d'y ajouter un second service `socat` sur le port 9101.
+Deux façons de brancher le ticket, au choix dans l'onglet (réglage **« Connexion »**, USB ou
+Réseau) :
+
+- **USB** : détection automatique sur l'USB par vendor ID Epson sur macOS, comme la Zebra — rien
+  à configurer. Sur Windows : imprimante installée dans Windows (pilote **Generic / Text Only**
+  recommandé, même raison que pour la Zebra — voir plus bas), à choisir dans le sélecteur de
+  l'onglet.
+- **Réseau** : pour un ticket branché en Ethernet/WiFi plutôt qu'en USB (ex. un Epson TM-m30 avec
+  son interface réseau) — IP + port à saisir dans l'onglet (port 9100 par défaut, convention la
+  plus courante côté imprimantes réseau, à ajuster si le modèle branché en utilise un autre). Dans
+  ce mode, mise-app relaie simplement les octets reçus sur son propre port 9101 vers cette IP:port
+  (voir `print_backend_network.py`) — fonctionne pareil sur macOS et Windows, contrairement au
+  mode USB ci-dessus.
+
+Pare-feu Windows : bouton **« Autoriser dans le pare-feu »** de l'onglet, pour le port 9101 (règle
+indépendante de celle du port 9100) — nécessaire dans les deux modes (USB et Réseau), puisque
+c'est le port par lequel l'API centrale CONTACTE ce poste, pas celui par lequel ce poste contacte
+l'imprimante.
+
+**Linux** (`docker-compose.linux-usb-printer.yml`) : pas couvert du tout pour l'instant, ni en USB
+ni en Réseau — ce fichier ne relaie aujourd'hui que le port 9100 vers l'imprimante USB, et il n'y
+a pas d'équivalent mise-app packagé pour Linux qui écouterait sur le port 9101 (voir le tableau en
+haut de ce fichier). **Attention** : contrairement à la Zebra, on ne peut PAS non plus pointer le
+dashboard directement sur l'IP réelle d'un Epson réseau pour s'en passer — `EscposPrinter` cible
+toujours le port 9101 (celui du pont mise-app), alors qu'un Epson réseau écoute en vrai sur son
+propre port (9100 par défaut, voir plus haut) : sans mise-app entre les deux, ça ne marche pas. Une
+install Linux avec ticket thermique (USB ou Réseau) demanderait d'ajouter un second service sur le
+port 9101 qui relaie vers l'imprimante — `socat` pour l'USB, ou un simple relais TCP pour le
+Réseau.
 
 Côté dashboard, l'adresse à renseigner pour cette imprimante (Paramètres → Imprimantes, ligne de
 type "Ticket thermique") est la même IP que la Zebra de ce poste — seul le port diffère, et il

@@ -10,7 +10,10 @@ Tâches d'installation/outillage en cours — distinct du backlog fonctionnel de
   l'installation en cours, vérifier la détection USB macOS (vendor ID Epson `0x04B8` — à confirmer
   sur le modèle réellement acheté, ex. TM-m30II), l'accent français via la table de caractères
   Windows-1252 (`EscposFicheTechniqueBuilder`), le nombre de caractères par ligne pour la largeur
-  de rouleau choisie (58 ou 80mm), et la coupe papier (`GS V 0`, pas testée sur ce modèle).
+  de rouleau choisie (58 ou 80mm), et la coupe papier (`GS V 0`, pas testée sur ce modèle). Si le
+  ticket est branché en réseau plutôt qu'en USB (mode "Réseau" ajouté le 2026-10-23, voir
+  `print_backend_network.py`) : vérifier le port réel utilisé par le modèle (9100 par défaut ici,
+  à confirmer) et que le relais fonctionne de bout en bout.
 
 ## Un jour, peut-être
 

@@ -24,6 +24,7 @@ from pathlib import Path
 from . import autostart, config, kiosk, project, temperature_alerts
 from .bridge_server import THERMAL_LISTEN_PORT, BridgeServer
 from .events import EventLog
+from .print_backend_network import DEFAULT_NETWORK_PORT, NetworkPrintBackend, ThermalPrintBackend
 from .status_window import StatusWindow
 from .tray_icon import build_tray_icon, update_icon
 
@@ -55,13 +56,29 @@ def build_backend(role: str):
     nom d'imprimante Windows (voir config.py) selon le type d'imprimante. Deux instances
     distinctes tournent toujours côte à côte (voir main()), même sur un poste qui n'a en pratique
     qu'un seul type branché — l'autre backend reste juste "indisponible" (is_available() à False),
-    sans rien casser."""
+    sans rien casser.
+
+    Le rôle "thermal" peut en plus être branché en réseau (Ethernet/WiFi) plutôt qu'en USB — voir
+    ThermalPrintBackend, qui bascule entre les deux selon le réglage choisi dans l'onglet "Ticket
+    (cuisine)" de la fenêtre de statut. Pas la même chose pour "label" : pas demandé, et une
+    Zebra réseau se configure déjà directement côté dashboard (Printer.ip pointe alors sur la
+    Zebra elle-même, sans passer par ce pont du tout — voir README.md)."""
     if sys.platform == "win32":
         config_key = "windows_printer_name" if role == "label" else "windows_ticket_printer_name"
-        return Backend(lambda: config.load().get(config_key))
-    vendor_id = VENDOR_ID_ZEBRA if role == "label" else VENDOR_ID_EPSON
-    label = "Zebra" if role == "label" else "Epson"
-    return Backend(vendor_id, label)
+        usb_backend = Backend(lambda: config.load().get(config_key))
+    else:
+        vendor_id = VENDOR_ID_ZEBRA if role == "label" else VENDOR_ID_EPSON
+        vendor_label = "Zebra" if role == "label" else "Epson"
+        usb_backend = Backend(vendor_id, vendor_label)
+
+    if role == "label":
+        return usb_backend
+
+    network_backend = NetworkPrintBackend(
+        lambda: config.load().get("ticket_network_host"),
+        lambda: config.load().get("ticket_network_port") or DEFAULT_NETWORK_PORT,
+    )
+    return ThermalPrintBackend(usb_backend, network_backend, lambda: config.load().get("ticket_mode") or "usb")
 
 
 def ensure_project_running(events: EventLog) -> None:

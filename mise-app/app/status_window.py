@@ -287,9 +287,11 @@ class StatusWindow:
             wraplength=900,
             justify="left",
         ).pack(anchor="w", pady=(0, 10))
+        self._build_ticket_mode_picker(ticket_tab)
         if sys.platform == "win32":
             self._build_ticket_printer_picker(ticket_tab)
             self._build_ticket_firewall_row(ticket_tab)
+        self._build_ticket_network_fields(ticket_tab)
         self.ticket_status_label = ttk.Label(ticket_tab, text="…")
         self.ticket_status_label.pack(anchor="w", pady=(0, 6))
         ttk.Button(ticket_tab, text="Imprimer un ticket de test", command=self._print_ticket_test).pack(
@@ -390,6 +392,79 @@ class StatusWindow:
             args=(firewall_windows.allow_bridge_port, ()),
             daemon=True,
         ).start()
+
+    def _build_ticket_mode_picker(self, parent: tk.Misc) -> None:
+        # USB : détection automatique par vendor ID sur macOS, imprimante Windows installée sur
+        # Windows (voir _build_ticket_printer_picker) — comme la Zebra. Réseau : relaie vers une
+        # IP/port directement, pour un Epson branché en Ethernet/WiFi plutôt qu'en USB (voir
+        # NetworkPrintBackend/ThermalPrintBackend) — utile aussi bien sur macOS que sur Windows,
+        # contrairement au reste de cet onglet qui dépend de l'OS.
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(frame, text="Connexion :").pack(anchor="w")
+
+        cfg = config.load()
+        self.ticket_mode_var = tk.StringVar(value=cfg.get("ticket_mode") or "usb")
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(2, 0))
+        ttk.Radiobutton(
+            row, text="USB (détection automatique / imprimante installée)",
+            variable=self.ticket_mode_var, value="usb", command=self._save_ticket_mode,
+        ).pack(side="left")
+        ttk.Radiobutton(
+            row, text="Réseau (IP)", variable=self.ticket_mode_var, value="network",
+            command=self._save_ticket_mode,
+        ).pack(side="left", padx=(12, 0))
+
+    def _save_ticket_mode(self) -> None:
+        cfg = config.load()
+        cfg["ticket_mode"] = self.ticket_mode_var.get()
+        config.save(cfg)
+        self.refresh()
+
+    def _build_ticket_network_fields(self, parent: tk.Misc) -> None:
+        from .print_backend_network import DEFAULT_NETWORK_PORT
+
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(frame, text="Adresse réseau du ticket (mode « Réseau » ci-dessus) :").pack(anchor="w")
+
+        cfg = config.load()
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(2, 0))
+
+        self.ticket_host_var = tk.StringVar(value=cfg.get("ticket_network_host") or "")
+        host_entry = ttk.Entry(row, textvariable=self.ticket_host_var)
+        host_entry.pack(side="left", fill="x", expand=True)
+        host_entry.bind("<FocusOut>", lambda _event: self._save_ticket_network())
+
+        ttk.Label(row, text=":").pack(side="left", padx=(4, 4))
+
+        self.ticket_port_var = tk.StringVar(value=str(cfg.get("ticket_network_port") or DEFAULT_NETWORK_PORT))
+        port_entry = ttk.Entry(row, textvariable=self.ticket_port_var, width=6)
+        port_entry.pack(side="left")
+        port_entry.bind("<FocusOut>", lambda _event: self._save_ticket_network())
+
+        ttk.Label(
+            frame,
+            text=f"Port par défaut des Epson réseau : {DEFAULT_NETWORK_PORT} — à ajuster si le "
+            "modèle branché en utilise un autre.",
+            wraplength=900,
+            justify="left",
+        ).pack(anchor="w", pady=(4, 0))
+
+    def _save_ticket_network(self) -> None:
+        from .print_backend_network import DEFAULT_NETWORK_PORT
+
+        cfg = config.load()
+        cfg["ticket_network_host"] = self.ticket_host_var.get().strip() or None
+        try:
+            cfg["ticket_network_port"] = int(self.ticket_port_var.get().strip())
+        except ValueError:
+            cfg["ticket_network_port"] = DEFAULT_NETWORK_PORT
+            self.ticket_port_var.set(str(DEFAULT_NETWORK_PORT))
+        config.save(cfg)
+        self.refresh()
 
     def _build_ticket_printer_picker(self, parent: tk.Misc) -> None:
         from .print_backend_windows import WindowsPrintBackend
