@@ -22,13 +22,14 @@ import tkinter as tk
 from pathlib import Path
 
 from . import autostart, config, kiosk, project, temperature_alerts
-from .bridge_server import BridgeServer
+from .bridge_server import THERMAL_LISTEN_PORT, BridgeServer
 from .events import EventLog
+from .print_backend_network import DEFAULT_NETWORK_PORT, NetworkPrintBackend, ThermalPrintBackend
 from .status_window import StatusWindow
 from .tray_icon import build_tray_icon, update_icon
 
 if sys.platform == "darwin":
-    from .print_backend_macos import MacOsPrintBackend as Backend
+    from .print_backend_macos import VENDOR_ID_EPSON, VENDOR_ID_ZEBRA, MacOsPrintBackend as Backend
 elif sys.platform == "win32":
     from .print_backend_windows import WindowsPrintBackend as Backend
 else:
@@ -50,10 +51,34 @@ def get_executable_path() -> str:
     return sys.executable
 
 
-def build_backend():
+def build_backend(role: str):
+    """`role` ∈ {"label", "thermal"} — choisit le vendor ID USB (macOS) ou la clé de config du
+    nom d'imprimante Windows (voir config.py) selon le type d'imprimante. Deux instances
+    distinctes tournent toujours côte à côte (voir main()), même sur un poste qui n'a en pratique
+    qu'un seul type branché — l'autre backend reste juste "indisponible" (is_available() à False),
+    sans rien casser.
+
+    Le rôle "thermal" peut en plus être branché en réseau (Ethernet/WiFi) plutôt qu'en USB — voir
+    ThermalPrintBackend, qui bascule entre les deux selon le réglage choisi dans l'onglet "Ticket
+    (cuisine)" de la fenêtre de statut. Pas la même chose pour "label" : pas demandé, et une
+    Zebra réseau se configure déjà directement côté dashboard (Printer.ip pointe alors sur la
+    Zebra elle-même, sans passer par ce pont du tout — voir README.md)."""
     if sys.platform == "win32":
-        return Backend(lambda: config.load().get("windows_printer_name"))
-    return Backend()
+        config_key = "windows_printer_name" if role == "label" else "windows_ticket_printer_name"
+        usb_backend = Backend(lambda: config.load().get(config_key))
+    else:
+        vendor_id = VENDOR_ID_ZEBRA if role == "label" else VENDOR_ID_EPSON
+        vendor_label = "Zebra" if role == "label" else "Epson"
+        usb_backend = Backend(vendor_id, vendor_label)
+
+    if role == "label":
+        return usb_backend
+
+    network_backend = NetworkPrintBackend(
+        lambda: config.load().get("ticket_network_host"),
+        lambda: config.load().get("ticket_network_port") or DEFAULT_NETWORK_PORT,
+    )
+    return ThermalPrintBackend(usb_backend, network_backend, lambda: config.load().get("ticket_mode") or "usb")
 
 
 def ensure_project_running(events: EventLog) -> None:
@@ -164,11 +189,18 @@ def maybe_check_for_updates(events: EventLog) -> None:
 
 def main() -> None:
     events = EventLog()
-    backend = build_backend()
+    backend = build_backend("label")
+    thermal_backend = build_backend("thermal")
 
+    # Deux ponts indépendants, chacun sur son port (voir bridge_server.py) : un poste sans ticket
+    # thermique configuré a quand même `thermal_bridge` qui tourne, juste inutile tant
+    # qu'EscposPrinter ne lui envoie rien — ne coûte qu'un port TCP en écoute de plus, pas de
+    # dépendance à activer/désactiver.
     bridge = BridgeServer(backend, events)
     bridge.start()
-    events.add("Pont démarré")
+    thermal_bridge = BridgeServer(thermal_backend, events, port=THERMAL_LISTEN_PORT)
+    thermal_bridge.start()
+    events.add("Ponts démarrés (étiquette + ticket)")
 
     ensure_project_running(events)
     ensure_zigbee_connected(events)
@@ -178,7 +210,7 @@ def main() -> None:
     root = tk.Tk()
     root.withdraw()
 
-    status_window = StatusWindow(root, backend, events, autostart, get_executable_path)
+    status_window = StatusWindow(root, backend, thermal_backend, events, autostart, get_executable_path)
 
     actions: "queue.Queue[str]" = queue.Queue()
 
@@ -196,6 +228,7 @@ def main() -> None:
             # indépendamment de mise-app).
             zigbee_macos.stop(events.add)
         bridge.stop()
+        thermal_bridge.stop()
         icon.stop()
         root.quit()
 

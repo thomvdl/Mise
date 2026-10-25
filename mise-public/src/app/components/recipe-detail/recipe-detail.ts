@@ -3,6 +3,8 @@ import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
+import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { LocalPrinterService } from '../../core/services/local-printer.service';
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
 import { componentCost } from '../../core/utils/component-cost';
@@ -49,6 +51,8 @@ const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 })
 export class RecipeDetail {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly ficheTechniqueService = inject(FicheTechniqueService);
+  private readonly localPrinter = inject(LocalPrinterService);
 
   private readonly dialEl = viewChild<ElementRef<HTMLDivElement>>('dialEl');
   private readonly photoCarouselEl = viewChild<ElementRef<HTMLDivElement>>('photoCarousel');
@@ -310,6 +314,31 @@ export class RecipeDetail {
 
   print(): void {
     window.print();
+  }
+
+  printingTicket = signal(false);
+  ticketError = signal<string | null>(null);
+
+  /** Imprime la fiche (à l'échelle du nombre de portions courant, voir le dial +/-) sur le
+   * ticket thermique de ce poste — voir FicheTechniqueService::printThermal. Distinct de
+   * print() ci-dessus : ne passe pas par `window.print()`, l'API ouvre directement la connexion
+   * TCP vers l'imprimante (voir EscposPrinter côté serveur). */
+  printTicket(): void {
+    const fiche = this.fiche();
+    if (!fiche || this.printingTicket()) return;
+
+    this.printingTicket.set(true);
+    this.ticketError.set(null);
+
+    this.ficheTechniqueService
+      .printThermal(fiche.id, { printer_id: this.localPrinter.thermalPrinterId(), servings: this.servings() })
+      .subscribe({
+        complete: () => this.printingTicket.set(false),
+        error: (err) => {
+          this.printingTicket.set(false);
+          this.ticketError.set(err?.error?.message ?? "Une erreur est survenue lors de l'impression.");
+        },
+      });
   }
 
   generatedAt(): string {

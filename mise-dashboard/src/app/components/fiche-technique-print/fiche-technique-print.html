@@ -77,7 +77,13 @@
       }
       <div class="dh-actions no-print">
         <button type="button" class="print-label-link" (click)="print()">Imprimer la fiche</button>
+        <button type="button" class="print-label-link" [disabled]="printingTicket()" (click)="printTicket()">
+          {{ printingTicket() ? 'Impression…' : 'Imprimer sur ticket' }}
+        </button>
       </div>
+      @if (ticketError()) {
+        <p class="form-error no-print">{{ ticketError() }}</p>
+      }
     </div>
 
     <div class="dial-wrap no-print">

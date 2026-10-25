@@ -166,6 +166,8 @@
   margin-top: 14px;
 }
 
+.form-error { font-size: 12px; color: var(--accent-red); margin: 6px 0 0; }
+
 .print-label-link {
   display: inline-flex;
   align-items: center;
@@ -187,6 +189,14 @@
 .print-label-link:hover {
   background: var(--accent-copper);
   color: #fff;
+}
+.print-label-link:disabled {
+  opacity: .5;
+  cursor: default;
+}
+.print-label-link:disabled:hover {
+  background: none;
+  color: var(--accent-copper);
 }
 
 /* .cost-footer is defined globally without wrap — the note needs its own row above the figures. */

@@ -175,6 +175,14 @@
   background: var(--accent-copper);
   color: #fff;
 }
+.print-label-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.print-label-link:disabled:hover {
+  background: none;
+  color: var(--accent-copper);
+}
 
 /* portions dial */
 .dial-wrap {

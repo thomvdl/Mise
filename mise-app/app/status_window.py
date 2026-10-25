@@ -74,6 +74,14 @@ def _test_zpl(fmt: dict) -> bytes:
     ).encode()
 
 
+def _test_escpos() -> bytes:
+    """Ticket minimal pour le bouton de test — même rôle que `_test_zpl` ci-dessus côté Zebra :
+    juste de quoi confirmer que ce second pont et l'imprimante thermique répondent, pas un vrai
+    ticket de fiche technique (voir EscposFicheTechniqueBuilder côté API pour le vrai format).
+    `\\x1B@` initialise l'imprimante, `\\x1D V 0` coupe le papier."""
+    return b"\x1B@Test pont ticket\n\n\n\x1DV\x00"
+
+
 # `^JUF` recharge les réglages d'usine Zebra (noirceur, vitesse, type de support...) sur
 # l'imprimante active, et `^JUS` les sauvegarde pour qu'ils survivent au prochain redémarrage —
 # sans ça, `^JUF` seul reviendrait aux dernières valeurs sauvegardées à la prochaine mise sous
@@ -204,8 +212,17 @@ def _ask_string(parent: tk.Misc, title: str, prompt: str, show: Optional[str] = 
 
 
 class StatusWindow:
-    def __init__(self, root: tk.Tk, backend, events, autostart_module, get_executable_path: Callable[[], str]):
+    def __init__(
+        self,
+        root: tk.Tk,
+        backend,
+        thermal_backend,
+        events,
+        autostart_module,
+        get_executable_path: Callable[[], str],
+    ):
         self.backend = backend
+        self.thermal_backend = thermal_backend
         self.events = events
         self.autostart = autostart_module
         self.get_executable_path = get_executable_path
@@ -238,7 +255,7 @@ class StatusWindow:
 
         # Cadre intérieur avec la même marge que les sections des autres onglets (padx=8 sur
         # chaque ligne), pour que les contenus soient alignés d'un onglet à l'autre.
-        printer_tab = ttk.Frame(add_tab("Imprimante"))
+        printer_tab = ttk.Frame(add_tab("Étiquettes"))
         printer_tab.pack(fill="x", padx=8, pady=(8, 0))
         if sys.platform == "win32":
             self._build_printer_picker(printer_tab)
@@ -255,6 +272,30 @@ class StatusWindow:
         )
         ttk.Button(printer_btn_row, text="Paramètres de base", command=self._reset_to_factory_defaults).pack(
             side="left", padx=(6, 0)
+        )
+
+        # Onglet séparé plutôt qu'une section de plus dans "Étiquettes" : deux imprimantes
+        # indépendantes (deux ports du pont, voir bridge_server.py/main.py), chacune avec son
+        # réglage/test propre — les mélanger dans le même onglet aurait rendu peu clair quel
+        # bouton agit sur quelle imprimante.
+        ticket_tab = ttk.Frame(add_tab("Ticket (cuisine)"))
+        ticket_tab.pack(fill="x", padx=8, pady=(8, 0))
+        ttk.Label(
+            ticket_tab,
+            text="Ticket thermique ESC/POS (ex. Epson TM-m30) pour imprimer les fiches "
+            "techniques en cuisine — distinct de l'étiqueteuse Zebra ci-dessus.",
+            wraplength=900,
+            justify="left",
+        ).pack(anchor="w", pady=(0, 10))
+        self._build_ticket_mode_picker(ticket_tab)
+        if sys.platform == "win32":
+            self._build_ticket_printer_picker(ticket_tab)
+            self._build_ticket_firewall_row(ticket_tab)
+        self._build_ticket_network_fields(ticket_tab)
+        self.ticket_status_label = ttk.Label(ticket_tab, text="…")
+        self.ticket_status_label.pack(anchor="w", pady=(0, 6))
+        ttk.Button(ticket_tab, text="Imprimer un ticket de test", command=self._print_ticket_test).pack(
+            anchor="w"
         )
 
         zigbee_tab = add_tab("Pont Zigbee")
@@ -349,6 +390,137 @@ class StatusWindow:
         threading.Thread(
             target=self._run_project_task,
             args=(firewall_windows.allow_bridge_port, ()),
+            daemon=True,
+        ).start()
+
+    def _build_ticket_mode_picker(self, parent: tk.Misc) -> None:
+        # USB : détection automatique par vendor ID sur macOS, imprimante Windows installée sur
+        # Windows (voir _build_ticket_printer_picker) — comme la Zebra. Réseau : relaie vers une
+        # IP/port directement, pour un Epson branché en Ethernet/WiFi plutôt qu'en USB (voir
+        # NetworkPrintBackend/ThermalPrintBackend) — utile aussi bien sur macOS que sur Windows,
+        # contrairement au reste de cet onglet qui dépend de l'OS.
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(frame, text="Connexion :").pack(anchor="w")
+
+        cfg = config.load()
+        self.ticket_mode_var = tk.StringVar(value=cfg.get("ticket_mode") or "usb")
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(2, 0))
+        ttk.Radiobutton(
+            row, text="USB (détection automatique / imprimante installée)",
+            variable=self.ticket_mode_var, value="usb", command=self._save_ticket_mode,
+        ).pack(side="left")
+        ttk.Radiobutton(
+            row, text="Réseau (IP)", variable=self.ticket_mode_var, value="network",
+            command=self._save_ticket_mode,
+        ).pack(side="left", padx=(12, 0))
+
+    def _save_ticket_mode(self) -> None:
+        cfg = config.load()
+        cfg["ticket_mode"] = self.ticket_mode_var.get()
+        config.save(cfg)
+        self.refresh()
+
+    def _build_ticket_network_fields(self, parent: tk.Misc) -> None:
+        from .print_backend_network import DEFAULT_NETWORK_PORT
+
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(frame, text="Adresse réseau du ticket (mode « Réseau » ci-dessus) :").pack(anchor="w")
+
+        cfg = config.load()
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(2, 0))
+
+        self.ticket_host_var = tk.StringVar(value=cfg.get("ticket_network_host") or "")
+        host_entry = ttk.Entry(row, textvariable=self.ticket_host_var)
+        host_entry.pack(side="left", fill="x", expand=True)
+        host_entry.bind("<FocusOut>", lambda _event: self._save_ticket_network())
+
+        ttk.Label(row, text=":").pack(side="left", padx=(4, 4))
+
+        self.ticket_port_var = tk.StringVar(value=str(cfg.get("ticket_network_port") or DEFAULT_NETWORK_PORT))
+        port_entry = ttk.Entry(row, textvariable=self.ticket_port_var, width=6)
+        port_entry.pack(side="left")
+        port_entry.bind("<FocusOut>", lambda _event: self._save_ticket_network())
+
+        ttk.Label(
+            frame,
+            text=f"Port par défaut des Epson réseau : {DEFAULT_NETWORK_PORT} — à ajuster si le "
+            "modèle branché en utilise un autre.",
+            wraplength=900,
+            justify="left",
+        ).pack(anchor="w", pady=(4, 0))
+
+    def _save_ticket_network(self) -> None:
+        from .print_backend_network import DEFAULT_NETWORK_PORT
+
+        cfg = config.load()
+        cfg["ticket_network_host"] = self.ticket_host_var.get().strip() or None
+        try:
+            cfg["ticket_network_port"] = int(self.ticket_port_var.get().strip())
+        except ValueError:
+            cfg["ticket_network_port"] = DEFAULT_NETWORK_PORT
+            self.ticket_port_var.set(str(DEFAULT_NETWORK_PORT))
+        config.save(cfg)
+        self.refresh()
+
+    def _build_ticket_printer_picker(self, parent: tk.Misc) -> None:
+        from .print_backend_windows import WindowsPrintBackend
+
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        ttk.Label(frame, text="Imprimante Windows (ticket) :").pack(anchor="w")
+
+        cfg = config.load()
+        self.ticket_printer_var = tk.StringVar(value=cfg.get("windows_ticket_printer_name") or "")
+        try:
+            printers = WindowsPrintBackend.list_printers()
+        except Exception:  # noqa: BLE001 — liste best-effort, le champ reste utilisable à la main
+            printers = []
+
+        picker = ttk.Combobox(frame, textvariable=self.ticket_printer_var, values=printers)
+        picker.pack(fill="x")
+        picker.bind("<<ComboboxSelected>>", lambda _event: self._save_ticket_printer_name())
+        picker.bind("<FocusOut>", lambda _event: self._save_ticket_printer_name())
+
+    def _save_ticket_printer_name(self) -> None:
+        cfg = config.load()
+        cfg["windows_ticket_printer_name"] = self.ticket_printer_var.get().strip() or None
+        config.save(cfg)
+
+    def _build_ticket_firewall_row(self, parent: tk.Misc) -> None:
+        # Même besoin que _build_firewall_row ci-dessus, pour le port du ticket (9101) plutôt que
+        # celui des étiquettes (9100) — deux règles de pare-feu indépendantes, voir
+        # firewall_windows.py.
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=(0, 10))
+        self.ticket_firewall_label = ttk.Label(frame, text="…")
+        self.ticket_firewall_label.pack(side="left")
+        self.ticket_firewall_button = ttk.Button(
+            frame, text="Autoriser dans le pare-feu", command=self._allow_ticket_firewall
+        )
+        self.ticket_firewall_button.pack(side="right")
+
+    def _refresh_ticket_firewall(self) -> None:
+        if sys.platform != "win32":
+            return
+        if firewall_windows.is_thermal_bridge_port_allowed():
+            self.ticket_firewall_label.config(text="Pare-feu : impression réseau autorisée ✓")
+            self.ticket_firewall_button.config(state="disabled")
+        else:
+            self.ticket_firewall_label.config(text="⚠ Pare-feu : impression réseau non autorisée")
+            self.ticket_firewall_button.config(state="disabled" if self._busy else "normal")
+
+    def _allow_ticket_firewall(self) -> None:
+        if self._busy:
+            return
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(firewall_windows.allow_thermal_bridge_port, ()),
             daemon=True,
         ).start()
 
@@ -1003,9 +1175,14 @@ class StatusWindow:
         prefix = "🟢" if available else "🟠"
         self.status_label.config(text=f"{prefix} {self.backend.describe()}")
 
+        ticket_available = self.thermal_backend.is_available()
+        ticket_prefix = "🟢" if ticket_available else "🟠"
+        self.ticket_status_label.config(text=f"{ticket_prefix} {self.thermal_backend.describe()}")
+
         self._refresh_project()
         self._refresh_zigbee()
         self._refresh_firewall()
+        self._refresh_ticket_firewall()
 
         self.events_list.delete(0, tk.END)
         for timestamp, level, message in self.events.recent():
@@ -1024,6 +1201,14 @@ class StatusWindow:
             self.events.add("Étiquette de test envoyée")
         except Exception as exc:  # noqa: BLE001 — affiché dans le journal, pas une exception à
             # laisser remonter jusqu'à l'UI.
+            self.events.add(f"Échec du test : {exc}", level="error")
+        self.refresh()
+
+    def _print_ticket_test(self) -> None:
+        try:
+            self.thermal_backend.send(_test_escpos())
+            self.events.add("Ticket de test envoyé")
+        except Exception as exc:  # noqa: BLE001 — voir _print_test
             self.events.add(f"Échec du test : {exc}", level="error")
         self.refresh()
 

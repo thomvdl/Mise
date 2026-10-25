@@ -16,6 +16,7 @@ import { map } from 'rxjs';
 
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { IngredientService } from '../../core/services/ingredient.service';
+import { LocalPrinterService } from '../../core/services/local-printer.service';
 import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { enrichFicheTechnique, uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
@@ -74,6 +75,7 @@ export class FicheTechniquePrint {
   private readonly router = inject(Router);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly localPrinter = inject(LocalPrinterService);
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
   private readonly destroyRef = inject(DestroyRef);
 
@@ -384,6 +386,31 @@ export class FicheTechniquePrint {
 
   print(): void {
     window.print();
+  }
+
+  printingTicket = signal(false);
+  ticketError = signal<string | null>(null);
+
+  /** Imprime la fiche (à l'échelle du nombre de portions courant, voir le dial +/-) sur le
+   * ticket thermique de ce poste — voir FicheTechniqueService::printThermal. Distinct de
+   * print() ci-dessus : ne passe pas par `window.print()`, l'API ouvre directement la connexion
+   * TCP vers l'imprimante (voir EscposPrinter côté serveur). */
+  printTicket(): void {
+    const fiche = this.fiche();
+    if (!fiche || this.printingTicket()) return;
+
+    this.printingTicket.set(true);
+    this.ticketError.set(null);
+
+    this.ficheTechniqueService
+      .printThermal(fiche.id, { printer_id: this.localPrinter.thermalPrinterId(), servings: this.servings() })
+      .subscribe({
+        complete: () => this.printingTicket.set(false),
+        error: (err) => {
+          this.printingTicket.set(false);
+          this.ticketError.set(err?.error?.message ?? "Une erreur est survenue lors de l'impression.");
+        },
+      });
   }
 
   goToFiche(id: number): void {

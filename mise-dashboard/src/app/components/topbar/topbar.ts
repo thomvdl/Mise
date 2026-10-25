@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
@@ -33,6 +33,8 @@ export class Topbar implements OnInit {
    *  sélecteur que côté public (voir topbar public) : le dashboard est admin-only, mais chaque
    *  poste/navigateur admin garde quand même son propre choix d'imprimante. */
   printers = signal<Printer[]>([]);
+  labelPrinters = computed(() => this.printers().filter((p) => p.type === 'label'));
+  thermalPrinters = computed(() => this.printers().filter((p) => p.type === 'thermal'));
 
   ngOnInit(): void {
     this.printerService.list().subscribe({ next: (printers) => this.printers.set(printers) });
@@ -40,6 +42,10 @@ export class Topbar implements OnInit {
 
   selectLocalPrinter(value: string): void {
     this.localPrinter.set(value === '' ? null : Number(value));
+  }
+
+  selectLocalThermalPrinter(value: string): void {
+    this.localPrinter.setThermal(value === '' ? null : Number(value));
   }
 
   readonly navLinks: NavLink[] = [

@@ -54,6 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('ingredient-categories', IngredientCategoryController::class)->only(['index', 'show']);
     Route::apiResource('ingredients', IngredientController::class)->only(['index', 'show']);
     Route::apiResource('fiche-techniques', FicheTechniqueController::class)->only(['index', 'show']);
+    // Imprime la fiche sur le ticket thermique (ESC/POS/TCP côté serveur) — même niveau d'accès
+    // que printed-labels/print-zebra plus bas : n'importe qui de connecté peut imprimer, ce
+    // n'est pas une écriture sur la fiche elle-même.
+    Route::post('fiche-techniques/{fiche_technique}/print-thermal', [FicheTechniqueController::class, 'printThermal']);
     Route::apiResource('menus', MenuController::class)->only(['index', 'show']);
     Route::apiResource('appareils', AppareilController::class)->only(['index', 'show']);
     Route::apiResource('friteuses', FriteuseController::class)->only(['index', 'show'])

@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { LocalPrinterService } from '../../core/services/local-printer.service';
-import { Printer, PrinterPayload } from '../../core/models/printer.model';
+import { Printer, PrinterPayload, PrinterType } from '../../core/models/printer.model';
 import { PrinterService } from '../../core/services/printer.service';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 
@@ -35,14 +35,22 @@ const LABEL_FORMAT_PRESETS: LabelFormatPreset[] = [
 
 const DEFAULT_PAYLOAD: PrinterPayload = {
   name: '',
+  type: 'label',
   ip: '',
   dpi: 203,
   label_width_mm: 57,
   label_height_mm: 32,
   rotate_90: false,
   top_offset_mm: 0,
+  paper_width_mm: null,
   is_default: false,
 };
+
+/** Les deux largeurs de rouleau ESC/POS standard du marché (voir PrinterController::rules côté
+ * API, qui n'accepte que ces deux valeurs) — pas un champ libre comme label_width_mm, ce champ ne
+ * pilote qu'un nombre de caractères par ligne côté builder, pas une vraie mesure physique à régler
+ * au mm près. */
+const PAPER_WIDTH_PRESETS = [58, 80];
 
 /**
  * Plusieurs postes, chacun avec sa Zebra et son format de rouleau (voir Printer côté API — a
@@ -61,8 +69,11 @@ export class PrinterSettings implements OnInit {
   readonly localPrinter = inject(LocalPrinterService);
 
   readonly labelFormatPresets = LABEL_FORMAT_PRESETS;
+  readonly paperWidthPresets = PAPER_WIDTH_PRESETS;
 
   printers = signal<Printer[]>([]);
+  labelPrinters = computed(() => this.printers().filter((p) => p.type === 'label'));
+  thermalPrinters = computed(() => this.printers().filter((p) => p.type === 'thermal'));
   loading = signal(true);
   errorMessage = signal<string | null>(null);
 
@@ -70,6 +81,8 @@ export class PrinterSettings implements OnInit {
   editForm = signal<PrinterPayload>({ ...DEFAULT_PAYLOAD });
   saving = signal(false);
   saveError = signal<string | null>(null);
+
+  isThermal = computed(() => this.editForm().type === 'thermal');
 
   pendingDelete = signal<Printer | null>(null);
 
@@ -110,9 +123,19 @@ export class PrinterSettings implements OnInit {
     this.localPrinter.set(value === '' ? null : Number(value));
   }
 
-  startCreate(): void {
+  selectLocalThermalPrinter(value: string): void {
+    this.localPrinter.setThermal(value === '' ? null : Number(value));
+  }
+
+  startCreate(type: PrinterType = 'label'): void {
     this.editingId.set('new');
-    this.editForm.set({ ...DEFAULT_PAYLOAD, is_default: this.printers().length === 0 });
+    const sameType = this.printers().filter((p) => p.type === type);
+    this.editForm.set({
+      ...DEFAULT_PAYLOAD,
+      type,
+      paper_width_mm: type === 'thermal' ? 80 : null,
+      is_default: sameType.length === 0,
+    });
     this.saveError.set(null);
   }
 
@@ -120,12 +143,14 @@ export class PrinterSettings implements OnInit {
     this.editingId.set(printer.id);
     this.editForm.set({
       name: printer.name,
+      type: printer.type,
       ip: printer.ip,
       dpi: printer.dpi,
       label_width_mm: printer.label_width_mm,
       label_height_mm: printer.label_height_mm,
       rotate_90: printer.rotate_90,
       top_offset_mm: printer.top_offset_mm,
+      paper_width_mm: printer.paper_width_mm,
       is_default: printer.is_default,
     });
     this.saveError.set(null);
@@ -137,6 +162,10 @@ export class PrinterSettings implements OnInit {
 
   patchForm(patch: Partial<PrinterPayload>): void {
     this.editForm.update((form) => ({ ...form, ...patch }));
+  }
+
+  patchPaperWidth(value: string): void {
+    this.patchForm({ paper_width_mm: Number(value) });
   }
 
   selectPreset(label: string): void {
@@ -191,6 +220,7 @@ export class PrinterSettings implements OnInit {
       next: () => {
         this.pendingDelete.set(null);
         if (this.localPrinter.printerId() === printer.id) this.localPrinter.set(null);
+        if (this.localPrinter.thermalPrinterId() === printer.id) this.localPrinter.setThermal(null);
         this.reload();
       },
       error: () => {

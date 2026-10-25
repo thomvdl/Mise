@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\FicheTechnique;
+use App\Models\Printer;
+use App\Services\EscposFicheTechniqueBuilder;
+use App\Services\EscposPrinter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -46,6 +49,41 @@ class FicheTechniqueController extends Controller
     public function show(FicheTechnique $ficheTechnique)
     {
         return $ficheTechnique->load(self::RELATIONS);
+    }
+
+    /**
+     * Imprime la fiche sur le ticket thermique (voir Printer, `type = 'thermal'`) — pense-bête de
+     * cuisine, distinct de la page "Voir"/PDF. `servings` permet de tirer le ticket à l'échelle
+     * d'un nombre de portions différent de celui de la fiche (même dial +/- que les pages
+     * dashboard/public), sans jamais modifier la fiche elle-même.
+     */
+    public function printThermal(Request $request, FicheTechnique $ficheTechnique)
+    {
+        $validated = $request->validate([
+            'printer_id' => ['nullable', 'integer'],
+            'servings' => ['nullable', 'numeric', 'min:0.1'],
+        ]);
+
+        // `ingredients.allergens` n'est pas dans self::RELATIONS (l'index/show de la ressource ne
+        // s'en servent pas, les allergènes y sont recalculés côté client — voir
+        // enrich-fiche-technique.ts) : chargé ici spécifiquement pour le pied de ticket.
+        $ficheTechnique->load(['station', 'ingredients.allergens', 'steps', 'components']);
+
+        $printer = Printer::resolve($validated['printer_id'] ?? null, 'thermal');
+
+        $escpos = EscposFicheTechniqueBuilder::build(
+            $ficheTechnique,
+            $validated['servings'] ?? $ficheTechnique->servings,
+            $printer->paper_width_mm ?? null,
+        );
+
+        $error = EscposPrinter::send($escpos, $printer);
+
+        if ($error) {
+            return response()->json(['message' => $error], 422);
+        }
+
+        return response()->noContent();
     }
 
     /**
