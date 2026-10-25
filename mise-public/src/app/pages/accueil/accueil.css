@@ -28,6 +28,35 @@
   margin: 0;
 }
 
+/* Bascule Raccourcis / Tableau de bord — boutons segmentés, assez grands pour un doigt sur tablette. */
+.view-toggle {
+  display: inline-flex;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.view-toggle button {
+  background: var(--surface);
+  border: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.view-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+
+.view-toggle button.active {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));

@@ -48,6 +48,7 @@ export interface FicheTechnique {
   servings: number;
   difficulty: Difficulty;
   created_at: string;
+  updated_at?: string;
   description: string | null;
   equipment: string[] | null;
   mise_en_place: string | null;

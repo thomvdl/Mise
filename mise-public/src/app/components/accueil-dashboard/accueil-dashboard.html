@@ -1,0 +1,179 @@
+<div class="mosaic">
+  <!-- Mise en place -->
+  @let tasks = pendingMiseEnPlace();
+  <section class="widget area-mep">
+    <header class="widget-header">
+      <h2 class="widget-title">Mise en place</h2>
+      @if (tasks !== null && tasks !== 'error') {
+        <span class="widget-count">{{ tasks.length }} à faire</span>
+      }
+      <a class="widget-link" routerLink="/mise-en-place">Tout voir →</a>
+    </header>
+    @if (tasks === null) {
+      <p class="widget-state">Chargement…</p>
+    } @else if (tasks === 'error') {
+      <p class="widget-state widget-error">Impossible de charger ces données.</p>
+    } @else {
+      <ul class="widget-list">
+        @for (item of tasks.slice(0, listLimit); track item.id) {
+          <li class="widget-row">
+            <div class="row-main">
+              <span class="row-name">{{ item.name }}</span>
+              <span class="row-sub">
+                {{ miseEnPlaceTarget(item) }}
+                @if (item.deadline) {
+                  · avant {{ item.deadline | date: 'dd/MM HH:mm' }}
+                }
+              </span>
+            </div>
+            <span class="urgency-badge" [class]="'urgency-' + item.urgency">
+              {{
+                item.urgency === 'urgente'
+                  ? 'Urgente'
+                  : item.urgency === 'moyenne'
+                    ? 'Moyenne'
+                    : 'Faible'
+              }}
+            </span>
+          </li>
+        } @empty {
+          <li class="widget-state">Rien à préparer.</li>
+        }
+      </ul>
+      @if (tasks.length > listLimit) {
+        <p class="widget-more">+ {{ tasks.length - listLimit }} autre(s)</p>
+      }
+    }
+  </section>
+
+  <!-- Événements à venir -->
+  <section class="widget area-events">
+    <header class="widget-header">
+      <h2 class="widget-title">Événements à venir</h2>
+      <a class="widget-link" routerLink="/calendrier">Calendrier →</a>
+    </header>
+    @let eventList = upcomingEvents();
+    @if (eventList === null) {
+      <p class="widget-state">Chargement…</p>
+    } @else if (eventList === 'error') {
+      <p class="widget-state widget-error">Impossible de charger ces données.</p>
+    } @else {
+      <ul class="widget-list">
+        @for (event of eventList; track event.id) {
+          <li class="widget-row">
+            <div class="row-date" [class.is-today]="isToday(event)">
+              @if (isToday(event)) {
+                Aujourd'hui
+              } @else {
+                {{ event.start_date | date: 'dd/MM' }}
+                @if (event.end_date !== event.start_date) {
+                  → {{ event.end_date | date: 'dd/MM' }}
+                }
+              }
+            </div>
+            <div class="row-main">
+              <span class="row-name">{{ event.name }}</span>
+              <span class="row-sub">
+                {{ eventTypeLabel(event.type) ?? '' }}
+                @if (event.horaire) {
+                  · {{ event.horaire }}
+                }
+                @if (event.menu) {
+                  · {{ event.menu.name }}
+                }
+              </span>
+            </div>
+            @if (event.couverts) {
+              <span class="row-value">{{ event.couverts }} cvt</span>
+            }
+          </li>
+        } @empty {
+          <li class="widget-state">Aucun événement prévu.</li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Liste de courses -->
+  @let articles = pendingCourses();
+  <section class="widget area-courses">
+    <header class="widget-header">
+      <h2 class="widget-title">Liste de courses</h2>
+      @if (articles !== null && articles !== 'error') {
+        <span class="widget-count">{{ articles.length }} article(s)</span>
+      }
+      <a class="widget-link" routerLink="/courses">Tout voir →</a>
+    </header>
+    @if (articles === null) {
+      <p class="widget-state">Chargement…</p>
+    } @else if (articles === 'error') {
+      <p class="widget-state widget-error">Impossible de charger ces données.</p>
+    } @else {
+      <ul class="widget-list">
+        @for (item of articles.slice(0, listLimit); track item.id) {
+          <li class="widget-row">
+            <div class="row-main">
+              <span class="row-name">{{ item.name }}</span>
+              <span class="row-sub"
+                >{{ item.user.name }} · {{ item.created_at | date: 'dd/MM' }}</span
+              >
+            </div>
+            @if (item.station) {
+              <span class="badge" [style.--card-color]="item.station.color">{{
+                item.station.name
+              }}</span>
+            }
+          </li>
+        } @empty {
+          <li class="widget-state">La liste est vide.</li>
+        }
+      </ul>
+      @if (articles.length > listLimit) {
+        <p class="widget-more">+ {{ articles.length - listLimit }} autre(s)</p>
+      }
+    }
+  </section>
+
+  <!-- Fiches techniques -->
+  <section class="widget area-fiches">
+    <header class="widget-header">
+      <h2 class="widget-title">Dernières fiches techniques</h2>
+      <a class="widget-link" routerLink="/fiches">Tout voir →</a>
+    </header>
+    @let ficheList = latestFiches();
+    @if (ficheList === null) {
+      <p class="widget-state">Chargement…</p>
+    } @else if (ficheList === 'error') {
+      <p class="widget-state widget-error">Impossible de charger ces données.</p>
+    } @else {
+      <ul class="widget-list widget-list-columns">
+        @for (fiche of ficheList; track fiche.id) {
+          <li>
+            <a
+              class="widget-row is-link"
+              routerLink="/fiches/recherche"
+              [queryParams]="{ id: fiche.id }"
+            >
+              <div class="row-main">
+                <span class="row-name">{{ fiche.name }}</span>
+                <span class="row-sub">
+                  {{ fiche.category?.name ?? '' }}
+                  @if (fiche.updated_at) {
+                    · modifiée le {{ fiche.updated_at | date: 'dd/MM/yyyy' }}
+                  }
+                </span>
+              </div>
+              @if (fiche.station) {
+                <span class="badge" [style.--card-color]="fiche.station.color">{{
+                  fiche.station.name
+                }}</span>
+              }
+            </a>
+          </li>
+        } @empty {
+          <li class="widget-state">Aucune fiche technique.</li>
+        }
+      </ul>
+    }
+  </section>
+</div>
