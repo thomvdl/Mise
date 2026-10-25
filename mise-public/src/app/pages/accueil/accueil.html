@@ -4,8 +4,17 @@
       {{ greeting() }}{{ currentUser() ? ', ' + currentUser()!.name : '' }}
     </h1>
     <p class="page-sub">Voici les outils de la brigade, tous accessibles depuis cet écran.</p>
+    <div class="view-toggle" role="group" aria-label="Affichage de l'accueil">
+      <button type="button" [class.active]="view() === 'tiles'" (click)="setView('tiles')">Raccourcis</button>
+      <button type="button" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
+        Tableau de bord
+      </button>
+    </div>
   </div>
 
+  @if (view() === 'dashboard') {
+    <app-accueil-dashboard />
+  } @else {
   <div class="tile-grid">
     @for (tile of tiles; track tile.path) {
       <a class="tile" [routerLink]="tile.path">
@@ -53,4 +62,5 @@
       </a>
     }
   </div>
+  }
 </div>

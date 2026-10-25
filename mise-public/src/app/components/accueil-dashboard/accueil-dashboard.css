@@ -1,0 +1,266 @@
+.mosaic {
+  --mosaic-row: 250px;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: var(--mosaic-row);
+  grid-template-areas:
+    'mep mep mep mep mep evt evt evt evt crs crs crs'
+    'mep mep mep mep mep evt evt evt evt crs crs crs'
+    'fic fic fic fic fic fic fic fic fic fic fic fic';
+  /* La rangée des fiches prend la hauteur de son contenu ; les autres gardent une hauteur fixe. */
+  grid-template-rows: var(--mosaic-row) var(--mosaic-row) auto;
+  gap: 14px;
+}
+
+.area-mep {
+  grid-area: mep;
+}
+.area-events {
+  grid-area: evt;
+}
+.area-courses {
+  grid-area: crs;
+}
+.area-fiches {
+  grid-area: fic;
+}
+
+/* Chaque tuile remplit sa case de la mosaïque ; c'est sa liste qui défile si elle déborde,
+   pour que toutes les tuiles d'une même rangée gardent la même hauteur. */
+.widget {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.widget > .widget-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Marge rendue au fond de survol des lignes cliquables (décalées de -8px) : sans elle, elles
+     dépassent de la liste et font apparaître une barre de défilement horizontale. */
+  margin-inline: -8px;
+  padding-inline: 8px;
+}
+
+.area-fiches > .widget-list {
+  overflow-y: visible;
+}
+
+.widget-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.widget-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14.5px;
+  margin: 0;
+}
+
+.widget-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.widget-link {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--accent-blue);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.widget-link:hover {
+  text-decoration: underline;
+}
+
+.widget-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.widget-list-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* Sans ça, la grille étire ses rangées sur toute la hauteur de la tuile et espace les fiches. */
+  align-content: start;
+  column-gap: 24px;
+}
+
+.widget-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.widget-list > li:last-child,
+.widget-list > li:last-child .widget-row {
+  border-bottom: none;
+}
+
+/* En colonnes, la dernière fiche n'est pas forcément en bas de sa colonne : on garde toujours
+   le trait, y compris sur le dernier élément (sélecteur aussi spécifique que celui du dessus). */
+.widget-list-columns > li .widget-row,
+.widget-list-columns > li:last-child .widget-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.widget-row.is-link {
+  border-radius: 6px;
+  margin: 0 -8px;
+  padding: 8px;
+}
+
+.widget-row.is-link:hover {
+  background: var(--surface-2);
+}
+
+.row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.row-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-date {
+  flex-shrink: 0;
+  min-width: 64px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.row-date.is-today {
+  color: var(--accent-copper);
+  font-weight: 700;
+}
+
+.row-value {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.widget-state {
+  color: var(--text-faint);
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.widget-error {
+  color: var(--accent-red);
+}
+
+.widget-more {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin: 8px 0 0;
+}
+
+/* Pastille de station — mise-public n'a pas de .badge global, contrairement à mise-dashboard. */
+.badge {
+  flex-shrink: 0;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: var(--card-color, var(--accent-blue));
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+
+/* Mêmes pastilles que la page Mise en place. */
+.urgency-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--surface-3);
+  color: var(--text-dim);
+}
+
+.urgency-badge.urgency-faible {
+  background: color-mix(in srgb, var(--accent-green) 16%, transparent);
+  color: var(--accent-green);
+}
+
+.urgency-badge.urgency-moyenne {
+  background: color-mix(in srgb, #e0a83c 20%, transparent);
+  color: #b9852a;
+}
+
+.urgency-badge.urgency-urgente {
+  background: color-mix(in srgb, var(--accent-red) 16%, transparent);
+  color: var(--accent-red);
+}
+
+@media (max-width: 1200px) {
+  .mosaic {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'mep evt'
+      'mep crs'
+      'fic fic';
+  }
+}
+
+/* Sur téléphone, une seule colonne : les tuiles prennent leur hauteur naturelle (plafonnée). */
+@media (max-width: 720px) {
+  .mosaic {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+
+  .mosaic > .widget {
+    grid-area: auto;
+    max-height: 440px;
+  }
+
+  .mosaic > .area-fiches {
+    max-height: none;
+  }
+
+  .widget-list-columns {
+    grid-template-columns: 1fr;
+  }
+}
