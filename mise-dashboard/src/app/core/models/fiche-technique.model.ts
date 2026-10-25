@@ -64,6 +64,8 @@ export interface FicheTechnique {
   components?: FicheTechniqueComponent[];
   /** Autres fiches qui utilisent celle-ci comme composant — pour savoir où une recette de base sert. */
   used_in?: FicheTechniqueComponent[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** Une fiche utilisée comme composant d'une autre. `pivot.quantity` est une fraction/un multiple

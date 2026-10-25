@@ -2,8 +2,23 @@
   <h1 class="page-title">
     {{ greeting() }}{{ currentUser() ? ', ' + currentUser()!.name : '' }}
   </h1>
+  <div class="page-actions view-toggle" role="group" aria-label="Affichage de l'accueil">
+    <button type="button" class="btn btn-sm" [class.btn-primary]="view() === 'tiles'" (click)="setView('tiles')">
+      Raccourcis
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm"
+      [class.btn-primary]="view() === 'dashboard'"
+      (click)="setView('dashboard')">
+      Tableau de bord
+    </button>
+  </div>
 </div>
 
+@if (view() === 'dashboard') {
+  <app-home-dashboard />
+} @else {
 <div class="tile-grid">
   @for (tile of tiles; track tile.path) {
     <a class="tile" [routerLink]="tile.path">
@@ -60,3 +75,4 @@
     </a>
   }
 </div>
+}

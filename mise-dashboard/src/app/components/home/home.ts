@@ -1,7 +1,21 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
+import { HomeDashboard } from '../home-dashboard/home-dashboard';
+
+type HomeView = 'tiles' | 'dashboard';
+
+/** Dernière vue choisie sur l'accueil, retenue par navigateur. */
+const HOME_VIEW_KEY = 'mise_home_view';
+
+function readStoredView(): HomeView {
+  try {
+    return localStorage.getItem(HOME_VIEW_KEY) === 'dashboard' ? 'dashboard' : 'tiles';
+  } catch {
+    return 'tiles';
+  }
+}
 
 interface HomeTile {
   label: string;
@@ -12,7 +26,7 @@ interface HomeTile {
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
+  imports: [RouterLink, HomeDashboard],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
@@ -20,6 +34,17 @@ export class Home {
   private readonly auth = inject(AuthService);
 
   currentUser = this.auth.user;
+
+  view = signal<HomeView>(readStoredView());
+
+  setView(view: HomeView) {
+    this.view.set(view);
+    try {
+      localStorage.setItem(HOME_VIEW_KEY, view);
+    } catch {
+      // Stockage indisponible (navigation privée…) : le choix ne vaut que pour cette visite.
+    }
+  }
 
   greeting = computed(() => {
     const hour = new Date().getHours();

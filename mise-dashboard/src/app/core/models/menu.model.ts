@@ -31,6 +31,8 @@ export interface Menu {
   /** ISO date (YYYY-MM-DD). Equal to `starts_at` for a one-shot (single-day) menu. */
   ends_at: string | null;
   sections?: MenuSection[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** Payload shape expected by POST/PATCH /api/menus. */
