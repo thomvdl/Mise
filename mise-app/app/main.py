@@ -94,6 +94,15 @@ def ensure_project_running(events: EventLog) -> None:
     if not project.is_repo_cloned(repo_path) or not project.is_docker_available():
         return
     mode = cfg.get("project_mode") or "server"
+    if not project.has_env(repo_path, mode):
+        # Dossier installé dans l'autre mode — docker compose échouerait sur le fichier de config
+        # manquant ; la fenêtre de statut affiche le problème et propose la bascule.
+        events.add(
+            f"Pas de {project.env_file_name(mode)} dans {repo_path} : démarrage automatique ignoré "
+            "(voir l'onglet « Serveur et mises à jour »).",
+            level="error",
+        )
+        return
 
     def run() -> None:
         try:

@@ -177,6 +177,17 @@ def _compose_prefix(mode: str) -> list[str]:
     return []
 
 
+def env_file_name(mode: str) -> str:
+    return _PUBLIC_ENV_FILE if mode == "public" else ".env"
+
+
+def has_env(repo_path: Path, mode: str) -> bool:
+    """Le fichier de config propre à ce mode existe-t-il ? Sans lui, toute commande `docker
+    compose` du mode échoue (ex. « couldn't find env file: .env.public ») — cas d'un dossier
+    installé dans un mode puis sélectionné alors que mise-app était réglé sur l'autre."""
+    return (repo_path / env_file_name(mode)).is_file()
+
+
 def is_repo_cloned(repo_path: Path) -> bool:
     # Indépendant du mode : le monorepo contient toujours les deux docker-compose.yml, que ce
     # poste doive au final en lancer un seul des deux (voir _compose_prefix) ou l'autre.
@@ -540,6 +551,43 @@ def install_public(
     log("Démarrage du poste public (peut prendre quelques minutes au premier lancement)...")
     docker_up(repo_path, log, build=True, mode="public")
     log("Installation terminée.")
+
+
+def switch_mode(
+    repo_path: Path,
+    from_mode: str,
+    to_mode: str,
+    log: LogFn,
+    api_upstream: Optional[str] = None,
+    admin_name: Optional[str] = None,
+    admin_password: Optional[str] = None,
+    on_switched: Optional[Callable[[], None]] = None,
+) -> None:
+    """Bascule un dossier déjà cloné d'un mode à l'autre, sans nouveau clone : le dépôt contient
+    toujours les deux docker-compose (voir is_repo_cloned). Arrête la pile de l'ancien mode
+    (`stop`, pas `down` : en quittant le serveur complet, la base reste intacte dans son volume
+    Docker et revient telle quelle si on repasse en serveur), crée le fichier de config du nouveau
+    mode s'il manque (les identifiants/l'adresse ne servent que dans ce cas), puis démarre le
+    nouveau mode. `on_switched` est appelé juste avant ce démarrage, pour que mise-app enregistre
+    le nouveau mode même si le démarrage échoue ensuite (« Démarrer le serveur » réessaiera alors
+    le bon mode)."""
+    if has_env(repo_path, from_mode):
+        log("Arrêt des conteneurs du mode actuel...")
+        stop_server(repo_path, log, mode=from_mode)
+    else:
+        log(f"Pas de {env_file_name(from_mode)} : rien à arrêter pour le mode actuel.")
+
+    if to_mode == "public":
+        bootstrap_env_public(repo_path, api_upstream or "", log)
+    else:
+        bootstrap_env(repo_path, admin_name or "", admin_password or "", log)
+
+    if on_switched:
+        on_switched()
+
+    log("Démarrage du nouveau mode (peut prendre plusieurs minutes la première fois)...")
+    docker_up(repo_path, log, build=True, mode=to_mode)
+    log("Changement de mode terminé.")
 
 
 def update_public(repo_path: Path, log: LogFn) -> None:

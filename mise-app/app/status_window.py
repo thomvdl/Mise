@@ -25,6 +25,9 @@ _DASHBOARD_PORT = 8081
 
 _DOTS_PER_MM_203DPI = 203 / 25.4
 
+# Mêmes libellés que les boutons radio de _build_project_section.
+_MODE_LABELS = {"server": "Serveur complet", "public": "Poste public"}
+
 
 def _mm_to_dots(mm: float) -> int:
     return round(mm * _DOTS_PER_MM_203DPI)
@@ -301,18 +304,16 @@ class StatusWindow:
         zigbee_tab = add_tab("Pont Zigbee")
         # Le capteur Zigbee est toujours lié au mosquitto du serveur complet (voir
         # ensure_zigbee_connected dans main.py) — rien à proposer ici sur un poste public seul.
-        # Évalué une fois à l'ouverture : changer de mode ensuite demande de rouvrir la fenêtre
-        # (cas rare, le mode se choisit avant d'installer, voir _refresh_project).
-        if (config.load().get("project_mode") or "server") != "public":
-            self._build_zigbee_section(zigbee_tab)
-        else:
-            ttk.Label(
-                zigbee_tab,
-                text="Poste public : le capteur de température se branche sur le serveur "
-                "complet, pas sur ce poste.",
-                wraplength=900,
-                justify="left",
-            ).pack(anchor="w")
+        # Les deux contenus sont construits, _refresh_zigbee affiche celui du mode courant (qui
+        # peut changer sans relancer l'app, voir _switch_mode).
+        self._build_zigbee_section(zigbee_tab)
+        self.zigbee_public_label = ttk.Label(
+            zigbee_tab,
+            text="Poste public : le capteur de température se branche sur le serveur "
+            "complet, pas sur ce poste.",
+            wraplength=900,
+            justify="left",
+        )
 
         self._build_connect_section(add_tab("QR codes de connexion"))
         self._build_kiosk_section(add_tab("Mode kiosque"))
@@ -561,10 +562,11 @@ class StatusWindow:
         frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=(0, 10))
 
-        # Choix fait une fois pour toutes avant d'installer (désactivé une fois cloné, voir
-        # _refresh_project) : ce poste héberge-t-il toute la pile (db/api/dashboard/public/...),
-        # ou juste mise-public, parlant à l'API d'un serveur complet déjà déployé ailleurs (voir
-        # docker-compose.public.yml) ?
+        # Ce poste héberge-t-il toute la pile (db/api/dashboard/public/...), ou juste
+        # mise-public, parlant à l'API d'un serveur complet déjà déployé ailleurs (voir
+        # docker-compose.public.yml) ? Choisi librement avant d'installer ; une fois cloné, les
+        # boutons radio sont grisés et c'est le bouton « Passer en … » qui fait la bascule (voir
+        # _switch_mode — arrêter l'ancienne pile, créer la config manquante, démarrer la nouvelle).
         mode_row = ttk.Frame(frame)
         mode_row.pack(fill="x", padx=8, pady=(8, 2))
         ttk.Label(mode_row, text="Mode :").pack(side="left")
@@ -580,28 +582,23 @@ class StatusWindow:
             command=self._save_project_mode,
         )
         self.mode_public_radio.pack(side="left", padx=(6, 0))
+        self.switch_mode_button = ttk.Button(mode_row, text="…", command=self._switch_mode)
+        self.switch_mode_button.pack(side="right")
 
         # Uniquement en mode poste public : adresse de l'API centrale, d'abord demandée à
         # l'installation (voir _install), modifiable ensuite ici si le serveur change d'adresse.
-        # Construit une seule fois selon le mode choisi à l'ouverture de la fenêtre — comme pour
-        # la section Zigbee (voir __init__), changer de mode ensuite demande de rouvrir la fenêtre.
-        if self.project_mode_var.get() == "public":
-            api_row = ttk.Frame(frame)
-            api_row.pack(fill="x", padx=8, pady=(0, 2))
-            ttk.Label(api_row, text="Adresse de l'API centrale (host:port) :").pack(anchor="w")
-            repo_path = self._repo_path()
-            current_api = (
-                project.read_public_env_var(repo_path, "API_UPSTREAM")
-                if project.is_repo_cloned(repo_path)
-                else None
-            )
-            self.api_upstream_var = tk.StringVar(value=current_api or "")
-            api_entry = ttk.Entry(api_row, textvariable=self.api_upstream_var)
-            api_entry.pack(fill="x")
-            api_entry.bind("<FocusOut>", lambda _event: self._save_api_upstream())
+        # Toujours construite, affichée ou masquée selon le mode par _refresh_project — pour
+        # qu'une bascule de mode n'oblige pas à relancer l'app.
+        self.api_row = ttk.Frame(frame)
+        ttk.Label(self.api_row, text="Adresse de l'API centrale (host:port) :").pack(anchor="w")
+        self.api_upstream_var = tk.StringVar()
+        api_entry = ttk.Entry(self.api_row, textvariable=self.api_upstream_var)
+        api_entry.pack(fill="x")
+        api_entry.bind("<FocusOut>", lambda _event: self._save_api_upstream())
 
         path_row = ttk.Frame(frame)
         path_row.pack(fill="x", padx=8, pady=(8, 2))
+        self._project_path_row = path_row
         self.project_path_label = ttk.Label(path_row, text="…")
         self.project_path_label.pack(side="left")
         ttk.Button(path_row, text="Dossier…", command=self._choose_repo_folder).pack(side="right")
@@ -741,8 +738,9 @@ class StatusWindow:
         self.refresh()
 
     def _build_zigbee_section(self, parent: tk.Misc) -> None:
+        # Pas de pack ici : affiché (ou non) selon le mode par _refresh_zigbee.
         frame = ttk.Frame(parent)
-        frame.pack(fill="x", pady=(0, 10))
+        self.zigbee_frame = frame
 
         self.zigbee_status_label = ttk.Label(frame, text="…", wraplength=900, justify="left")
         self.zigbee_status_label.pack(anchor="w", padx=8, pady=(8, 4))
@@ -847,9 +845,14 @@ class StatusWindow:
         ).start()
 
     def _refresh_zigbee(self) -> None:
-        if not hasattr(self, "zigbee_status_label"):
-            # Section non construite (poste public seul, voir __init__) — rien à rafraîchir.
+        if self._project_mode() == "public":
+            self.zigbee_frame.pack_forget()
+            if not self.zigbee_public_label.winfo_manager():
+                self.zigbee_public_label.pack(anchor="w")
             return
+        self.zigbee_public_label.pack_forget()
+        if not self.zigbee_frame.winfo_manager():
+            self.zigbee_frame.pack(fill="x", pady=(0, 10))
         cfg = config.load()
         configured = cfg.get("zigbee_busid") if sys.platform == "win32" else cfg.get("zigbee_device_path")
 
@@ -875,6 +878,21 @@ class StatusWindow:
             return
         cfg = config.load()
         cfg["repo_path"] = chosen
+        # Dossier déjà installé dans l'autre mode que celui coché (les boutons radio restent
+        # actifs tant qu'aucun dossier cloné n'est sélectionné) : on s'aligne sur ce qui y est
+        # réellement installé, plutôt que de lancer des commandes Docker vouées à échouer faute
+        # de fichier de config (« couldn't find env file »).
+        chosen_path = Path(chosen)
+        mode = cfg.get("project_mode") or "server"
+        other = "server" if mode == "public" else "public"
+        if (
+            project.is_repo_cloned(chosen_path)
+            and not project.has_env(chosen_path, mode)
+            and project.has_env(chosen_path, other)
+        ):
+            cfg["project_mode"] = other
+            self.project_mode_var.set(other)
+            self.events.add(f"Ce dossier est installé en mode « {_MODE_LABELS[other]} » — mode ajusté.")
         config.save(cfg)
         self.refresh()
 
@@ -884,17 +902,45 @@ class StatusWindow:
         self.project_path_label.config(text=str(repo_path))
 
         cloned = project.is_repo_cloned(repo_path)
-        # Mode figé une fois le dossier cloné (dans un sens ou dans l'autre) — changer d'avis
-        # demande un nouveau dossier, pas la peine de gérer la bascule d'un mode à l'autre sur un
-        # projet déjà installé.
+        # Une fois cloné, le mode ne change plus d'un simple clic radio (ça ne ferait que changer
+        # la config de mise-app, pas ce qui tourne) — c'est le bouton « Passer en … » qui s'en
+        # charge vraiment (voir _switch_mode).
+        self.project_mode_var.set(mode)
         self.mode_server_radio.config(state="disabled" if cloned else "normal")
         self.mode_public_radio.config(state="disabled" if cloned else "normal")
+        if cloned:
+            other = "server" if mode == "public" else "public"
+            self.switch_mode_button.config(
+                text=f"Passer en {_MODE_LABELS[other].lower()}…",
+                state="disabled" if self._busy else "normal",
+            )
+            if not self.switch_mode_button.winfo_manager():
+                self.switch_mode_button.pack(side="right")
+        else:
+            self.switch_mode_button.pack_forget()
+
+        if mode == "public":
+            if not self.api_row.winfo_manager():
+                # Relu à chaque réaffichage (ouverture, ou bascule vers le mode public) — pas à
+                # chaque rafraîchissement, pour ne pas écraser une saisie en cours.
+                current_api = project.read_public_env_var(repo_path, "API_UPSTREAM") if cloned else None
+                self.api_upstream_var.set(current_api or "")
+                self.api_row.pack(fill="x", padx=8, pady=(0, 2), before=self._project_path_row)
+        else:
+            self.api_row.pack_forget()
 
         # Écrit par main.py::maybe_check_for_updates (une fois par jour, en tâche de fond) — lu
         # ici, jamais recalculé depuis l'UI, pour ne jamais faire d'appel réseau à chaque
         # rafraîchissement (3s).
         update_available = config.load().get("update_available") if cloned else None
-        if cloned:
+        env_missing = cloned and not project.has_env(repo_path, mode)
+        if env_missing:
+            self.project_status_label.config(
+                text=f"⚠ Installé, mais pas de {project.env_file_name(mode)} pour le mode "
+                f"« {_MODE_LABELS[mode]} » — bouton « Passer en … » ci-dessus pour revenir au "
+                "mode réellement installé dans ce dossier."
+            )
+        elif cloned:
             version = project.current_version(repo_path)
             status_text = f"✅ Installé — version {version}"
             if update_available:
@@ -908,14 +954,15 @@ class StatusWindow:
         )
 
         self.install_button.config(state="disabled" if (self._busy or cloned) else "normal")
-        self.update_button.config(state="normal" if (not self._busy and cloned) else "disabled")
+        usable = cloned and not env_missing
+        self.update_button.config(state="normal" if (not self._busy and usable) else "disabled")
         # Pas de base locale à sauvegarder/restaurer sur un poste public seul (voir
         # docker-compose.public.yml, qui n'a ni `db` ni `db-backup`).
-        can_backup = not self._busy and cloned and mode == "server"
+        can_backup = not self._busy and usable and mode == "server"
         self.backup_button.config(state="normal" if can_backup else "disabled")
         self.restore_button.config(state="normal" if can_backup else "disabled")
 
-        if not cloned:
+        if not usable:
             self.server_status_label.config(text="")
             self.start_server_button.config(state="disabled")
             self.stop_server_button.config(state="disabled")
@@ -1003,6 +1050,77 @@ class StatusWindow:
         threading.Thread(
             target=self._run_project_task,
             args=(project.install, (repo_path, admin_name, admin_password), {"github_token": github_token}),
+            daemon=True,
+        ).start()
+
+    def _switch_mode(self) -> None:
+        if self._busy:
+            return
+        repo_path = self._repo_path()
+        if not project.is_repo_cloned(repo_path):
+            return
+        self._activate()
+        if not project.is_docker_available():
+            messagebox.showerror("Mise", "Docker n'est pas installé, ou pas démarré.")
+            return
+
+        current = self._project_mode()
+        target = "server" if current == "public" else "public"
+        if target == "public":
+            details = (
+                "Ce poste n'affichera plus que mise-public, branché sur l'API d'un serveur "
+                "central. Les conteneurs du serveur complet sont arrêtés, pas supprimés : la base "
+                "de données reste intacte et revient telle quelle si vous repassez en serveur "
+                "complet."
+            )
+        else:
+            details = (
+                "Ce poste hébergera toute la pile (base, API, dashboard, public...) avec sa "
+                "propre base de données — pas celle du serveur central auquel il était branché."
+            )
+        if not messagebox.askyesno(
+            "Mise",
+            f"Passer en « {_MODE_LABELS[target]} » ?\n\n{details}\n\n"
+            "Le redémarrage peut prendre plusieurs minutes.",
+            icon="warning",
+        ):
+            return
+
+        # Seulement si le fichier de config du nouveau mode n'existe pas encore (première bascule
+        # vers ce mode) — sinon il est réutilisé tel quel, comme à l'installation.
+        kwargs: dict = {}
+        if not project.has_env(repo_path, target):
+            if target == "public":
+                api_upstream = _ask_string(
+                    self.window,
+                    "Mise",
+                    "Adresse de l'API du serveur Mise central, joignable depuis ce poste "
+                    "(host:port — ex. 192.168.1.10:8000, voir .env.public.example) :",
+                )
+                if not api_upstream:
+                    return
+                kwargs["api_upstream"] = api_upstream.strip()
+            else:
+                admin_name = _ask_string(self.window, "Mise", "Nom du compte administrateur :")
+                if not admin_name:
+                    return
+                admin_password = _ask_string(self.window, "Mise", "Mot de passe administrateur :", show="*")
+                if not admin_password:
+                    return
+                kwargs["admin_name"] = admin_name
+                kwargs["admin_password"] = admin_password
+
+        def on_switched() -> None:
+            cfg = config.load()
+            cfg["project_mode"] = target
+            config.save(cfg)
+
+        kwargs["on_switched"] = on_switched
+        self._busy = True
+        self.refresh()
+        threading.Thread(
+            target=self._run_project_task,
+            args=(project.switch_mode, (repo_path, current, target), kwargs),
             daemon=True,
         ).start()
 
