@@ -65,9 +65,9 @@
               @if (isToday(event)) {
                 Aujourd'hui
               } @else {
-                {{ event.start_date | date: 'dd/MM' }}
+                {{ weekday(event.start_date) }} {{ event.start_date | date: 'dd/MM' }}
                 @if (event.end_date !== event.start_date) {
-                  → {{ event.end_date | date: 'dd/MM' }}
+                  → {{ weekday(event.end_date) }} {{ event.end_date | date: 'dd/MM' }}
                 }
               }
             </div>

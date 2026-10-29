@@ -29,6 +29,12 @@ function localDateString(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** Jour de la semaine abrégé ("lun.") d'une date `Y-m-d`, lue en heure locale. */
+function weekday(date: string): string {
+  const [y, m, d] = date.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'short' });
+}
+
 /** Tableau de bord de l'accueil, en lecture seule — même principe que celui de mise-dashboard,
  * limité à ce qui sert à la brigade en service. */
 @Component({
@@ -85,6 +91,7 @@ export class AccueilDashboard implements OnInit {
   });
 
   readonly listLimit = LIST_LIMIT;
+  readonly weekday = weekday;
 
   ngOnInit() {
     this.load(this.ficheTechniqueService.list(), this.fiches);

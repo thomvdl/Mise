@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { MenuService } from '../../core/services/menu.service';
 import { TemperatureReleveService } from '../../core/services/temperature-releve.service';
+import { AppareilService } from '../../core/services/appareil.service';
 import { FriteuseService } from '../../core/services/friteuse.service';
 import { EventService } from '../../core/services/event.service';
 import { MiseEnPlaceItemService } from '../../core/services/mise-en-place-item.service';
@@ -13,22 +14,27 @@ import { ShoppingItemService } from '../../core/services/shopping-item.service';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Menu } from '../../core/models/menu.model';
 import { TemperatureReleve } from '../../core/models/temperature-releve.model';
+import { Appareil } from '../../core/models/appareil.model';
 import { Friteuse } from '../../core/models/friteuse.model';
 import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.model';
 import { MiseEnPlaceItem, MiseEnPlaceUrgency } from '../../core/models/mise-en-place-item.model';
 import { ShoppingItem } from '../../core/models/shopping-item.model';
 import { isChangeOverdue, nextChangeDate } from '../../core/utils/friteuse-schedule';
+import {
+  MAX_SERIES,
+  TemperatureMultiChart,
+  TemperatureSeries,
+} from '../temperature-multi-chart/temperature-multi-chart';
 
 const FICHE_LIMIT = 24;
 const MENU_LIMIT = 5;
-const RELEVE_LIMIT = 10;
 const HUILE_LIMIT = 6;
 const EVENT_LIMIT = 8;
 const LIST_LIMIT = 10;
 
-/** Fenêtre de relevés chargée pour la tuile températures — suffisant pour remplir 10 lignes
- * sans rapatrier tout l'historique (les capteurs Zigbee peuvent relever en continu). */
-const RELEVE_WINDOW_DAYS = 30;
+/** Fenêtre du graphique de la tuile températures — une semaine reste lisible dans une petite
+ * tuile, et évite de rapatrier tout l'historique (les capteurs Zigbee peuvent relever en continu). */
+const RELEVE_WINDOW_DAYS = 7;
 
 const URGENCY_RANK: Record<MiseEnPlaceUrgency, number> = { urgente: 0, moyenne: 1, faible: 2 };
 
@@ -43,8 +49,35 @@ function localDateString(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** Jour de la semaine abrégé ("lun.") d'une date `Y-m-d` (ou d'un datetime), lue en heure locale. */
+function weekday(date: string | Date): string {
+  if (typeof date === 'string') {
+    const [y, m, d] = date.slice(0, 10).split('-').map(Number);
+    date = new Date(y, m - 1, d);
+  }
+  return date.toLocaleDateString('fr-FR', { weekday: 'short' });
+}
+
 function byDateDesc<T>(key: (item: T) => string | undefined) {
   return (a: T, b: T) => (key(b) ?? '').localeCompare(key(a) ?? '');
+}
+
+/** Case chiffrée du bandeau du haut — `null` pendant le chargement, `'error'` si l'appel a échoué. */
+interface Kpi {
+  label: string;
+  value: number | null | 'error';
+  link: string;
+  alert?: boolean;
+}
+
+/** Nombre d'éléments d'une tuile, en conservant l'état de chargement/erreur. */
+function countOf<T>(state: TileState<T>): number | null | 'error' {
+  return Array.isArray(state) ? state.length : state;
+}
+
+/** Comme countOf, mais sur un sous-ensemble filtré. */
+function countWhere<T>(state: TileState<T>, predicate: (item: T) => boolean): number | null | 'error' {
+  return Array.isArray(state) ? state.filter(predicate).length : state;
 }
 
 interface HuileRow {
@@ -54,7 +87,7 @@ interface HuileRow {
 
 @Component({
   selector: 'app-home-dashboard',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, TemperatureMultiChart],
   templateUrl: './home-dashboard.html',
   styleUrl: './home-dashboard.css',
 })
@@ -62,6 +95,7 @@ export class HomeDashboard implements OnInit {
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly menuService = inject(MenuService);
   private readonly temperatureReleveService = inject(TemperatureReleveService);
+  private readonly appareilService = inject(AppareilService);
   private readonly friteuseService = inject(FriteuseService);
   private readonly eventService = inject(EventService);
   private readonly miseEnPlaceItemService = inject(MiseEnPlaceItemService);
@@ -70,6 +104,7 @@ export class HomeDashboard implements OnInit {
   fiches = signal<TileState<FicheTechnique>>(null);
   menus = signal<TileState<Menu>>(null);
   releves = signal<TileState<TemperatureReleve>>(null);
+  appareils = signal<TileState<Appareil>>(null);
   friteuses = signal<TileState<Friteuse>>(null);
   events = signal<TileState<CalendarEvent>>(null);
   miseEnPlace = signal<TileState<MiseEnPlaceItem>>(null);
@@ -89,13 +124,32 @@ export class HomeDashboard implements OnInit {
       byDateDesc((m) => m.updated_at),
     ),
   );
-  latestReleves = computed(() =>
-    this.take(
-      this.releves(),
-      RELEVE_LIMIT,
-      byDateDesc((r) => r.recorded_at),
-    ),
-  );
+
+  /** Une courbe par appareil, couleur selon sa position dans la liste des appareils — la même
+   *  que dans le rapport de température. Au-delà de MAX_SERIES, plus assez de couleurs. */
+  temperatureSeries = computed<TemperatureSeries[] | null | 'error'>(() => {
+    const releves = this.releves();
+    const appareils = this.appareils();
+    if (releves === 'error' || appareils === 'error') return 'error';
+    if (releves === null || appareils === null) return null;
+    return appareils
+      .map((appareil, colorIndex) => ({
+        id: appareil.id,
+        name: appareil.name,
+        colorIndex,
+        points: releves
+          .filter((r) => r.appareil_id === appareil.id)
+          .sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+          .map((r) => ({ date: new Date(r.recorded_at), temperature: r.temperature })),
+      }))
+      .filter((s) => s.colorIndex < MAX_SERIES);
+  });
+
+  /** Relevés hors plage de la fenêtre — le graphique commun ne montre pas les plages normales. */
+  outOfRangeCount = computed(() => {
+    const releves = this.releves();
+    return Array.isArray(releves) ? releves.filter((r) => this.isOutOfRange(r)).length : 0;
+  });
 
   /** Tous les changements d'huile de toutes les friteuses, à plat, du plus récent au plus ancien. */
   latestHuile = computed<HuileRow[] | null | 'error'>(() => {
@@ -114,14 +168,19 @@ export class HomeDashboard implements OnInit {
     return Array.isArray(friteuses) ? friteuses.filter(isChangeOverdue) : [];
   });
 
-  upcomingEvents = computed(() => {
+  /** Tous les événements pas encore terminés, du plus proche au plus lointain. */
+  private allUpcomingEvents = computed(() => {
     const events = this.events();
     if (!Array.isArray(events)) return events;
     const today = localDateString(new Date());
     return events
       .filter((e) => e.end_date >= today)
-      .sort((a, b) => a.start_date.localeCompare(b.start_date))
-      .slice(0, EVENT_LIMIT);
+      .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  });
+
+  upcomingEvents = computed(() => {
+    const events = this.allUpcomingEvents();
+    return Array.isArray(events) ? events.slice(0, EVENT_LIMIT) : events;
   });
 
   /** Tâches à faire, les plus urgentes d'abord puis par échéance la plus proche (sans échéance en dernier). */
@@ -142,9 +201,78 @@ export class HomeDashboard implements OnInit {
     return Array.isArray(items) ? items.filter((i) => i.status === 'todo') : items;
   });
 
+  /** Appareils sans aucun relevé depuis minuit — en HACCP, un relevé oublié compte autant
+   *  qu'un relevé hors norme. */
+  private unreadAppareilsCount = computed<number | null | 'error'>(() => {
+    const releves = this.releves();
+    const appareils = this.appareils();
+    if (releves === 'error' || appareils === 'error') return 'error';
+    if (releves === null || appareils === null) return null;
+    const today = localDateString(new Date());
+    const readToday = new Set(
+      releves.filter((r) => localDateString(new Date(r.recorded_at)) === today).map((r) => r.appareil_id),
+    );
+    return appareils.filter((a) => !readToday.has(a.id)).length;
+  });
+
+  /** Couverts des événements qui ont lieu dans les 7 prochains jours (aujourd'hui compris). */
+  private weekCouverts = computed<number | null | 'error'>(() => {
+    const events = this.allUpcomingEvents();
+    if (!Array.isArray(events)) return events;
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const last = localDateString(weekEnd);
+    return events.filter((e) => e.start_date <= last).reduce((sum, e) => sum + (e.couverts ?? 0), 0);
+  });
+
+  kpis = computed<Kpi[]>(() => {
+    const releves = this.releves();
+    const outOfRange = this.outOfRangeCount();
+    const kpis: Kpi[] = [
+      {
+        label: 'Mise en place urgente',
+        value: countWhere(this.pendingMiseEnPlace(), (i) => i.urgency === 'urgente'),
+        link: '/mise-en-place',
+        alert: true,
+      },
+      {
+        label: "Événements aujourd'hui",
+        value: countWhere(this.allUpcomingEvents(), (e) => this.isToday(e)),
+        link: '/calendrier',
+      },
+      { label: 'Événements à venir', value: countOf(this.allUpcomingEvents()), link: '/calendrier' },
+      { label: 'Couverts (7 j)', value: this.weekCouverts(), link: '/calendrier' },
+      { label: 'Liste de courses', value: countOf(this.pendingCourses()), link: '/courses' },
+      { label: 'Fiches techniques', value: countOf(this.fiches()), link: '/fiche-techniques' },
+      {
+        label: 'Relevés hors norme (7 j)',
+        value: Array.isArray(releves) ? outOfRange : releves,
+        link: '/temperatures',
+        alert: true,
+      },
+      {
+        label: "Appareils non relevés aujourd'hui",
+        value: this.unreadAppareilsCount(),
+        link: '/temperatures',
+        alert: true,
+      },
+      {
+        label: 'Friteuses à changer',
+        value: countWhere(this.friteuses(), isChangeOverdue),
+        link: '/huile',
+        alert: true,
+      },
+    ];
+    // Les cases "alert" ne passent en rouge que s'il y a effectivement quelque chose à traiter.
+    return kpis.map((kpi) => ({ ...kpi, alert: kpi.alert && typeof kpi.value === 'number' && kpi.value > 0 }));
+  });
+
   readonly listLimit = LIST_LIMIT;
   readonly isChangeOverdue = isChangeOverdue;
   readonly nextChangeDate = nextChangeDate;
+  readonly weekday = weekday;
+  readonly formatChartDate = (date: Date) =>
+    date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
 
   ngOnInit() {
     const from = new Date();
@@ -153,6 +281,7 @@ export class HomeDashboard implements OnInit {
     this.load(this.ficheTechniqueService.list(), this.fiches);
     this.load(this.menuService.list(), this.menus);
     this.load(this.temperatureReleveService.list({ from: localDateString(from) }), this.releves);
+    this.load(this.appareilService.list(), this.appareils);
     this.load(this.friteuseService.list(), this.friteuses);
     this.load(this.eventService.listAll(), this.events);
     this.load(this.miseEnPlaceItemService.list(), this.miseEnPlace);

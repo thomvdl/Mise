@@ -1,3 +1,14 @@
+<div class="kpi-row">
+  @for (kpi of kpis(); track kpi.label) {
+    <a class="kpi" [class.is-alert]="kpi.alert" [routerLink]="kpi.link">
+      <span class="kpi-value">
+        {{ kpi.value === null ? '…' : kpi.value === 'error' ? '—' : kpi.value }}
+      </span>
+      <span class="kpi-label">{{ kpi.label }}</span>
+    </a>
+  }
+</div>
+
 <div class="mosaic">
   <!-- Mise en place -->
   @let tasks = pendingMiseEnPlace();
@@ -65,9 +76,9 @@
               @if (isToday(event)) {
                 Aujourd'hui
               } @else {
-                {{ event.start_date | date: 'dd/MM' }}
+                {{ weekday(event.start_date) }} {{ event.start_date | date: 'dd/MM' }}
                 @if (event.end_date !== event.start_date) {
-                  → {{ event.end_date | date: 'dd/MM' }}
+                  → {{ weekday(event.end_date) }} {{ event.end_date | date: 'dd/MM' }}
                 }
               }
             </div>
@@ -137,30 +148,21 @@
   <!-- Températures -->
   <section class="widget area-temp">
     <header class="widget-header">
-      <h2 class="widget-title">Dernières températures</h2>
+      <h2 class="widget-title">Températures — 7 jours</h2>
+      @if (outOfRangeCount() > 0) {
+        <span class="widget-count is-alert">{{ outOfRangeCount() }} hors plage</span>
+      }
       <a class="widget-link" routerLink="/temperatures">Rapports →</a>
     </header>
-    @let releveList = latestReleves();
-    @if (releveList === null) {
+    @let series = temperatureSeries();
+    @if (series === null) {
       <p class="widget-state">Chargement…</p>
-    } @else if (releveList === 'error') {
+    } @else if (series === 'error') {
       <p class="widget-state widget-error">Impossible de charger ces données.</p>
     } @else {
-      <ul class="widget-list">
-        @for (releve of releveList; track releve.id) {
-          <li class="widget-row">
-            <div class="row-main">
-              <span class="row-name">{{ releve.appareil?.name ?? 'Appareil supprimé' }}</span>
-              <span class="row-sub">{{ releve.recorded_at | date: 'dd/MM HH:mm' }}</span>
-            </div>
-            <span class="row-value" [class.is-alert]="isOutOfRange(releve)"
-              >{{ releve.temperature }} °C</span
-            >
-          </li>
-        } @empty {
-          <li class="widget-state">Aucun relevé ces 30 derniers jours.</li>
-        }
-      </ul>
+      <div class="widget-chart">
+        <app-temperature-multi-chart [series]="series" [formatDate]="formatChartDate" />
+      </div>
     }
   </section>
 
@@ -191,10 +193,14 @@
             <div class="row-main">
               <span class="row-name">{{ row.friteuse.name }}</span>
               <span class="row-sub">
-                Prochain conseillé : {{ nextChangeDate(row.friteuse) | date: 'dd/MM/yyyy' }}
+                @let next = nextChangeDate(row.friteuse);
+                Prochain conseillé :
+                @if (next) {
+                  {{ weekday(next) }} {{ next | date: 'dd/MM/yyyy' }}
+                }
               </span>
             </div>
-            <span class="row-value">{{ row.date | date: 'dd/MM/yyyy' }}</span>
+            <span class="row-value">{{ weekday(row.date) }} {{ row.date | date: 'dd/MM/yyyy' }}</span>
           </li>
         } @empty {
           <li class="widget-state">Aucun changement enregistré.</li>
