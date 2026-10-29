@@ -114,7 +114,12 @@
   </div>
 
   <div class="report-section">
-    <div class="section-title">Relevés hors plage</div>
+    <div class="section-title">
+      Relevés hors plage
+      @if (outOfRangeReleves().length > screenOutOfRangeLimit) {
+        <span class="section-subtitle no-print">({{ screenOutOfRangeLimit }} derniers sur {{ outOfRangeReleves().length }})</span>
+      }
+    </div>
     <div class="table-wrap">
       <table class="data-table">
         <thead>
@@ -126,8 +131,8 @@
           </tr>
         </thead>
         <tbody>
-          @for (item of outOfRangeReleves(); track item.releve.id) {
-            <tr>
+          @for (item of latestOutOfRangeReleves(); track item.releve.id; let i = $index) {
+            <tr [class.print-only-row]="i >= screenOutOfRangeLimit">
               <td>{{ formatDateTime(item.releve.recorded_at) }}</td>
               <td>{{ item.appareil.name }}</td>
               <td class="report-warning">{{ item.releve.temperature.toFixed(1) }}°C</td>

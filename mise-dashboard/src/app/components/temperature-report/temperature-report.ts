@@ -202,6 +202,10 @@ export class TemperatureReport {
       .sort((a, b) => a.releve.recorded_at.localeCompare(b.releve.recorded_at)),
   );
 
+  /** Du plus récent au plus ancien : à l'écran seuls les 10 premiers sont visibles, l'impression garde tout. */
+  latestOutOfRangeReleves = computed(() => [...this.outOfRangeReleves()].reverse());
+  readonly screenOutOfRangeLimit = 10;
+
   isOutOfRange(temperature: number): boolean {
     const appareil = this.selectedAppareil();
     return appareil !== null && isOutOfRangeFor(appareil, temperature);

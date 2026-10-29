@@ -130,6 +130,13 @@ td.report-warning {
    blanc, tenue sur une page A4…) vit dans src/styles/print-report.css — ne reste ici que ce qui
    est propre à cette page : le repère "hors plage" ne peut plus compter sur la couleur rouge en
    N&B, donc gras + souligné à la place. */
+/* Au-delà des 10 derniers relevés hors plage : masqué à l'écran, conservé à l'impression (HACCP). */
+@media screen {
+  .print-only-row {
+    display: none;
+  }
+}
+
 @media print {
   .report-warning {
     font-weight: 700;
@@ -148,4 +155,10 @@ td.report-warning {
   .report-card-appareil {
     break-inside: avoid;
   }
+}
+
+.section-subtitle {
+  font-weight: 400;
+  font-size: 0.85em;
+  opacity: 0.7;
 }
