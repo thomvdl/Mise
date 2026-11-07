@@ -209,6 +209,20 @@
   white-space: nowrap;
 }
 
+.row-fiche {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-fiche:hover {
+  text-decoration: underline;
+}
+
+
 .row-date {
   flex-shrink: 0;
   min-width: 64px;

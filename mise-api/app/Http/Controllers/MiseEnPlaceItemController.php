@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 
 class MiseEnPlaceItemController extends Controller
 {
-    private const RELATIONS = ['user:id,name', 'station', 'group', 'event'];
+    private const RELATIONS = ['user:id,name', 'station', 'group', 'event', 'ficheTechnique:id,name,servings'];
 
     /**
      * Display a listing of the resource.
@@ -42,6 +42,10 @@ class MiseEnPlaceItemController extends Controller
                 'nullable', 'integer', 'exists:events,id',
                 'required_without_all:station_id,group_id', 'prohibits:station_id,group_id',
             ],
+            // Fiche technique à préparer (optionnelle) : le nombre de portions n'a de sens qu'avec
+            // une fiche, et devient alors obligatoire.
+            'fiche_technique_id' => ['nullable', 'integer', 'exists:fiche_techniques,id'],
+            'servings' => ['nullable', 'integer', 'min:1', 'max:1000', 'required_with:fiche_technique_id'],
             'deadline' => ['nullable', 'date'],
             'urgency' => ['required', Rule::in(['faible', 'moyenne', 'urgente'])],
         ]);

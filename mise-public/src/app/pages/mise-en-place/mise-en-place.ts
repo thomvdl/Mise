@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 import { MiseEnPlaceClassification, MiseEnPlaceItemService } from '../../core/services/mise-en-place-item.service';
 import { MiseEnPlaceItem, MiseEnPlaceStatus, MiseEnPlaceUrgency } from '../../core/models/mise-en-place-item.model';
@@ -10,6 +11,9 @@ import { EventService } from '../../core/services/event.service';
 import { Station } from '../../core/models/station.model';
 import { Group } from '../../core/models/group.model';
 import { CalendarEvent } from '../../core/models/calendar-event.model';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
+import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { FicheTechniqueSearchSelect } from '../../components/fiche-technique-search-select/fiche-technique-search-select';
 import { DatetimePicker } from '../../components/datetime-picker/datetime-picker';
 import { ConfirmDialog } from '../../components/confirm-dialog/confirm-dialog';
 
@@ -36,7 +40,7 @@ function toDateString(date: Date): string {
 
 @Component({
   selector: 'app-mise-en-place',
-  imports: [FormsModule, DatePipe, DatetimePicker, ConfirmDialog],
+  imports: [FormsModule, DatePipe, RouterLink, DatetimePicker, ConfirmDialog, FicheTechniqueSearchSelect],
   templateUrl: './mise-en-place.html',
   styleUrl: './mise-en-place.css',
 })
@@ -45,17 +49,22 @@ export class MiseEnPlace implements OnInit {
   private readonly stationService = inject(StationService);
   private readonly groupService = inject(GroupService);
   private readonly eventService = inject(EventService);
+  private readonly ficheTechniqueService = inject(FicheTechniqueService);
 
   items = signal<MiseEnPlaceItem[]>([]);
   stations = signal<Station[]>([]);
   groups = signal<Group[]>([]);
   events = signal<CalendarEvent[]>([]);
+  fiches = signal<FicheTechnique[]>([]);
 
   newItemName = signal('');
   /** `''` tant qu'aucune option n'est choisie dans le select combiné station/groupe/événement. */
   newItemClassification = signal('');
   newItemDeadline = signal('');
   newItemUrgency = signal<MiseEnPlaceUrgency>('moyenne');
+  /** `null` tant qu'aucune fiche n'est choisie — la fiche est optionnelle (tâche libre sinon). */
+  newItemFicheId = signal<number | null>(null);
+  newItemServings = signal<number | null>(null);
 
   /** Tâche en attente de confirmation avant d'être marquée faite — irréversible depuis cette vue
    * puisqu'elle disparaît alors de la liste (toujours filtrée sur "à faire", voir filteredItems). */
@@ -76,7 +85,11 @@ export class MiseEnPlace implements OnInit {
     return this.events().filter((e) => e.end_date >= today && e.start_date <= max);
   });
 
-  canAdd = computed(() => this.newItemName().trim().length > 0 && this.newItemClassification() !== '');
+  canAdd = computed(() => {
+    const servings = this.newItemServings();
+    const servingsOk = this.newItemFicheId() === null || (servings !== null && servings >= 1);
+    return this.newItemName().trim().length > 0 && this.newItemClassification() !== '' && servingsOk;
+  });
 
   filteredItems = computed(() => {
     const classification = decodeClassification(this.filterClassification());
@@ -98,6 +111,9 @@ export class MiseEnPlace implements OnInit {
     this.stationService.list().subscribe((stations) => this.stations.set(stations));
     this.groupService.list().subscribe((groups) => this.groups.set(groups));
     this.eventService.listAll().subscribe((events) => this.events.set(events));
+    this.ficheTechniqueService
+      .list()
+      .subscribe((fiches) => this.fiches.set([...fiches].sort((a, b) => a.name.localeCompare(b.name, 'fr'))));
   }
 
   reload(): void {
@@ -112,6 +128,18 @@ export class MiseEnPlace implements OnInit {
 
   onNewItemUrgencyChange(event: Event): void {
     this.newItemUrgency.set((event.target as HTMLSelectElement).value as MiseEnPlaceUrgency);
+  }
+
+  /** Choisir une fiche pré-remplit les portions avec celles de la fiche (à ajuster ensuite) et,
+   * si le champ est encore vide, le nom de la tâche avec le nom de la fiche. */
+  onNewItemFicheChange(ficheId: number | null): void {
+    this.newItemFicheId.set(ficheId);
+
+    const fiche = this.fiches().find((f) => f.id === ficheId);
+    this.newItemServings.set(fiche ? fiche.servings : null);
+    if (fiche && this.newItemName().trim() === '') {
+      this.newItemName.set(fiche.name);
+    }
   }
 
   onFilterClassificationChange(event: Event): void {
@@ -137,15 +165,21 @@ export class MiseEnPlace implements OnInit {
     const name = this.newItemName().trim();
     const classification = decodeClassification(this.newItemClassification());
     const deadline = this.newItemDeadline();
+    const ficheId = this.newItemFicheId();
+    const servings = this.newItemServings();
     if (!name || !classification) return;
+    if (ficheId !== null && (servings === null || servings < 1)) return;
+    const fiche = ficheId !== null && servings !== null ? { id: ficheId, servings } : null;
 
     this.miseEnPlaceItemService
-      .create(name, classification as MiseEnPlaceClassification, deadline || null, this.newItemUrgency())
+      .create(name, classification as MiseEnPlaceClassification, deadline || null, this.newItemUrgency(), fiche)
       .subscribe(() => {
         this.newItemName.set('');
         this.newItemClassification.set('');
         this.newItemDeadline.set('');
         this.newItemUrgency.set('moyenne');
+        this.newItemFicheId.set(null);
+        this.newItemServings.set(null);
         this.reload();
       });
   }

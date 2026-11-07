@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, effect, inject, input, signal, computed, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, effect, inject, input, signal, computed, untracked, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -59,6 +59,9 @@ export class RecipeDetail {
   private dragging = false;
 
   fiche = input<FicheTechnique | null>(null);
+  /** Portions affichées à l'ouverture, à la place de celles de la fiche — posé par un lien
+   * depuis la mise en place (`?portions=`). Le dial +/- reste ensuite libre. */
+  initialServings = input<number | null>(null);
 
   servings = signal(0);
   doneSteps = signal<Set<number>>(new Set());
@@ -172,7 +175,7 @@ export class RecipeDetail {
   constructor() {
     effect(() => {
       const fiche = this.fiche();
-      this.servings.set(fiche?.servings ?? 0);
+      this.servings.set(untracked(this.initialServings) ?? fiche?.servings ?? 0);
       this.doneSteps.set(new Set());
       this.photoIndex.set(0);
 

@@ -1,6 +1,6 @@
 @if (fiche(); as f) {
   <div class="detail">
-    <app-recipe-detail [fiche]="f"></app-recipe-detail>
+    <app-recipe-detail [fiche]="f" [initialServings]="portions()"></app-recipe-detail>
   </div>
 } @else {
   <div class="empty-state">

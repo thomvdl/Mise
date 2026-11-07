@@ -18,4 +18,8 @@ export interface MiseEnPlaceItem {
   station: Station | null;
   group: Group | null;
   event: CalendarEvent | null;
+  /** Fiche technique à préparer (optionnelle) — `servings` est alors le nombre de portions à
+   * prévoir, indépendant des portions de base de la fiche. */
+  fiche_technique: { id: number; name: string; servings: number } | null;
+  servings: number | null;
 }

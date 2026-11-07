@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
@@ -86,6 +87,18 @@ export class FicheTechniquePrint {
   private readonly ficheId = toSignal(
     this.route.paramMap.pipe(map((params) => Number(params.get('id')))),
     { initialValue: NaN },
+  );
+
+  /** `?portions=12` — posé par un lien depuis la mise en place, pour ouvrir la fiche directement
+   * à l'échelle du nombre de portions à prévoir. Le dial +/- reste ensuite libre. */
+  private readonly initialServings = toSignal(
+    this.route.queryParamMap.pipe(
+      map((params) => {
+        const value = Number(params.get('portions'));
+        return Number.isInteger(value) && value >= 1 ? value : null;
+      }),
+    ),
+    { initialValue: null },
   );
 
   private readonly rawFiche = signal<FicheTechnique | null>(null);
@@ -245,7 +258,7 @@ export class FicheTechniquePrint {
       const fiche = this.fiche();
       this.setReportTitle(fiche ? `Fiche technique — ${fiche.name}` : 'Fiche technique');
 
-      this.servings.set(fiche?.servings ?? 0);
+      this.servings.set(untracked(this.initialServings) ?? fiche?.servings ?? 0);
       this.doneSteps.set(new Set());
       this.photoIndex.set(0);
 

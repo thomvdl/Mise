@@ -45,6 +45,32 @@
 tr.done td{ color:var(--text-faint); }
 tr.done td:first-child{ text-decoration:line-through; }
 
+.fiche-select{ flex:0 1 280px; min-width:220px; }
+.servings-field{ display:inline-flex; align-items:center; gap:8px; font-size:13.5px; color:var(--text-dim); }
+.add-item-row .servings-input{ flex:0 0 auto; width:90px; min-width:0; }
+.fiche-ref{ display:block; margin-top:4px; font-size:12px; color:var(--text-dim); text-decoration:none; }
+.fiche-ref:hover{ color:var(--accent-blue); text-decoration:underline; }
+
+.merch-hint{ font-size:13px; color:var(--text-dim); margin:0 0 12px; }
+.merch-fiches{
+  display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 14px; padding:0; list-style:none;
+  font-size:12.5px; color:var(--text-dim);
+}
+.merch-category td{
+  background:var(--surface-2); font-size:11.5px; font-weight:700; letter-spacing:.4px;
+  text-transform:uppercase; color:var(--text-dim);
+}
+.col-qty{ text-align:right; white-space:nowrap; }
+
+.only-print{ display:none; }
+
+/* Mise en page d'impression commune dans src/styles/print-report.css — ne reste ici que ce qui
+   est propre à la liste de marchandise. */
+@media print{
+  .merch-fiches{ font-size:7pt; margin-bottom:4pt; }
+  .merch-category td{ background:none !important; font-size:6pt !important; padding-top:5pt !important; }
+}
+
 @media (max-width: 600px){
   .add-item-row{ flex-direction:column; align-items:stretch; max-width:none; }
   .filter-row{ flex-direction:column; }

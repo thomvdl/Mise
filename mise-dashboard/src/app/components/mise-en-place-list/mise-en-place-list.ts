@@ -1,7 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -12,10 +14,22 @@ import { MiseEnPlaceItem, MiseEnPlaceStatus, MiseEnPlaceUrgency } from '../../co
 import { Station } from '../../core/models/station.model';
 import { Group } from '../../core/models/group.model';
 import { CalendarEvent } from '../../core/models/calendar-event.model';
+import { FicheTechnique } from '../../core/models/fiche-technique.model';
+import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { FicheTechniqueSearchSelect } from '../fiche-technique-search-select/fiche-technique-search-select';
+import { IngredientCategory } from '../../core/models/ingredient-category.model';
+import { MerchandiseEntry, MerchandiseLine, merchandiseList } from '../../core/utils/merchandise-list';
+import { formatQuantity } from '../../core/utils/format-quantity';
+import { todayDDMMYYYY, useReportTitle } from '../../core/utils/report-title';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
 import { DatetimePicker } from '../datetime-picker/datetime-picker';
 
 type ClassificationKind = 'station' | 'group' | 'event';
+
+interface MerchandiseGroup {
+  category: string;
+  lines: MerchandiseLine[];
+}
 
 /** Encode un type + id en une seule valeur `<option>` (ex. "station:3"), pour piloter un unique
  * `<select>` à la fois sur le formulaire d'ajout et sur le filtre, au lieu de jongler avec trois
@@ -38,7 +52,7 @@ function toDateString(date: Date): string {
 
 @Component({
   selector: 'app-mise-en-place-list',
-  imports: [FormsModule, DatePipe, ConfirmDialog, DatetimePicker],
+  imports: [FormsModule, DatePipe, RouterLink, ConfirmDialog, DatetimePicker, FicheTechniqueSearchSelect],
   templateUrl: './mise-en-place-list.html',
   styleUrl: './mise-en-place-list.css',
 })
@@ -47,7 +61,13 @@ export class MiseEnPlaceList implements OnInit {
   private readonly miseEnPlaceItemService = inject(MiseEnPlaceItemService);
   private readonly stationService = new SimpleEntityService<Station>(inject(HttpClient), 'stations');
   private readonly groupService = new SimpleEntityService<Group>(inject(HttpClient), 'groups');
+  private readonly ingredientCategoryService = new SimpleEntityService<IngredientCategory>(
+    inject(HttpClient),
+    'ingredient-categories',
+  );
   private readonly eventService = inject(EventService);
+  private readonly ficheTechniqueService = inject(FicheTechniqueService);
+  private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly isAdmin = this.auth.isAdmin();
 
@@ -55,12 +75,20 @@ export class MiseEnPlaceList implements OnInit {
   stations = signal<Station[]>([]);
   groups = signal<Group[]>([]);
   events = signal<CalendarEvent[]>([]);
+  fiches = signal<FicheTechnique[]>([]);
+  ingredientCategories = signal<IngredientCategory[]>([]);
+
+  /** Poste de la liste de marchandise — `''` = tous les postes. */
+  merchandiseStationId = signal('');
 
   newItemName = signal('');
   /** `''` tant qu'aucune option n'est choisie dans le select combiné station/groupe/événement. */
   newItemClassification = signal('');
   newItemDeadline = signal('');
   newItemUrgency = signal<MiseEnPlaceUrgency>('moyenne');
+  /** `null` tant qu'aucune fiche n'est choisie — la fiche est optionnelle (tâche libre sinon). */
+  newItemFicheId = signal<number | null>(null);
+  newItemServings = signal<number | null>(null);
   pendingDelete = signal<MiseEnPlaceItem | null>(null);
   pendingClearAll = signal(false);
   /** Tâche en attente de confirmation avant d'être marquée faite. */
@@ -81,7 +109,11 @@ export class MiseEnPlaceList implements OnInit {
     return this.events().filter((e) => e.end_date >= today && e.start_date <= max);
   });
 
-  canAdd = computed(() => this.newItemName().trim().length > 0 && this.newItemClassification() !== '');
+  canAdd = computed(() => {
+    const servings = this.newItemServings();
+    const servingsOk = this.newItemFicheId() === null || (servings !== null && servings >= 1);
+    return this.newItemName().trim().length > 0 && this.newItemClassification() !== '' && servingsOk;
+  });
 
   filteredItems = computed(() => {
     const classification = decodeClassification(this.filterClassification());
@@ -98,11 +130,92 @@ export class MiseEnPlaceList implements OnInit {
     });
   });
 
+  /** Tâches à faire liées à une fiche, rattachées à leur poste : la station de la tâche, ou à
+   * défaut (tâche classée par groupe/événement) celle de la fiche. La fiche complète est reprise
+   * de `fiches()` (ingrédients + sous-recettes chargés), pas de la version allégée de la tâche. */
+  private readonly merchandiseTasks = computed(() => {
+    const fichesById = new Map(this.fiches().map((fiche) => [fiche.id, fiche]));
+
+    return this.items().flatMap((item) => {
+      const fiche = item.fiche_technique ? fichesById.get(item.fiche_technique.id) : undefined;
+      if (item.status !== 'todo' || !fiche || !item.servings) return [];
+      return [{ item, fiche, servings: item.servings, stationId: item.station?.id ?? fiche.station_id }];
+    });
+  });
+
+  /** Postes réellement présents dans les tâches liées à une fiche — inutile de proposer les autres. */
+  merchandiseStations = computed(() => {
+    const ids = new Set(this.merchandiseTasks().map((task) => task.stationId));
+    return this.stations().filter((station) => ids.has(station.id));
+  });
+
+  merchandiseSelectedTasks = computed(() => {
+    const stationId = this.merchandiseStationId();
+    const tasks = this.merchandiseTasks();
+    return stationId === '' ? tasks : tasks.filter((task) => task.stationId === Number(stationId));
+  });
+
+  /** Ingrédients regroupés par famille (produits laitiers, légumes…), dans l'ordre alphabétique —
+   * l'ordre dans lequel on passe commande ou on fait le tour des chambres froides. */
+  merchandiseGroups = computed<MerchandiseGroup[]>(() => {
+    const entries: MerchandiseEntry[] = this.merchandiseSelectedTasks().map(({ fiche, servings }) => ({ fiche, servings }));
+    const lines = merchandiseList(entries, new Map(this.fiches().map((fiche) => [fiche.id, fiche])));
+    const categoryNames = new Map(this.ingredientCategories().map((category) => [category.id, category.name]));
+
+    const groups = new Map<string, MerchandiseLine[]>();
+    for (const line of lines) {
+      const category = categoryNames.get(line.ingredient.ingredient_category_id ?? -1) ?? 'Autres';
+      groups.set(category, [...(groups.get(category) ?? []), line]);
+    }
+
+    return [...groups.entries()]
+      .map(([category, groupLines]) => ({
+        category,
+        lines: groupLines.sort((a, b) => a.ingredient.name.localeCompare(b.ingredient.name, 'fr')),
+      }))
+      .sort((a, b) =>
+        a.category === 'Autres' ? 1 : b.category === 'Autres' ? -1 : a.category.localeCompare(b.category, 'fr'),
+      );
+  });
+
+  merchandiseStationLabel = computed(() => {
+    const stationId = this.merchandiseStationId();
+    if (stationId === '') return 'Tous les postes';
+    return this.stations().find((station) => station.id === Number(stationId))?.name ?? 'Poste';
+  });
+
+  /** N'imprime que la liste de marchandise (le reste de la page est `no-print`), pour le poste
+   * sélectionné. Le titre du document sert de nom de fichier par défaut en "Enregistrer en PDF". */
+  printMerchandise(): void {
+    this.setReportTitle(`Liste de marchandise — ${this.merchandiseStationLabel()} — ${todayDDMMYYYY()}`);
+    window.print();
+  }
+
+  generatedAt(): string {
+    return new Date().toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  onMerchandiseStationChange(event: Event): void {
+    this.merchandiseStationId.set((event.target as HTMLSelectElement).value);
+  }
+
+  formatQuantity = formatQuantity;
+
   ngOnInit(): void {
     this.reload();
     this.stationService.list().subscribe((stations) => this.stations.set(stations));
     this.groupService.list().subscribe((groups) => this.groups.set(groups));
+    this.ingredientCategoryService.list().subscribe((categories) => this.ingredientCategories.set(categories));
     this.eventService.listAll().subscribe((events) => this.events.set(events));
+    this.ficheTechniqueService
+      .list()
+      .subscribe((fiches) => this.fiches.set([...fiches].sort((a, b) => a.name.localeCompare(b.name, 'fr'))));
   }
 
   reload(): void {
@@ -117,6 +230,18 @@ export class MiseEnPlaceList implements OnInit {
 
   onNewItemUrgencyChange(event: Event): void {
     this.newItemUrgency.set((event.target as HTMLSelectElement).value as MiseEnPlaceUrgency);
+  }
+
+  /** Choisir une fiche pré-remplit les portions avec celles de la fiche (à ajuster ensuite) et,
+   * si le champ est encore vide, le nom de la tâche avec le nom de la fiche. */
+  onNewItemFicheChange(ficheId: number | null): void {
+    this.newItemFicheId.set(ficheId);
+
+    const fiche = this.fiches().find((f) => f.id === ficheId);
+    this.newItemServings.set(fiche ? fiche.servings : null);
+    if (fiche && this.newItemName().trim() === '') {
+      this.newItemName.set(fiche.name);
+    }
   }
 
   onFilterClassificationChange(event: Event): void {
@@ -142,15 +267,21 @@ export class MiseEnPlaceList implements OnInit {
     const name = this.newItemName().trim();
     const classification = decodeClassification(this.newItemClassification());
     const deadline = this.newItemDeadline();
+    const ficheId = this.newItemFicheId();
+    const servings = this.newItemServings();
     if (!name || !classification) return;
+    if (ficheId !== null && (servings === null || servings < 1)) return;
+    const fiche = ficheId !== null && servings !== null ? { id: ficheId, servings } : null;
 
     this.miseEnPlaceItemService
-      .create(name, classification as MiseEnPlaceClassification, deadline || null, this.newItemUrgency())
+      .create(name, classification as MiseEnPlaceClassification, deadline || null, this.newItemUrgency(), fiche)
       .subscribe(() => {
         this.newItemName.set('');
         this.newItemClassification.set('');
         this.newItemDeadline.set('');
         this.newItemUrgency.set('moyenne');
+        this.newItemFicheId.set(null);
+        this.newItemServings.set(null);
         this.reload();
       });
   }

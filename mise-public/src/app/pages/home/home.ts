@@ -49,6 +49,18 @@ export class Home {
     { initialValue: null },
   );
 
+  /** `?portions=12` — posé par un lien depuis la mise en place, pour ouvrir la fiche directement
+   * à l'échelle du nombre de portions à prévoir. */
+  readonly portions = toSignal(
+    this.route.queryParamMap.pipe(
+      map((params) => {
+        const value = Number(params.get('portions'));
+        return Number.isInteger(value) && value >= 1 ? value : null;
+      }),
+    ),
+    { initialValue: null },
+  );
+
   constructor() {
     effect(() => {
       const idParam = this.queryParamId();

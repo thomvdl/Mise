@@ -25,12 +25,15 @@ export class MiseEnPlaceItemService {
     classification: MiseEnPlaceClassification,
     deadline: string | null,
     urgency: MiseEnPlaceUrgency,
+    fiche: { id: number; servings: number } | null = null,
   ) {
     return this.http.post<MiseEnPlaceItem>(this.baseUrl, {
       name,
       station_id: classification.kind === 'station' ? classification.id : null,
       group_id: classification.kind === 'group' ? classification.id : null,
       event_id: classification.kind === 'event' ? classification.id : null,
+      fiche_technique_id: fiche?.id ?? null,
+      servings: fiche?.servings ?? null,
       deadline,
       urgency,
     });

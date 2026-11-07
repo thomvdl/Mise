@@ -212,6 +212,34 @@
   color: var(--accent-red);
 }
 
+.fiche-select {
+  flex: 0 1 280px;
+  min-width: 220px;
+}
+.servings-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.add-item-row .servings-input {
+  flex: 0 0 auto;
+  width: 90px;
+  min-width: 0;
+}
+.fiche-ref {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.fiche-ref:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
 @media (max-width: 600px) {
   .page {
     padding: 20px 18px 50px;

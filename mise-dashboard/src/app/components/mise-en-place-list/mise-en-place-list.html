@@ -1,4 +1,4 @@
-<div class="page-header">
+<div class="page-header no-print">
   <h1 class="page-title">Mise en place</h1>
   @if (isAdmin) {
     <div class="page-actions">
@@ -7,7 +7,7 @@
   }
 </div>
 
-<div class="section">
+<div class="section no-print">
   <div class="section-title">Ajouter une tâche</div>
   <div class="add-item-row">
     <input
@@ -61,11 +61,23 @@
       <option value="moyenne" [selected]="newItemUrgency() === 'moyenne'">Moyenne</option>
       <option value="urgente" [selected]="newItemUrgency() === 'urgente'">Urgente</option>
     </select>
+    <app-fiche-technique-search-select
+      class="fiche-select"
+      [fiches]="fiches()"
+      [ngModel]="newItemFicheId()"
+      (ngModelChange)="onNewItemFicheChange($event)">
+    </app-fiche-technique-search-select>
+    @if (newItemFicheId() !== null) {
+      <label class="servings-field">
+        <input class="form-input servings-input" type="number" min="1" max="1000" [(ngModel)]="newItemServings" />
+        <span>portions</span>
+      </label>
+    }
     <button type="button" class="btn btn-primary" [disabled]="!canAdd()" (click)="addItem()">Ajouter</button>
   </div>
 </div>
 
-<div class="section">
+<div class="section no-print">
   <div class="section-title">Tâches ({{ filteredItems().length }})</div>
 
   <div class="filter-row">
@@ -131,7 +143,18 @@
       <tbody>
         @for (item of filteredItems(); track item.id) {
           <tr [class.done]="item.status === 'done'">
-            <td>{{ item.name }}</td>
+            <td>
+              {{ item.name }}
+              @if (item.fiche_technique) {
+                <a
+                  class="fiche-ref"
+                  [routerLink]="['/fiche-techniques', item.fiche_technique.id, 'imprimer']"
+                  [queryParams]="{ portions: item.servings }"
+                >
+                  Fiche : {{ item.fiche_technique.name }} · <strong>{{ item.servings }} portions</strong>
+                </a>
+              }
+            </td>
             <td>
               @if (item.event) {
                 {{ item.event.name }}
@@ -170,6 +193,76 @@
       </tbody>
     </table>
   </div>
+</div>
+
+<div class="section">
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>Liste de marchandise — mise en place</h1>
+    <p class="report-print-subtitle">{{ merchandiseStationLabel() }}</p>
+  </div>
+
+  <div class="section-title no-print">Liste de marchandise</div>
+  <p class="merch-hint no-print">
+    Ingrédients à sortir pour les tâches à faire liées à une fiche technique, aux portions prévues
+    (sous-recettes comprises).
+  </p>
+
+  <div class="filter-row no-print">
+    <select class="station-select" (change)="onMerchandiseStationChange($event)">
+      <option value="" [selected]="merchandiseStationId() === ''">Tous les postes</option>
+      @for (station of merchandiseStations(); track station.id) {
+        <option [value]="station.id" [selected]="merchandiseStationId() === '' + station.id">{{ station.name }}</option>
+      }
+    </select>
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="merchandiseSelectedTasks().length === 0"
+      (click)="printMerchandise()">
+      Imprimer
+    </button>
+  </div>
+
+  @if (merchandiseSelectedTasks().length === 0) {
+    <p class="merch-hint">Aucune tâche à faire liée à une fiche technique{{ merchandiseStationId() === '' ? '' : ' pour ce poste' }}.</p>
+  } @else {
+    <ul class="merch-fiches">
+      @for (task of merchandiseSelectedTasks(); track task.item.id) {
+        <li>{{ task.fiche.name }} · <strong>{{ task.servings }} portions</strong></li>
+      }
+    </ul>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ingrédient</th>
+            <th class="col-qty">Quantité</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of merchandiseGroups(); track group.category) {
+            <tr class="merch-category">
+              <td colspan="2">{{ group.category }}</td>
+            </tr>
+            @for (line of group.lines; track line.ingredient.id) {
+              <tr>
+                <td>{{ line.ingredient.name }}</td>
+                <td class="col-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
+              </tr>
+            }
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="2">Ces fiches n'ont aucun ingrédient renseigné.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+  }
 </div>
 
 <app-confirm-dialog

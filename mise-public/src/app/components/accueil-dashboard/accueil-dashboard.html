@@ -25,6 +25,15 @@
                   · avant {{ item.deadline | date: 'dd/MM HH:mm' }}
                 }
               </span>
+              @if (item.fiche_technique) {
+                <a
+                  class="row-fiche"
+                  routerLink="/fiches/recherche"
+                  [queryParams]="{ id: item.fiche_technique.id, portions: item.servings }"
+                >
+                  Fiche : {{ item.fiche_technique.name }} · {{ item.servings }} portions →
+                </a>
+              }
             </div>
             <span class="urgency-badge" [class]="'urgency-' + item.urgency">
               {{

@@ -58,6 +58,18 @@
         <option value="moyenne" [selected]="newItemUrgency() === 'moyenne'">Urgence : moyenne</option>
         <option value="urgente" [selected]="newItemUrgency() === 'urgente'">Urgence : urgente</option>
       </select>
+      <app-fiche-technique-search-select
+        class="fiche-select"
+        [fiches]="fiches()"
+        [ngModel]="newItemFicheId()"
+        (ngModelChange)="onNewItemFicheChange($event)">
+      </app-fiche-technique-search-select>
+      @if (newItemFicheId() !== null) {
+        <label class="servings-field">
+          <input class="text-input servings-input" type="number" min="1" max="1000" [(ngModel)]="newItemServings" />
+          <span>portions</span>
+        </label>
+      }
       <button type="button" class="add-btn" [disabled]="!canAdd()" (click)="addItem()">Ajouter</button>
     </div>
   </div>
@@ -138,7 +150,18 @@
                     </span>
                   </label>
                 </td>
-                <td class="task-name">{{ item.name }}</td>
+                <td>
+                  <span class="task-name">{{ item.name }}</span>
+                  @if (item.fiche_technique) {
+                    <a
+                      class="fiche-ref"
+                      routerLink="/fiches/recherche"
+                      [queryParams]="{ id: item.fiche_technique.id, portions: item.servings }"
+                    >
+                      Fiche : {{ item.fiche_technique.name }} · <strong>{{ item.servings }} portions</strong>
+                    </a>
+                  }
+                </td>
                 <td>
                   @if (item.event) {
                     {{ item.event.name }}
