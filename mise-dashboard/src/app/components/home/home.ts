@@ -92,6 +92,12 @@ export class Home {
       icon: 'report',
     },
     {
+      label: 'Plan de nettoyage',
+      description: 'Quoi nettoyer, où, quand, qui, avec quel produit.',
+      path: '/nettoyage',
+      icon: 'check',
+    },
+    {
       label: 'Étiquettes',
       description: "Composer et imprimer des étiquettes, ou piocher dans une liste enregistrée.",
       path: '/etiquettes',

@@ -40,7 +40,9 @@
         "/api/stations",
         "/api/stations/**",
         "/api/appareils",
-        "/api/appareils/**"
+        "/api/appareils/**",
+        "/api/nettoyage-taches",
+        "/api/nettoyage-taches/**"
       ],
       "cacheConfig": {
         "strategy": "freshness",

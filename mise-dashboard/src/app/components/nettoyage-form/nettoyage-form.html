@@ -1,0 +1,86 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEdit() ? 'Modifier' : 'Nouvelle' }} — Tâche de nettoyage</h1>
+</div>
+
+<form class="form-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-grid">
+    <div class="form-field">
+      <label class="form-label" for="zone">Zone</label>
+      <input
+        id="zone"
+        class="form-input"
+        type="text"
+        list="zone-suggestions"
+        formControlName="zone"
+        placeholder="Ex. Plonge, Poste chaud, Chambre froide"
+        [class.has-error]="form.controls.zone.invalid && form.controls.zone.touched" />
+      <datalist id="zone-suggestions">
+        @for (zone of zoneSuggestions(); track zone) {
+          <option [value]="zone"></option>
+        }
+      </datalist>
+      @if (form.controls.zone.invalid && form.controls.zone.touched) {
+        <span class="form-error">La zone est requise.</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="name">Quoi (surface, matériel)</label>
+      <input
+        id="name"
+        class="form-input"
+        type="text"
+        formControlName="name"
+        placeholder="Ex. Plans de travail, Hotte (filtres)"
+        [class.has-error]="form.controls.name.invalid && form.controls.name.touched" />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <span class="form-error">Indiquez ce qu'il faut nettoyer.</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="frequence">Fréquence</label>
+      <select id="frequence" class="form-select" formControlName="frequence">
+        @for (f of frequences; track f.key) {
+          <option [value]="f.key">{{ f.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="moment">Moment (optionnel)</label>
+      <input id="moment" class="form-input" type="text" formControlName="moment" placeholder="Ex. Lundi, fin du service du soir" />
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="responsable">Qui (optionnel)</label>
+      <input id="responsable" class="form-input" type="text" formControlName="responsable" placeholder="Ex. Commis du poste, plongeur" />
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="produit">Produit et dosage (optionnel)</label>
+      <input id="produit" class="form-input" type="text" formControlName="produit" placeholder="Ex. Dégraissant désinfectant, 2 %" />
+    </div>
+
+    <div class="form-field span-2">
+      <label class="form-label" for="methode">Méthode (optionnel)</label>
+      <textarea
+        id="methode"
+        class="form-textarea"
+        rows="4"
+        formControlName="methode"
+        placeholder="Ex. Débarrasser, pré-laver, appliquer le produit, laisser agir 5 min, rincer, laisser sécher"></textarea>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="form-actions">
+    <a class="btn btn-ghost" routerLink="..">Annuler</a>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</form>

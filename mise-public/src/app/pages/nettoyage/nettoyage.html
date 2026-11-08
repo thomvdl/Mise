@@ -1,0 +1,66 @@
+<div class="page">
+  <div class="intro">
+    <h1 class="page-title">Plan de nettoyage</h1>
+    <p class="page-sub">Quoi nettoyer, quand, qui s'en charge, avec quel produit et comment — zone par zone.</p>
+  </div>
+
+  <div class="filters">
+    <div class="filter-row">
+      <span class="filter-label">Poste / lieu</span>
+      <div class="filter-tabs">
+        <button type="button" class="station-tab" [class.active]="zone() === ''" (click)="selectZone('')">Tous</button>
+        @for (z of allZones(); track z) {
+          <button type="button" class="station-tab" [class.active]="zone() === z" (click)="selectZone(z)">{{ z }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">Fréquence</span>
+      <div class="filter-tabs">
+        <button type="button" class="station-tab" [class.active]="frequence() === ''" (click)="frequence.set('')">Toutes</button>
+        @for (f of frequences; track f.key) {
+          <button type="button" class="station-tab" [class.active]="frequence() === f.key" (click)="frequence.set(f.key)">
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (loaded() && taches().length === 0) {
+    <p class="form-hint">Le plan de nettoyage est vide. Demandez au chef de le remplir depuis le dashboard.</p>
+  } @else if (loaded() && zones().length === 0) {
+    <p class="form-hint">Aucune tâche pour ces filtres.</p>
+  }
+
+  <div class="zone-grid" [class.single]="zones().length === 1">
+    @for (group of zones(); track group.zone) {
+      <section class="zone-card">
+        <h2 class="zone-name">{{ group.zone }}</h2>
+        <ul class="tache-list">
+          @for (tache of group.taches; track tache.id) {
+            <li class="tache">
+              <div class="tache-head">
+                <span class="tache-name">{{ tache.name }}</span>
+                <span class="freq-badge" [attr.data-freq]="tache.frequence">{{ frequenceLabel(tache.frequence) }}</span>
+              </div>
+              @if (tache.moment || tache.responsable) {
+                <div class="tache-meta">
+                  @if (tache.moment) { <span><span class="label">Quand</span> {{ tache.moment }}</span> }
+                  @if (tache.responsable) { <span><span class="label">Qui</span> {{ tache.responsable }}</span> }
+                </div>
+              }
+              @if (tache.produit) {
+                <div class="tache-produit"><span class="label">Produit</span> {{ tache.produit }}</div>
+              }
+              @if (tache.methode) {
+                <p class="tache-methode">{{ tache.methode }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+</div>

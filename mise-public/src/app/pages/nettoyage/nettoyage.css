@@ -1,0 +1,218 @@
+:host {
+  display: contents;
+}
+
+.page {
+  padding: 32px 36px 60px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.intro {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+}
+
+.page-sub {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.form-hint {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.filter-label {
+  flex-shrink: 0;
+  width: 92px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* auto-fit (et non auto-fill) : les colonnes vides sont supprimées, une carte seule (un poste
+   sélectionné) s'étire sur toute la largeur de la page. */
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.zone-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.zone-name {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.tache-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Les tâches passent en colonnes dès que la carte est assez large (carte seule ou deux cartes
+     sur grand écran) ; une carte étroite reste sur une colonne. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  column-gap: 28px;
+}
+
+.tache {
+  padding: 10px 0;
+  /* Trait au-dessus de chaque tâche, y compris la première : les colonnes restent alignées. */
+  border-top: 1px solid var(--border);
+}
+
+/* Un seul poste affiché : lecture de loin sur la tablette du poste, en plus grand. */
+.zone-grid.single .zone-card {
+  padding: 22px 26px;
+}
+
+.zone-grid.single .zone-name {
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.zone-grid.single .tache {
+  padding: 14px 0;
+}
+
+.zone-grid.single .tache-name {
+  font-size: 17px;
+}
+
+.zone-grid.single .freq-badge {
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+.zone-grid.single .tache-meta,
+.zone-grid.single .tache-produit,
+.zone-grid.single .tache-methode {
+  font-size: 14.5px;
+}
+
+.tache-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tache-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.freq-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+}
+
+.freq-badge[data-freq='apres_utilisation'],
+.freq-badge[data-freq='apres_service'] {
+  color: var(--accent-red);
+  background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+}
+
+.freq-badge[data-freq='quotidien'] {
+  color: var(--accent-copper);
+  background: color-mix(in srgb, var(--accent-copper) 14%, transparent);
+}
+
+.freq-badge[data-freq='hebdomadaire'] {
+  color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+}
+
+.freq-badge[data-freq='mensuel'] {
+  color: var(--accent-green);
+  background: color-mix(in srgb, var(--accent-green) 14%, transparent);
+}
+
+.tache-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.tache-produit {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.tache .label {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-right: 4px;
+}
+
+.tache-methode {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  white-space: pre-line;
+}
+
+@media (max-width: 860px) {
+  .zone-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

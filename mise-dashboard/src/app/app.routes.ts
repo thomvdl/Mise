@@ -181,6 +181,24 @@ export const routes: Routes = [
       },
 
       {
+        path: 'nettoyage',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./components/nettoyage-list/nettoyage-list').then((m) => m.NettoyageList),
+          },
+          {
+            path: 'nouveau',
+            loadComponent: () => import('./components/nettoyage-form/nettoyage-form').then((m) => m.NettoyageForm),
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./components/nettoyage-form/nettoyage-form').then((m) => m.NettoyageForm),
+          },
+        ],
+      },
+
+      {
         path: 'huile',
         loadComponent: () => import('./components/huile-report/huile-report').then((m) => m.HuileReport),
       },

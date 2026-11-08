@@ -47,6 +47,7 @@ export class Topbar implements OnInit {
     { label: 'Calendrier', path: '/calendrier' },
     { label: 'Températures', path: '/temperatures' },
     { label: 'Huile', path: '/huile' },
+    { label: 'Nettoyage', path: '/nettoyage' },
   ];
 
   /** Reflects `navigator.onLine` so the crew knows they're looking at cached data, not live. */

@@ -47,7 +47,8 @@
     'mep mep mep mep mep evt evt evt evt crs crs crs'
     'mep mep mep mep mep tmp tmp tmp tmp crs crs crs'
     'fic fic fic fic fic fic fic fic hui hui hui hui'
-    'fic fic fic fic fic fic fic fic men men men men';
+    'fic fic fic fic fic fic fic fic men men men men'
+    'net net net net net net net net net net net net';
   gap: 14px;
 }
 
@@ -71,6 +72,9 @@
 }
 .area-fiches {
   grid-area: fic;
+}
+.area-nettoyage {
+  grid-area: net;
 }
 
 /* Chaque tuile remplit sa case de la mosaïque ; c'est sa liste qui défile si elle déborde,
@@ -310,7 +314,8 @@
       'crs hui'
       'crs men'
       'fic fic'
-      'fic fic';
+      'fic fic'
+      'net net';
   }
 }
 
@@ -330,4 +335,25 @@
   .widget-list-columns {
     grid-template-columns: 1fr;
   }
+}
+
+/* Mêmes couleurs que la page Plan de nettoyage. */
+.freq-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.freq-badge[data-freq='apres_service'] {
+  background: color-mix(in srgb, var(--accent-red) 16%, transparent);
+  color: var(--accent-red);
+}
+
+.freq-badge[data-freq='quotidien'] {
+  background: color-mix(in srgb, var(--accent-copper) 16%, transparent);
+  color: var(--accent-copper);
 }

@@ -18,6 +18,7 @@ use App\Http\Controllers\LabelTypeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
+use App\Http\Controllers\NettoyageTacheController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PictureController;
 use App\Http\Controllers\PrinterController;
@@ -62,6 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('appareils', AppareilController::class)->only(['index', 'show']);
     Route::apiResource('friteuses', FriteuseController::class)->only(['index', 'show'])
         ->parameters(['friteuses' => 'friteuse']);
+    // Plan de nettoyage — consultation en cuisine (mise-public), édition admin plus bas.
+    Route::apiResource('nettoyage-taches', NettoyageTacheController::class)->only(['index', 'show'])
+        ->parameters(['nettoyage-taches' => 'nettoyage_tache']);
 
     // Les relevés de température et les changements d'huile sont les seules écritures ouvertes
     // au rôle user (saisie côté public).
@@ -147,6 +151,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('appareils', AppareilController::class)->except(['index', 'show']);
         Route::apiResource('friteuses', FriteuseController::class)->except(['index', 'show'])
             ->parameters(['friteuses' => 'friteuse']);
+        Route::apiResource('nettoyage-taches', NettoyageTacheController::class)->except(['index', 'show'])
+            ->parameters(['nettoyage-taches' => 'nettoyage_tache']);
         Route::apiResource('pictures', PictureController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('users/{user}/generate-barcode', [UserController::class, 'generateBarcode']);

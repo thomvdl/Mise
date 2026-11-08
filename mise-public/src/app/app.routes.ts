@@ -27,6 +27,7 @@ export const routes: Routes = [
             { path: 'calendrier', loadComponent: () => import('./pages/calendrier/calendrier').then((m) => m.Calendrier) },
             { path: 'temperatures', loadComponent: () => import('./pages/temperatures/temperatures').then((m) => m.Temperatures) },
             { path: 'huile', loadComponent: () => import('./pages/huile/huile').then((m) => m.Huile) },
+            { path: 'nettoyage', loadComponent: () => import('./pages/nettoyage/nettoyage').then((m) => m.Nettoyage) },
             { path: '**', redirectTo: '' },
         ],
     },

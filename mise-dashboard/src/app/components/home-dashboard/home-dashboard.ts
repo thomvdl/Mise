@@ -11,6 +11,7 @@ import { FriteuseService } from '../../core/services/friteuse.service';
 import { EventService } from '../../core/services/event.service';
 import { MiseEnPlaceItemService } from '../../core/services/mise-en-place-item.service';
 import { ShoppingItemService } from '../../core/services/shopping-item.service';
+import { NettoyageTacheService } from '../../core/services/nettoyage-tache.service';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { Menu } from '../../core/models/menu.model';
 import { TemperatureReleve } from '../../core/models/temperature-releve.model';
@@ -19,6 +20,7 @@ import { Friteuse } from '../../core/models/friteuse.model';
 import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.model';
 import { MiseEnPlaceItem, MiseEnPlaceUrgency } from '../../core/models/mise-en-place-item.model';
 import { ShoppingItem } from '../../core/models/shopping-item.model';
+import { NettoyageTache, nettoyageDuJour } from '../../core/models/nettoyage-tache.model';
 import { isChangeOverdue, nextChangeDate } from '../../core/utils/friteuse-schedule';
 import {
   MAX_SERIES,
@@ -100,6 +102,7 @@ export class HomeDashboard implements OnInit {
   private readonly eventService = inject(EventService);
   private readonly miseEnPlaceItemService = inject(MiseEnPlaceItemService);
   private readonly shoppingItemService = inject(ShoppingItemService);
+  private readonly nettoyageService = inject(NettoyageTacheService);
 
   fiches = signal<TileState<FicheTechnique>>(null);
   menus = signal<TileState<Menu>>(null);
@@ -109,6 +112,7 @@ export class HomeDashboard implements OnInit {
   events = signal<TileState<CalendarEvent>>(null);
   miseEnPlace = signal<TileState<MiseEnPlaceItem>>(null);
   courses = signal<TileState<ShoppingItem>>(null);
+  nettoyage = signal<TileState<NettoyageTache>>(null);
 
   latestFiches = computed(() =>
     this.take(
@@ -201,6 +205,18 @@ export class HomeDashboard implements OnInit {
     return Array.isArray(items) ? items.filter((i) => i.status === 'todo') : items;
   });
 
+  /** Tâches du plan de nettoyage qui reviennent chaque jour (après service, quotidien). */
+  nettoyageAujourdhui = computed(() => {
+    const taches = this.nettoyage();
+    return Array.isArray(taches) ? nettoyageDuJour(taches) : taches;
+  });
+
+  /** Nombre de tâches hebdomadaires, rappelé sous la liste (0 = rien à afficher). */
+  nettoyageSemaine = computed(() => {
+    const taches = this.nettoyage();
+    return Array.isArray(taches) ? taches.filter((t) => t.frequence === 'hebdomadaire').length : 0;
+  });
+
   /** Appareils sans aucun relevé depuis minuit — en HACCP, un relevé oublié compte autant
    *  qu'un relevé hors norme. */
   private unreadAppareilsCount = computed<number | null | 'error'>(() => {
@@ -286,6 +302,7 @@ export class HomeDashboard implements OnInit {
     this.load(this.eventService.listAll(), this.events);
     this.load(this.miseEnPlaceItemService.list(), this.miseEnPlace);
     this.load(this.shoppingItemService.list(), this.courses);
+    this.load(this.nettoyageService.list(), this.nettoyage);
   }
 
   isOutOfRange(releve: TemperatureReleve): boolean {

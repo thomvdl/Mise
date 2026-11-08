@@ -6,9 +6,10 @@
   grid-template-areas:
     'mep mep mep mep mep evt evt evt evt crs crs crs'
     'mep mep mep mep mep evt evt evt evt crs crs crs'
+    'net net net net net net net net net net net net'
     'fic fic fic fic fic fic fic fic fic fic fic fic';
   /* La rangée des fiches prend la hauteur de son contenu ; les autres gardent une hauteur fixe. */
-  grid-template-rows: var(--mosaic-row) var(--mosaic-row) auto;
+  grid-template-rows: var(--mosaic-row) var(--mosaic-row) var(--mosaic-row) auto;
   gap: 14px;
 }
 
@@ -23,6 +24,9 @@
 }
 .area-fiches {
   grid-area: fic;
+}
+.area-nettoyage {
+  grid-area: net;
 }
 
 /* Chaque tuile remplit sa case de la mosaïque ; c'est sa liste qui défile si elle déborde,
@@ -252,6 +256,7 @@
     grid-template-areas:
       'mep evt'
       'mep crs'
+      'net net'
       'fic fic';
   }
 }
@@ -277,4 +282,25 @@
   .widget-list-columns {
     grid-template-columns: 1fr;
   }
+}
+
+/* Mêmes couleurs que la page Plan de nettoyage. */
+.freq-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.freq-badge[data-freq='apres_service'] {
+  background: color-mix(in srgb, var(--accent-red) 16%, transparent);
+  color: var(--accent-red);
+}
+
+.freq-badge[data-freq='quotidien'] {
+  background: color-mix(in srgb, var(--accent-copper) 16%, transparent);
+  color: var(--accent-copper);
 }

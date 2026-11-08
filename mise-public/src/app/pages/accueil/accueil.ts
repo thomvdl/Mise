@@ -92,6 +92,12 @@ export class Accueil {
       icon: 'droplet',
     },
     {
+      label: 'Plan de nettoyage',
+      description: 'Quoi nettoyer, quand, qui, avec quel produit.',
+      path: '/nettoyage',
+      icon: 'check',
+    },
+    {
       label: 'Mise en place',
       description: 'Todo par station, groupe ou événement avant le service.',
       path: '/mise-en-place',

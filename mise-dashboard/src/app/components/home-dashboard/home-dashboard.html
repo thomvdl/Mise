@@ -297,4 +297,47 @@
       </ul>
     }
   </section>
+
+  <!-- Nettoyage du jour -->
+  @let nettoyage = nettoyageAujourdhui();
+  <section class="widget area-nettoyage">
+    <header class="widget-header">
+      <h2 class="widget-title">Nettoyage du jour</h2>
+      @if (nettoyage !== null && nettoyage !== 'error') {
+        <span class="widget-count">{{ nettoyage.length }} tâche(s)</span>
+      }
+      <a class="widget-link" routerLink="/nettoyage">Plan complet →</a>
+    </header>
+    @if (nettoyage === null) {
+      <p class="widget-state">Chargement…</p>
+    } @else if (nettoyage === 'error') {
+      <p class="widget-state widget-error">Impossible de charger ces données.</p>
+    } @else {
+      <ul class="widget-list widget-list-columns">
+        @for (tache of nettoyage; track tache.id) {
+          <li>
+            <div class="widget-row">
+              <div class="row-main">
+                <span class="row-name">{{ tache.name }}</span>
+                <span class="row-sub">
+                  {{ tache.zone }}
+                  @if (tache.moment) {
+                    · {{ tache.moment }}
+                  }
+                </span>
+              </div>
+              <span class="freq-badge" [attr.data-freq]="tache.frequence">
+                {{ tache.frequence === 'apres_service' ? 'Après service' : 'Chaque jour' }}
+              </span>
+            </div>
+          </li>
+        } @empty {
+          <li class="widget-state">Aucune tâche quotidienne dans le plan de nettoyage.</li>
+        }
+      </ul>
+      @if (nettoyageSemaine(); as semaine) {
+        <p class="widget-more">+ {{ semaine }} tâche(s) à faire dans la semaine — voir le plan complet</p>
+      }
+    }
+  </section>
 </div>

@@ -1,0 +1,13 @@
+.frequence-filter{ width:auto; }
+.col-zone{ font-weight:700; white-space:nowrap; }
+tr.zone-start:not(:first-child) td{ border-top:2px solid var(--border); }
+
+.freq-badge{
+  display:inline-block; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--border); white-space:nowrap;
+}
+.freq-badge[data-freq="apres_utilisation"], .freq-badge[data-freq="apres_service"]{ color:var(--accent-red); border-color:currentColor; }
+.freq-badge[data-freq="quotidien"]{ color:var(--accent-copper); border-color:currentColor; }
+.freq-badge[data-freq="hebdomadaire"]{ color:var(--accent-blue); border-color:currentColor; }
+.freq-badge[data-freq="mensuel"]{ color:var(--accent-green); border-color:currentColor; }
+.moment{ display:block; margin-top:3px; font-size:12px; color:var(--text-dim); }
