@@ -169,6 +169,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['mise-en-place-items' => 'mise_en_place_item']);
         Route::apiResource('events', EventController::class)->only(['store', 'update', 'destroy'])
             ->parameters(['events' => 'event']);
+        // Génère les tâches de mise en place d'un événement depuis ses plats (pax par fiche).
+        Route::post('events/{event}/mise-en-place', [EventController::class, 'generateMiseEnPlace']);
         Route::apiResource('label-lists', LabelListController::class)->only(['destroy'])
             ->parameters(['label-lists' => 'label_list']);
         Route::apiResource('label-types', LabelTypeController::class)->except(['index'])

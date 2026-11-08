@@ -186,6 +186,58 @@
     </div>
   </div>
 
+  <div class="section">
+    <div class="section-title">Mise en place</div>
+    <p class="form-hint">
+      Crée une tâche de mise en place par fiche technique, avec le total des pax des plats qui
+      l'utilisent. Relançable après un changement de répartition : les tâches encore à faire sont
+      mises à jour, celles déjà faites ne bougent pas.
+    </p>
+
+    @if (mepPreview().length === 0) {
+      <p class="form-hint">Ajoute des plats liés à des fiches techniques, avec des pax, pour générer la mise en place.</p>
+    } @else {
+      <ul class="mep-preview">
+        @for (line of mepPreview(); track line.id) {
+          <li>
+            <span class="mep-name">{{ line.name }}</span>
+            @if (line.station) {
+              <span class="mep-station">{{ line.station }}</span>
+            }
+            <strong class="mep-servings">{{ line.servings }} portions</strong>
+          </li>
+        }
+      </ul>
+
+      <div class="mep-options">
+        <div class="form-field">
+          <label class="form-label" for="mep-deadline">Échéance</label>
+          <input
+            id="mep-deadline"
+            class="form-input"
+            type="datetime-local"
+            [value]="effectiveDeadline()"
+            (change)="mepDeadline.set($any($event.target).value || null)" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="mep-urgency">Urgence</label>
+          <select id="mep-urgency" class="form-select" [value]="mepUrgency()" (change)="mepUrgency.set($any($event.target).value)">
+            <option value="faible">Faible</option>
+            <option value="moyenne">Moyenne</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" [disabled]="generating() || saving()" (click)="saveAndGenerateMiseEnPlace()">
+          {{ generating() ? 'Création…' : 'Enregistrer et créer la mise en place' }}
+        </button>
+      </div>
+    }
+
+    @if (generationMessage(); as message) {
+      <p class="form-success">{{ message }} — <a routerLink="/mise-en-place">voir la mise en place →</a></p>
+    }
+  </div>
+
   @if (errorMessage()) {
     <p class="form-error">{{ errorMessage() }}</p>
   }
@@ -281,7 +333,7 @@
 
 <app-confirm-dialog
   [open]="pendingDelete()"
-  [message]="'Supprimer l\'événement « ' + name() + ' » ?'"
+  [message]="'Supprimer l\'événement « ' + name() + ' » ? Ses tâches de mise en place seront supprimées aussi.'"
   (confirm)="deleteConfirmed()"
   (cancel)="pendingDelete.set(false)">
 </app-confirm-dialog>

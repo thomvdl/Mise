@@ -57,3 +57,11 @@ export interface CalendarEventPayload {
   menu_id: number | null;
   plats?: EventPlatPayload[];
 }
+
+/** Résultat de `POST /api/events/:id/mise-en-place` : tâches créées, mises à jour (encore à faire)
+ * et laissées telles quelles (déjà faites). */
+export interface MiseEnPlaceGenerationResult {
+  created: number;
+  updated: number;
+  done: number;
+}

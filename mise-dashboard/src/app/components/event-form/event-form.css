@@ -56,6 +56,20 @@
 .add-fiche-row{ display:flex; gap:8px; align-items:center; max-width:520px; }
 .add-fiche-row app-fiche-technique-search-select{ flex:1; position:relative; }
 
+.mep-preview{
+  list-style:none; margin:0 0 14px; padding:0; max-width:640px;
+  display:flex; flex-direction:column; gap:4px;
+}
+.mep-preview li{
+  display:flex; align-items:baseline; gap:10px;
+  padding:6px 0; border-bottom:1px solid var(--border); font-size:13.5px;
+}
+.mep-name{ flex:1; min-width:0; }
+.mep-station{ font-size:12px; color:var(--text-dim); }
+.mep-servings{ white-space:nowrap; }
+.mep-options{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+.form-success{ color:var(--accent-green); font-size:13px; margin:12px 0 0; }
+
 .event-sheet{ margin-top:24px; }
 .sheet-title-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 

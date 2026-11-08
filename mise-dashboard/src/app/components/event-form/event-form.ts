@@ -2,13 +2,22 @@ import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, vi
 import { HttpClient } from '@angular/common/http';
 import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Observable, switchMap } from 'rxjs';
 
 import { EventService } from '../../core/services/event.service';
 import { MenuService } from '../../core/services/menu.service';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
 import { SimpleEntityService } from '../../core/services/simple-entity.service';
-import { CalendarEvent, CalendarEventPayload, EVENT_TYPES, EventPlat } from '../../core/models/calendar-event.model';
+import {
+  CalendarEvent,
+  CalendarEventPayload,
+  EVENT_TYPES,
+  EventPlat,
+  MiseEnPlaceGenerationResult,
+} from '../../core/models/calendar-event.model';
+import { Station } from '../../core/models/station.model';
 import { Menu } from '../../core/models/menu.model';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { IngredientCategory } from '../../core/models/ingredient-category.model';
@@ -69,6 +78,8 @@ export class EventForm implements OnInit {
   );
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  private readonly stationService = new SimpleEntityService<Station>(inject(HttpClient), 'stations');
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly eventTypes = EVENT_TYPES;
@@ -79,6 +90,7 @@ export class EventForm implements OnInit {
   menus = signal<Menu[]>([]);
   fiches = signal<FicheTechnique[]>([]);
   ingredientCategories = signal<IngredientCategory[]>([]);
+  stations = signal<Station[]>([]);
 
   name = signal('');
   detail = signal('');
@@ -105,6 +117,46 @@ export class EventForm implements OnInit {
   printLabelError = signal<string | null>(null);
 
   isEdit = computed(() => this.editingEvent() !== null);
+
+  /** Échéance (datetime-local) et urgence des tâches de mise en place à générer. L'échéance
+   * suit la date de début (8 h le jour J) tant qu'on ne l'a pas changée à la main. */
+  mepDeadline = signal<string | null>(null);
+  mepUrgency = signal('moyenne');
+  generating = signal(false);
+  generationResult = signal<MiseEnPlaceGenerationResult | null>(null);
+
+  generationMessage = computed(() => {
+    const result = this.generationResult();
+    if (!result) return null;
+    const parts = [`${result.created} tâche(s) créée(s)`, `${result.updated} mise(s) à jour`];
+    if (result.done) parts.push(`${result.done} déjà faite(s), non modifiée(s)`);
+    return parts.join(', ');
+  });
+
+  effectiveDeadline = computed(() => this.mepDeadline() ?? (this.startDate() ? `${this.startDate()}T08:00` : ''));
+
+  /** Aperçu des tâches qui seront créées : une par fiche, pax additionnés sur tous les plats qui
+   * l'utilisent — même calcul que l'API (EventController::generateMiseEnPlace). */
+  mepPreview = computed(() => {
+    const fichesById = this.fichesById();
+    const stationNames = new Map(this.stations().map((s) => [s.id, s.name]));
+    const totals = new Map<number, number>();
+    for (const section of this.sections()) {
+      for (const plat of section.plats) {
+        if (plat.pax <= 0) continue;
+        for (const id of plat.ficheIds) totals.set(id, (totals.get(id) ?? 0) + plat.pax);
+      }
+    }
+    return [...totals.entries()].map(([id, servings]) => {
+      const fiche = fichesById.get(id);
+      return {
+        id,
+        name: fiche?.name ?? 'Fiche supprimée',
+        servings,
+        station: fiche?.station_id ? (stationNames.get(fiche.station_id) ?? '') : '',
+      };
+    });
+  });
 
   private readonly fichesById = computed(() => new Map(this.fiches().map((fiche) => [fiche.id, fiche])));
 
@@ -161,6 +213,7 @@ export class EventForm implements OnInit {
     this.menuService.list().subscribe((menus) => this.menus.set(menus));
     this.ficheTechniqueService.list().subscribe((fiches) => this.fiches.set(fiches));
     this.ingredientCategoryService.list().subscribe((categories) => this.ingredientCategories.set(categories));
+    this.stationService.list().subscribe((stations) => this.stations.set(stations));
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -369,11 +422,62 @@ export class EventForm implements OnInit {
   // --- Enregistrement --------------------------------------------------------------------------
 
   save(): void {
+    const request = this.persist();
+    if (!request) return;
+
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    request.subscribe({
+      next: () => this.router.navigate(['/calendrier']),
+      error: () => {
+        this.saving.set(false);
+        this.errorMessage.set("Une erreur est survenue lors de l'enregistrement.");
+      },
+    });
+  }
+
+  /** Enregistre l'événement (plats compris) puis génère ses tâches de mise en place — on reste
+   * sur la page pour voir le résultat. */
+  saveAndGenerateMiseEnPlace(): void {
+    const request = this.persist();
+    if (!request) return;
+
+    this.generating.set(true);
+    this.generationResult.set(null);
+    this.errorMessage.set(null);
+    request
+      .pipe(
+        switchMap((event) => {
+          // Un nouvel événement devient un événement existant : la suite de l'édition le met à
+          // jour au lieu d'en créer un second, et l'URL suit (sans recharger la page).
+          this.editingEvent.set(event);
+          this.location.replaceState(`/calendrier/${event.id}`);
+          const deadline = this.effectiveDeadline();
+          return this.eventService.generateMiseEnPlace(event.id, {
+            deadline: deadline ? deadline.replace('T', ' ') : null,
+            urgency: this.mepUrgency(),
+          });
+        }),
+      )
+      .subscribe({
+        next: (result) => {
+          this.generating.set(false);
+          this.generationResult.set(result);
+        },
+        error: () => {
+          this.generating.set(false);
+          this.errorMessage.set('Impossible de créer les tâches de mise en place.');
+        },
+      });
+  }
+
+  /** Requête d'enregistrement (création ou mise à jour), ou null si le formulaire est incomplet. */
+  private persist(): Observable<CalendarEvent> | null {
     const name = this.name().trim();
     const startDate = this.startDate();
     if (!name || !startDate) {
       this.errorMessage.set('Le nom et la date de début sont requis.');
-      return;
+      return null;
     }
 
     const payload: CalendarEventPayload = {
@@ -397,17 +501,7 @@ export class EventForm implements OnInit {
     };
 
     const editing = this.editingEvent();
-    const request = editing ? this.eventService.update(editing.id, payload) : this.eventService.create(payload);
-
-    this.saving.set(true);
-    this.errorMessage.set(null);
-    request.subscribe({
-      next: () => this.router.navigate(['/calendrier']),
-      error: () => {
-        this.saving.set(false);
-        this.errorMessage.set("Une erreur est survenue lors de l'enregistrement.");
-      },
-    });
+    return editing ? this.eventService.update(editing.id, payload) : this.eventService.create(payload);
   }
 
   deleteConfirmed(): void {

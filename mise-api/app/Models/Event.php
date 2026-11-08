@@ -20,6 +20,11 @@ class Event extends Model
         return $this->belongsTo(Menu::class);
     }
 
+    public function miseEnPlaceItems(): HasMany
+    {
+        return $this->hasMany(MiseEnPlaceItem::class);
+    }
+
     public function plats(): HasMany
     {
         return $this->hasMany(EventPlat::class)->orderBy('position');

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { environment } from '../../../environments/environment';
-import { CalendarEvent, CalendarEventPayload } from '../models/calendar-event.model';
+import { CalendarEvent, CalendarEventPayload, MiseEnPlaceGenerationResult } from '../models/calendar-event.model';
 import { LocalPrinterService } from './local-printer.service';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +36,11 @@ export class EventService {
 
   delete(id: number) {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Crée ou met à jour les tâches de mise en place de l'événement depuis ses plats enregistrés. */
+  generateMiseEnPlace(id: number, payload: { deadline: string | null; urgency: string }) {
+    return this.http.post<MiseEnPlaceGenerationResult>(`${this.baseUrl}/${id}/mise-en-place`, payload);
   }
 
   printLabel(id: number) {

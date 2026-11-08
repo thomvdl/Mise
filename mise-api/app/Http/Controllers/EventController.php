@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\EventPlat;
+use App\Models\MiseEnPlaceItem;
 use App\Models\Printer;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class EventController extends Controller
@@ -101,12 +103,87 @@ class EventController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     *
+     * Les tâches de mise en place rattachées à l'événement partent avec lui : la clé étrangère est
+     * en `restrictOnDelete`, la suppression échouerait sinon — et une prépa pour un événement
+     * annulé n'a plus de raison d'être.
      */
     public function destroy(Event $event)
     {
-        $event->delete();
+        DB::transaction(function () use ($event) {
+            $event->miseEnPlaceItems()->delete();
+            $event->delete();
+        });
 
         return response()->noContent();
+    }
+
+    /**
+     * Crée les tâches de mise en place de l'événement à partir de ses plats : une tâche par fiche
+     * technique, rattachée à l'événement (son poste reste celui de la fiche), avec le total des
+     * pax des plats qui l'utilisent (une sauce servie avec deux plats = une seule tâche).
+     *
+     * Relançable sans doublon après un changement de répartition : une tâche encore à faire pour
+     * la même fiche voit ses portions, son échéance et son urgence mises à jour ; une tâche déjà
+     * faite n'est pas touchée ; une fiche retirée de l'événement garde sa tâche (à supprimer à la
+     * main si besoin). Les sous-recettes ne génèrent pas de tâche : elles sont déjà comptées dans
+     * la liste de marchandise de leur fiche parente.
+     */
+    public function generateMiseEnPlace(Request $request, Event $event)
+    {
+        $validated = $request->validate([
+            'deadline' => ['nullable', 'date'],
+            'urgency' => ['required', Rule::in(['faible', 'moyenne', 'urgente'])],
+        ]);
+
+        $servingsByFiche = [];
+        $names = [];
+        foreach ($event->plats()->with('ficheTechniques:id,name')->get() as $plat) {
+            if ($plat->pax <= 0) {
+                continue;
+            }
+            foreach ($plat->ficheTechniques as $fiche) {
+                $servingsByFiche[$fiche->id] = ($servingsByFiche[$fiche->id] ?? 0) + $plat->pax;
+                $names[$fiche->id] = $fiche->name;
+            }
+        }
+
+        $summary = ['created' => 0, 'updated' => 0, 'done' => 0];
+
+        DB::transaction(function () use ($event, $request, $validated, $servingsByFiche, $names, &$summary) {
+            foreach ($servingsByFiche as $ficheId => $servings) {
+                $existing = $event->miseEnPlaceItems()->where('fiche_technique_id', $ficheId)->get();
+
+                if ($existing->contains('status', 'done') && ! $existing->contains('status', 'todo')) {
+                    $summary['done']++;
+
+                    continue;
+                }
+
+                $fields = [
+                    'servings' => min($servings, 1000),
+                    'deadline' => $validated['deadline'] ?? null,
+                    'urgency' => $validated['urgency'],
+                ];
+
+                if ($todo = $existing->firstWhere('status', 'todo')) {
+                    $todo->update($fields);
+                    $summary['updated']++;
+                } else {
+                    MiseEnPlaceItem::create([
+                        ...$fields,
+                        'name' => $names[$ficheId],
+                        'event_id' => $event->id,
+                        'fiche_technique_id' => $ficheId,
+                        'user_id' => $request->user()->id,
+                        'status' => 'todo',
+                    ]);
+                    $summary['created']++;
+                }
+            }
+        });
+
+        return response()->json($summary);
     }
 
     /**
