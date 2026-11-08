@@ -15,11 +15,12 @@ class NettoyageTacheController extends Controller
      * Display a listing of the resource.
      *
      * Tout le plan d'un coup, sans pagination (quelques dizaines de lignes au plus) — le
-     * regroupement par zone et le tri par fréquence se font côté client.
+     * regroupement par zone et le tri par fréquence se font côté client. Chaque tâche vient avec
+     * sa dernière réalisation, pour afficher « fait / à faire » sans charger le registre.
      */
     public function index()
     {
-        return NettoyageTache::query()->orderBy('zone')->orderBy('name')->get();
+        return NettoyageTache::query()->with('derniereRealisation')->orderBy('zone')->orderBy('name')->get();
     }
 
     /**
@@ -37,7 +38,7 @@ class NettoyageTacheController extends Controller
      */
     public function show(NettoyageTache $nettoyageTache)
     {
-        return $nettoyageTache;
+        return $nettoyageTache->load('derniereRealisation');
     }
 
     /**

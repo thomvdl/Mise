@@ -1,0 +1,80 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Registre de nettoyage</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/nettoyage">Plan de nettoyage</a>
+    <button type="button" class="btn btn-primary" (click)="print()">Imprimer le registre</button>
+  </div>
+</div>
+
+<div class="report-filters no-print">
+  <div class="form-field">
+    <label class="form-label" for="zone">Poste / lieu</label>
+    <select id="zone" class="form-select" (change)="onZoneChange($event)">
+      <option value="" [selected]="zone() === ''">Tous</option>
+      @for (z of zones(); track z) {
+        <option [value]="z" [selected]="z === zone()">{{ z }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label" for="from">Du</label>
+    <input id="from" class="form-input" type="date" [value]="from()" [max]="today" (change)="onFromChange($event)" />
+  </div>
+
+  <div class="form-field">
+    <label class="form-label" for="to">Au</label>
+    <input id="to" class="form-input" type="date" [value]="to()" [max]="today" (change)="onToChange($event)" />
+  </div>
+</div>
+
+<div class="report-print-header only-print">
+  <div class="report-print-brand">MISE.</div>
+  <h1>Registre de nettoyage et de désinfection</h1>
+  <p class="report-print-subtitle">{{ zone() || 'Tous les postes et lieux' }}</p>
+  <p class="report-print-meta">Période : {{ periodLabel() }}</p>
+</div>
+
+<div class="report-card">
+  <div class="report-card-header">
+    <h2 class="no-print">{{ periodLabel() }}</h2>
+    <div class="report-stats">
+      <span>Tâches faites <strong>{{ realisations().length }}</strong></span>
+      <span>Personnes <strong>{{ peopleCount() }}</strong></span>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Fait le</th>
+          <th>Poste / lieu</th>
+          <th>Tâche</th>
+          <th>Fait par</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of realisations(); track r.id) {
+          <tr>
+            <td class="col-date">{{ formatDateTime(r.created_at) }}</td>
+            <td>{{ r.zone }}</td>
+            <td>
+              {{ r.tache_name }}
+              @if (r.nettoyage_tache_id === null) {
+                <span class="removed no-print">(retirée du plan)</span>
+              }
+            </td>
+            <td>{{ r.user_name }}</td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="4">{{ loading() ? 'Chargement…' : 'Aucune tâche faite sur cette période.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+</div>

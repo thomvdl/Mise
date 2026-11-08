@@ -102,6 +102,87 @@
   border-top: 1px solid var(--border);
 }
 
+.form-error {
+  color: var(--accent-red);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.tache-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.tache-status.fait {
+  background: color-mix(in srgb, var(--accent-green) 14%, transparent);
+  color: var(--accent-green);
+}
+
+.status-last {
+  color: var(--text-faint);
+}
+
+.fait-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--accent-green);
+  background: var(--accent-green);
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Déjà fait pour la période : on peut le refaire (ex. second service), mais le bouton s'efface. */
+.tache-status.fait .fait-btn {
+  background: transparent;
+  color: var(--accent-green);
+}
+
+.fait-btn:disabled {
+  opacity: 0.5;
+}
+
+.history-toggle {
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.history-toggle:hover {
+  text-decoration: underline;
+}
+
+.history-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.history-list li {
+  padding: 3px 0;
+}
+
+.history-empty {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 6px 0 0;
+}
+
 /* Un seul poste affiché : lecture de loin sur la tablette du poste, en plus grand. */
 .zone-grid.single .zone-card {
   padding: 22px 26px;
@@ -127,7 +208,8 @@
 
 .zone-grid.single .tache-meta,
 .zone-grid.single .tache-produit,
-.zone-grid.single .tache-methode {
+.zone-grid.single .tache-methode,
+.zone-grid.single .tache-status {
   font-size: 14.5px;
 }
 

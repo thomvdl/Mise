@@ -4,8 +4,10 @@ import { RouterLink } from '@angular/router';
 import {
   NETTOYAGE_FREQUENCES,
   NettoyageTache,
+  formatRealisation,
   frequenceLabel,
   frequenceRank,
+  isFaitPourPeriode,
 } from '../../core/models/nettoyage-tache.model';
 import { NettoyageTacheService } from '../../core/services/nettoyage-tache.service';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
@@ -78,5 +80,11 @@ export class NettoyageList implements OnInit {
     });
   }
 
+  /** Faite pour sa période en cours (aujourd'hui, cette semaine…) — affichée en vert. */
+  isFait(item: NettoyageTache): boolean {
+    return isFaitPourPeriode(item);
+  }
+
   protected readonly frequenceLabel = frequenceLabel;
+  protected readonly formatRealisation = formatRealisation;
 }

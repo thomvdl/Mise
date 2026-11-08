@@ -11,3 +11,5 @@ tr.zone-start:not(:first-child) td{ border-top:2px solid var(--border); }
 .freq-badge[data-freq="hebdomadaire"]{ color:var(--accent-blue); border-color:currentColor; }
 .freq-badge[data-freq="mensuel"]{ color:var(--accent-green); border-color:currentColor; }
 .moment{ display:block; margin-top:3px; font-size:12px; color:var(--text-dim); }
+.last-done{ white-space:nowrap; font-size:12.5px; }
+.last-done .fait{ color:var(--accent-green); font-weight:700; }

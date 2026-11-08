@@ -192,6 +192,11 @@ export const routes: Routes = [
             loadComponent: () => import('./components/nettoyage-form/nettoyage-form').then((m) => m.NettoyageForm),
           },
           {
+            path: 'registre',
+            loadComponent: () =>
+              import('./components/nettoyage-registre/nettoyage-registre').then((m) => m.NettoyageRegistre),
+          },
+          {
             path: ':id',
             loadComponent: () => import('./components/nettoyage-form/nettoyage-form').then((m) => m.NettoyageForm),
           },

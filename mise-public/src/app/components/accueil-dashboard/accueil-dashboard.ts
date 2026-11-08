@@ -12,7 +12,12 @@ import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.model';
 import { MiseEnPlaceItem, MiseEnPlaceUrgency } from '../../core/models/mise-en-place-item.model';
 import { ShoppingItem } from '../../core/models/shopping-item.model';
-import { NettoyageTache, nettoyageDuJour } from '../../core/models/nettoyage-tache.model';
+import {
+  NettoyageTache,
+  formatRealisation,
+  isFaitPourPeriode,
+  nettoyageDuJour,
+} from '../../core/models/nettoyage-tache.model';
 
 const FICHE_LIMIT = 24;
 const EVENT_LIMIT = 8;
@@ -99,6 +104,15 @@ export class AccueilDashboard implements OnInit {
     const taches = this.nettoyage();
     return Array.isArray(taches) ? nettoyageDuJour(taches) : taches;
   });
+
+  /** Tâches du jour déjà faites (aujourd'hui), pour le compteur « x / n faites ». */
+  nettoyageFaites = computed(() => {
+    const taches = this.nettoyageAujourdhui();
+    return Array.isArray(taches) ? taches.filter((t) => isFaitPourPeriode(t)).length : 0;
+  });
+
+  readonly isFaitPourPeriode = isFaitPourPeriode;
+  readonly formatRealisation = formatRealisation;
 
   /** Nombre de tâches hebdomadaires, rappelé sous la liste (0 = rien à afficher). */
   nettoyageSemaine = computed(() => {

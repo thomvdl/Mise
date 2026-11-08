@@ -18,6 +18,7 @@ use App\Http\Controllers\LabelTypeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MiseEnPlaceItemController;
+use App\Http\Controllers\NettoyageRealisationController;
 use App\Http\Controllers\NettoyageTacheController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PictureController;
@@ -66,6 +67,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Plan de nettoyage — consultation en cuisine (mise-public), édition admin plus bas.
     Route::apiResource('nettoyage-taches', NettoyageTacheController::class)->only(['index', 'show'])
         ->parameters(['nettoyage-taches' => 'nettoyage_tache']);
+    // Registre du plan de nettoyage — toute la brigade peut marquer une tâche faite ; append-only
+    // (pas d'update/destroy, même admin), voir NettoyageRealisationController.
+    Route::apiResource('nettoyage-realisations', NettoyageRealisationController::class)->only(['index', 'store']);
 
     // Les relevés de température et les changements d'huile sont les seules écritures ouvertes
     // au rôle user (saisie côté public).

@@ -304,7 +304,7 @@
     <header class="widget-header">
       <h2 class="widget-title">Nettoyage du jour</h2>
       @if (nettoyage !== null && nettoyage !== 'error') {
-        <span class="widget-count">{{ nettoyage.length }} tâche(s)</span>
+        <span class="widget-count">{{ nettoyageFaites() }} / {{ nettoyage.length }} faite(s)</span>
       }
       <a class="widget-link" routerLink="/nettoyage">Plan complet →</a>
     </header>
@@ -326,9 +326,15 @@
                   }
                 </span>
               </div>
-              <span class="freq-badge" [attr.data-freq]="tache.frequence">
-                {{ tache.frequence === 'apres_service' ? 'Après service' : 'Chaque jour' }}
-              </span>
+              @if (isFaitPourPeriode(tache)) {
+                <span class="freq-badge fait" [title]="'Fait ' + formatRealisation(tache.derniere_realisation!.created_at)">
+                  ✓ {{ tache.derniere_realisation!.user_name }}
+                </span>
+              } @else {
+                <span class="freq-badge" [attr.data-freq]="tache.frequence">
+                  {{ tache.frequence === 'apres_service' ? 'Après service' : 'Chaque jour' }}
+                </span>
+              }
             </div>
           </li>
         } @empty {

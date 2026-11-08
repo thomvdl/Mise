@@ -11,6 +11,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Rechercher…" [value]="search()" (input)="search.set($any($event.target).value)">
     </div>
+    <a class="btn btn-ghost" routerLink="registre">Registre</a>
     <a class="btn btn-primary" routerLink="nouveau">+ Nouvelle tâche</a>
   </div>
 </div>
@@ -24,6 +25,7 @@
         <th>Quand</th>
         <th>Qui</th>
         <th>Produit</th>
+        <th>Dernière fois</th>
         <th class="col-actions"></th>
       </tr>
     </thead>
@@ -40,6 +42,14 @@
           </td>
           <td>{{ item.responsable ?? '—' }}</td>
           <td>{{ item.produit ?? '—' }}</td>
+          <td class="last-done">
+            @if (item.derniere_realisation; as derniere) {
+              <span [class.fait]="isFait(item)">{{ formatRealisation(derniere.created_at) }}</span>
+              <span class="moment">{{ derniere.user_name }}</span>
+            } @else {
+              —
+            }
+          </td>
           <td class="col-actions">
             <a class="btn btn-ghost btn-sm" [routerLink]="[item.id]">Modifier</a>
             <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(item)">Supprimer</button>
@@ -47,7 +57,7 @@
         </tr>
       } @empty {
         <tr class="empty-row">
-          <td colspan="6">{{ items().length ? 'Aucune tâche ne correspond.' : 'Le plan de nettoyage est vide.' }}</td>
+          <td colspan="7">{{ items().length ? 'Aucune tâche ne correspond.' : 'Le plan de nettoyage est vide.' }}</td>
         </tr>
       }
     </tbody>

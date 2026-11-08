@@ -16,6 +16,14 @@
     </div>
 
     <div class="filter-row">
+      <span class="filter-label">Afficher</span>
+      <div class="filter-tabs">
+        <button type="button" class="station-tab" [class.active]="!resteAFaire()" (click)="resteAFaire.set(false)">Tout</button>
+        <button type="button" class="station-tab" [class.active]="resteAFaire()" (click)="resteAFaire.set(true)">Reste à faire</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
       <span class="filter-label">Fréquence</span>
       <div class="filter-tabs">
         <button type="button" class="station-tab" [class.active]="frequence() === ''" (click)="frequence.set('')">Toutes</button>
@@ -28,10 +36,14 @@
     </div>
   </div>
 
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+
   @if (loaded() && taches().length === 0) {
     <p class="form-hint">Le plan de nettoyage est vide. Demandez au chef de le remplir depuis le dashboard.</p>
   } @else if (loaded() && zones().length === 0) {
-    <p class="form-hint">Aucune tâche pour ces filtres.</p>
+    <p class="form-hint">{{ resteAFaire() ? 'Tout est fait pour ces filtres.' : 'Aucune tâche pour ces filtres.' }}</p>
   }
 
   <div class="zone-grid" [class.single]="zones().length === 1">
@@ -57,6 +69,43 @@
               @if (tache.methode) {
                 <p class="tache-methode">{{ tache.methode }}</p>
               }
+
+              @if (isTrackable(tache)) {
+                <div class="tache-status" [class.fait]="isFait(tache)">
+                  <span class="status-text">
+                    @if (isFait(tache)) {
+                      ✓ Fait {{ formatRealisation(tache.derniere_realisation!.created_at) }} par
+                      <strong>{{ tache.derniere_realisation!.user_name }}</strong>
+                    } @else {
+                      À faire
+                      @if (tache.derniere_realisation; as derniere) {
+                        <span class="status-last">· dernière fois {{ formatRealisation(derniere.created_at) }} ({{ derniere.user_name }})</span>
+                      }
+                    }
+                  </span>
+                  <button type="button" class="fait-btn" [disabled]="saving() === tache.id" (click)="requestFait(tache)">
+                    {{ saving() === tache.id ? 'Enregistrement…' : 'Fait' }}
+                  </button>
+                </div>
+
+                <button type="button" class="history-toggle" (click)="toggleHistory(tache.id)">
+                  {{ isHistoryOpen(tache.id) ? "Masquer l'historique" : 'Historique' }}
+                </button>
+                @if (isHistoryOpen(tache.id)) {
+                  @let history = histories()[tache.id];
+                  @if (history === null) {
+                    <p class="history-empty">Chargement…</p>
+                  } @else {
+                    <ul class="history-list">
+                      @for (r of history; track r.id) {
+                        <li>{{ formatRealisation(r.created_at) }} — {{ r.user_name }}</li>
+                      } @empty {
+                        <li class="history-empty">Jamais faite pour l'instant.</li>
+                      }
+                    </ul>
+                  }
+                }
+              }
             </li>
           }
         </ul>
@@ -64,3 +113,12 @@
     }
   </div>
 </div>
+
+<app-confirm-dialog
+  [open]="pendingTache() !== null"
+  title="Tâche faite ?"
+  [message]="confirmMessage()"
+  confirmLabel="Oui, c'est fait"
+  (confirm)="confirmFait()"
+  (cancel)="cancelFait()">
+</app-confirm-dialog>

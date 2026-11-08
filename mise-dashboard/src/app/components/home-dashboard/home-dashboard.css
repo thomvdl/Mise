@@ -357,3 +357,8 @@
   background: color-mix(in srgb, var(--accent-copper) 16%, transparent);
   color: var(--accent-copper);
 }
+
+.freq-badge.fait {
+  background: color-mix(in srgb, var(--accent-green) 16%, transparent);
+  color: var(--accent-green);
+}
