@@ -21,6 +21,11 @@ export class EventService {
     return this.http.get<CalendarEvent[]>(`${environment.apiUrl}/events`);
   }
 
+  /** Détail d'un événement : plats et pax, allergies du groupe. */
+  get(id: number) {
+    return this.http.get<CalendarEvent>(`${environment.apiUrl}/events/${id}`);
+  }
+
   printLabel(id: number) {
     return this.http.post<{ message: string }>(`${environment.apiUrl}/events/${id}/print-label`, {
       printer_id: this.localPrinter.printerId(),

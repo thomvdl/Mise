@@ -21,6 +21,10 @@ import { Station } from '../../core/models/station.model';
 import { Menu } from '../../core/models/menu.model';
 import { FicheTechnique } from '../../core/models/fiche-technique.model';
 import { IngredientCategory } from '../../core/models/ingredient-category.model';
+import { Allergen } from '../../core/models/allergen.model';
+import { Ingredient } from '../../core/models/ingredient.model';
+import { IngredientService } from '../../core/services/ingredient.service';
+import { PlatAllergenCheck, checkPlatAllergens } from '../../core/utils/event-allergens';
 import { MerchandiseEntry, MerchandiseLine, merchandiseList } from '../../core/utils/merchandise-list';
 import { formatQuantity } from '../../core/utils/format-quantity';
 import { useReportTitle } from '../../core/utils/report-title';
@@ -80,6 +84,8 @@ export class EventForm implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly stationService = new SimpleEntityService<Station>(inject(HttpClient), 'stations');
+  private readonly allergenService = new SimpleEntityService<Allergen>(inject(HttpClient), 'allergens');
+  private readonly ingredientService = inject(IngredientService);
   private readonly setReportTitle = useReportTitle(inject(Title), inject(DestroyRef));
 
   readonly eventTypes = EVENT_TYPES;
@@ -91,12 +97,17 @@ export class EventForm implements OnInit {
   fiches = signal<FicheTechnique[]>([]);
   ingredientCategories = signal<IngredientCategory[]>([]);
   stations = signal<Station[]>([]);
+  allergens = signal<Allergen[]>([]);
+  private readonly ingredientsById = signal(new Map<number, Ingredient>());
 
   name = signal('');
   detail = signal('');
   horaire = signal('');
   couverts = signal<number | null>(null);
   type = signal<string | null>(null);
+  /** Allergies du groupe : allergènes à éviter + détail libre. */
+  allergenIds = signal<number[]>([]);
+  allergiesNote = signal('');
   startDate = signal('');
   endDate = signal('');
 
@@ -117,6 +128,31 @@ export class EventForm implements OnInit {
   printLabelError = signal<string | null>(null);
 
   isEdit = computed(() => this.editingEvent() !== null);
+
+  groupAllergens = computed(() => this.allergens().filter((a) => this.allergenIds().includes(a.id)));
+
+  /** Vérification de chaque plat face aux allergies du groupe, par clé de plat. Vide tant
+   * qu'aucun allergène n'est signalé — rien à vérifier. */
+  platChecks = computed(() => {
+    const group = this.groupAllergens();
+    const checks = new Map<number, PlatAllergenCheck>();
+    if (group.length === 0) return checks;
+    for (const section of this.sections()) {
+      for (const plat of section.plats) {
+        checks.set(plat.key, checkPlatAllergens(plat.ficheIds, group, this.fichesById(), this.ingredientsById()));
+      }
+    }
+    return checks;
+  });
+
+  /** Résumé en tête de la section menu : plats à risque et plats impossibles à vérifier. */
+  allergyAlerts = computed(() => {
+    const checks = [...this.platChecks().values()];
+    return {
+      conflicts: checks.filter((c) => c.conflicts.length > 0).length,
+      unverifiable: checks.filter((c) => c.unverifiable).length,
+    };
+  });
 
   /** Échéance (datetime-local) et urgence des tâches de mise en place à générer. L'échéance
    * suit la date de début (8 h le jour J) tant qu'on ne l'a pas changée à la main. */
@@ -214,6 +250,10 @@ export class EventForm implements OnInit {
     this.ficheTechniqueService.list().subscribe((fiches) => this.fiches.set(fiches));
     this.ingredientCategoryService.list().subscribe((categories) => this.ingredientCategories.set(categories));
     this.stationService.list().subscribe((stations) => this.stations.set(stations));
+    this.allergenService.list().subscribe((allergens) => this.allergens.set(allergens));
+    this.ingredientService
+      .list()
+      .subscribe((ingredients) => this.ingredientsById.set(new Map(ingredients.map((i) => [i.id, i]))));
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -235,6 +275,8 @@ export class EventForm implements OnInit {
     this.horaire.set(event.horaire ?? '');
     this.couverts.set(event.couverts);
     this.type.set(event.type);
+    this.allergenIds.set((event.allergens ?? []).map((a) => a.id));
+    this.allergiesNote.set(event.allergies_note ?? '');
     this.startDate.set(event.start_date);
     this.endDate.set(event.end_date);
     this.menuId.set(event.menu_id);
@@ -342,6 +384,10 @@ export class EventForm implements OnInit {
 
     const menu = this.menus().find((m) => m.id === menuId);
     this.sections.set(menu ? this.sectionsFromMenu(menu) : []);
+  }
+
+  toggleAllergen(id: number): void {
+    this.allergenIds.update((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]));
   }
 
   // --- Sections / plats ------------------------------------------------------------------------
@@ -489,6 +535,8 @@ export class EventForm implements OnInit {
       start_date: startDate,
       end_date: this.endDate() || startDate,
       menu_id: this.mode() === 'menu' ? this.menuId() : null,
+      allergen_ids: this.allergenIds(),
+      allergies_note: this.allergiesNote().trim() || null,
       // Une section sans plat n'a rien à enregistrer — elle disparaît au rechargement.
       plats: this.sections().flatMap((section) =>
         section.plats.map((plat) => ({

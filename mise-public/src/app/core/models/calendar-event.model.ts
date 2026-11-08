@@ -1,3 +1,6 @@
+import { Allergen } from './allergen.model';
+import { FicheTechnique } from './fiche-technique.model';
+
 export interface EventType {
   key: string;
   label: string;
@@ -22,4 +25,19 @@ export interface CalendarEvent {
   end_date: string;
   menu_id: number | null;
   menu: { id: number; name: string } | null;
+  /** Allergènes à éviter pour le groupe, et détail libre (qui, combien, régimes). */
+  allergens: Allergen[];
+  allergies_note: string | null;
+  /** Chargé seulement par `GET /api/events/:id` (détail), pas par la liste du calendrier. */
+  plats?: EventPlat[];
+}
+
+/** Un plat prévu pour l'événement et son nombre de pax (section = Entrée, Plat, Dessert…). */
+export interface EventPlat {
+  id: number;
+  section: string;
+  name: string;
+  pax: number;
+  position: number;
+  fiche_techniques: FicheTechnique[];
 }

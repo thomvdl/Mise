@@ -81,3 +81,24 @@ it('supprime les plats avec l\'événement', function () {
 
     expect(\App\Models\EventPlat::count())->toBe(0);
 });
+
+it('enregistre les allergies du groupe et les renvoie avec l\'événement', function () {
+    $gluten = \App\Models\Allergen::create(['name' => 'Gluten', 'slug' => 'gluten', 'code' => 'GLU']);
+    $lait = \App\Models\Allergen::create(['name' => 'Lait', 'slug' => 'lait', 'code' => 'LAI']);
+
+    $id = $this->postJson('/api/events', [
+        ...eventPayload([]),
+        'allergen_ids' => [$gluten->id, $lait->id],
+        'allergies_note' => '2 sans gluten (table 4), 1 végétarien',
+    ])->assertCreated()->assertJsonCount(2, 'allergens')->json('id');
+
+    $this->getJson("/api/events/{$id}")
+        ->assertJsonPath('allergies_note', '2 sans gluten (table 4), 1 végétarien')
+        ->assertJsonCount(2, 'allergens');
+
+    // Non envoyés : inchangés ; envoyés vides : retirés.
+    $this->patchJson("/api/events/{$id}", ['couverts' => 30])->assertJsonCount(2, 'allergens');
+    $this->patchJson("/api/events/{$id}", ['allergen_ids' => []])->assertJsonCount(0, 'allergens');
+
+    $this->getJson('/api/events')->assertOk()->assertJsonPath('0.allergens', []);
+});

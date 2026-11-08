@@ -33,7 +33,7 @@
           <span class="day-number">{{ cell.date.getDate() }}</span>
           @for (event of eventsOn(cell.iso); track event.id) {
             <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openDetail(event)">
-              <span class="event-chip-name">{{ event.name }}</span>
+              <span class="event-chip-name">@if (event.allergens.length) {<span class="allergy-flag" title="Allergies du groupe">⚠ </span>}{{ event.name }}</span>
               @if (event.couverts) {
                 <span class="event-chip-covers">{{ event.couverts }}</span>
               }
@@ -55,7 +55,7 @@
               <span class="event-row-arrow">→ {{ event.end_date | date: 'dd/MM/yyyy' }}</span>
             }
           </span>
-          <span class="event-row-name">{{ event.name }}</span>
+          <span class="event-row-name">@if (event.allergens.length) {<span class="allergy-flag" title="Allergies du groupe">⚠ </span>}{{ event.name }}</span>
           <span class="event-row-meta">
             @if (event.couverts) {
               <span class="event-row-tag">{{ event.couverts }} couverts</span>
@@ -94,6 +94,58 @@
           <div class="detail-stat">
             <span class="detail-stat-value">{{ event.couverts }}</span>
             <span class="detail-stat-label">Couverts</span>
+          </div>
+        }
+
+        @if (event.allergens.length || event.allergies_note) {
+          <div class="detail-section allergies-box">
+            <span class="detail-label">⚠ Allergies du groupe</span>
+            @if (event.allergens.length) {
+              <div class="allergy-chips">
+                @for (a of event.allergens; track a.id) {
+                  <span class="allergy-chip">{{ a.name }}</span>
+                }
+              </div>
+            }
+            @if (event.allergies_note) {
+              <p class="detail-text">{{ event.allergies_note }}</p>
+            }
+          </div>
+        }
+
+        @if (selectedPlats() === null) {
+          <p class="detail-text plats-loading">Chargement des plats…</p>
+        } @else if (platSections().length) {
+          <div class="detail-section">
+            <span class="detail-label">Plats et pax</span>
+            @for (section of platSections(); track $index) {
+              <div class="plat-section">
+                <span class="plat-section-name">{{ section.name }}</span>
+                <ul class="plat-list">
+                  @for (plat of section.plats; track plat.id) {
+                    <li class="plat-row">
+                      <span class="plat-pax">{{ plat.pax }}</span>
+                      <div class="plat-main">
+                        <span class="plat-name">{{ plat.name }}</span>
+                        @if (platChecks().get(plat.id); as check) {
+                          @if (check.conflicts.length) {
+                            <span class="plat-allergy">
+                              ⚠ Contient
+                              @for (a of check.conflicts; track a.id) {
+                                <strong>{{ a.name }}</strong>{{ $last ? '' : ', ' }}
+                              }
+                            </span>
+                          }
+                          @if (check.unverifiable) {
+                            <span class="plat-unknown">Pas de fiche : allergènes à vérifier</span>
+                          }
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
           </div>
         }
 

@@ -17,7 +17,7 @@ class EventController extends Controller
     /** Catégories d'événement proposées côté formulaire — pas de table dédiée, juste une chaîne validée. */
     private const TYPES = ['brunch', 'groupe', 'evenement', 'autre'];
 
-    private const RELATIONS = ['menu:id,name', 'plats.ficheTechniques'];
+    private const RELATIONS = ['menu:id,name', 'allergens', 'plats.ficheTechniques'];
 
     /**
      * Display a listing of the resource.
@@ -28,7 +28,7 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Event::query()->with('menu:id,name')->orderBy('start_date');
+        $query = Event::query()->with(['menu:id,name', 'allergens'])->orderBy('start_date');
 
         if ($request->filled('month') && $request->filled('year')) {
             $monthStart = sprintf('%04d-%02d-01', $request->integer('year'), $request->integer('month'));
@@ -54,14 +54,15 @@ class EventController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'menu_id' => ['nullable', Rule::exists('menus', 'id')],
-            ...$this->platRules(),
+            ...$this->compositionRules(),
         ]);
 
         $validated['end_date'] ??= $validated['start_date'];
 
-        $event = Event::create(collect($validated)->except('plats')->all());
+        $event = Event::create(collect($validated)->except(['plats', 'allergen_ids'])->all());
 
         $this->replacePlats($event, $validated['plats'] ?? []);
+        $event->allergens()->sync($validated['allergen_ids'] ?? []);
 
         return response()->json($event->load(self::RELATIONS), 201);
     }
@@ -89,13 +90,17 @@ class EventController extends Controller
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'nullable', 'date', 'after_or_equal:start_date'],
             'menu_id' => ['sometimes', 'nullable', Rule::exists('menus', 'id')],
-            ...$this->platRules(),
+            ...$this->compositionRules(),
         ]);
 
-        $event->update(collect($validated)->except('plats')->all());
+        $event->update(collect($validated)->except(['plats', 'allergen_ids'])->all());
 
         if (array_key_exists('plats', $validated)) {
             $this->replacePlats($event, $validated['plats']);
+        }
+
+        if (array_key_exists('allergen_ids', $validated)) {
+            $event->allergens()->sync($validated['allergen_ids']);
         }
 
         return $event->load(self::RELATIONS);
@@ -187,12 +192,16 @@ class EventController extends Controller
     }
 
     /**
-     * Plats prévus, chacun avec son nombre de pax — `section` est un libellé libre (Entrée, Plat,
-     * Dessert…), comme le nom d'une section de menu.
+     * Ce qu'on sert et à qui, communs à store/update : plats prévus avec leur nombre de pax
+     * (`section` est un libellé libre — Entrée, Plat, Dessert…) et allergies du groupe.
      */
-    private function platRules(): array
+    private function compositionRules(): array
     {
         return [
+            'allergies_note' => ['sometimes', 'nullable', 'string'],
+            'allergen_ids' => ['sometimes', 'array'],
+            'allergen_ids.*' => ['integer', 'exists:allergens,id'],
+
             'plats' => ['sometimes', 'array'],
             'plats.*.section' => ['required', 'string', 'max:100'],
             'plats.*.name' => ['required', 'string', 'max:255'],

@@ -38,7 +38,7 @@
         <span class="day-number">{{ cell.date.getDate() }}</span>
         @for (event of eventsOn(cell.iso); track event.id) {
           <button type="button" class="event-chip" [attr.data-type]="event.type" (click)="openEditEventForm(event, $event)">
-            <span class="event-chip-name">{{ event.name }}</span>
+            <span class="event-chip-name">@if (event.allergens.length) {<span class="allergy-flag" title="Allergies du groupe">⚠ </span>}{{ event.name }}</span>
             @if (event.couverts) {
               <span class="event-chip-covers">{{ event.couverts }}</span>
             }
@@ -60,7 +60,7 @@
             <span class="event-row-arrow">→ {{ event.end_date | date: 'dd/MM/yyyy' }}</span>
           }
         </span>
-        <span class="event-row-name">{{ event.name }}</span>
+        <span class="event-row-name">@if (event.allergens.length) {<span class="allergy-flag" title="Allergies du groupe">⚠ </span>}{{ event.name }}</span>
         <span class="event-row-meta">
           @if (event.couverts) {
             <span class="event-row-tag">{{ event.couverts }} couverts</span>

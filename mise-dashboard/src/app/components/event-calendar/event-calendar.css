@@ -120,3 +120,5 @@
   .calendar-toolbar{ justify-content:center; }
   .event-row{ flex-direction:column; align-items:flex-start; gap:6px; }
 }
+
+.allergy-flag{ color:var(--accent-red); font-weight:800; }

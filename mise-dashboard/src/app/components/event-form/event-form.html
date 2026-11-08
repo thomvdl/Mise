@@ -51,6 +51,34 @@
   </div>
 
   <div class="section">
+    <div class="section-title">Allergies du groupe</div>
+    <p class="form-hint">
+      Coche les allergènes à éviter : les plats qui en contiennent (sous-recettes comprises) sont
+      signalés ci-dessous, ici et sur la tablette.
+    </p>
+    <div class="allergen-chips">
+      @for (allergen of allergens(); track allergen.id) {
+        <button
+          type="button"
+          class="allergen-chip"
+          [class.selected]="allergenIds().includes(allergen.id)"
+          (click)="toggleAllergen(allergen.id)">
+          {{ allergen.name }}
+        </button>
+      }
+    </div>
+    <div class="form-field allergies-note">
+      <label class="form-label" for="allergies-note">Détail (qui, combien, autres régimes)</label>
+      <textarea
+        id="allergies-note"
+        class="form-textarea"
+        rows="2"
+        placeholder="Ex. 2 sans gluten (table 4), 1 végétarien, 1 halal"
+        [(ngModel)]="allergiesNote"></textarea>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title">Menu de l'événement</div>
 
     <div class="view-toggle">
@@ -84,6 +112,18 @@
 
     @if (!couverts()) {
       <p class="form-hint">Renseigne le nombre de couverts pour vérifier la répartition de chaque section.</p>
+    }
+
+    @if (allergyAlerts().conflicts || allergyAlerts().unverifiable) {
+      <p class="allergy-banner">
+        ⚠
+        @if (allergyAlerts().conflicts) {
+          {{ allergyAlerts().conflicts }} plat(s) contiennent un allergène du groupe.
+        }
+        @if (allergyAlerts().unverifiable) {
+          {{ allergyAlerts().unverifiable }} plat(s) sans fiche technique : à vérifier à la main.
+        }
+      </p>
     }
 
     <div class="event-sections">
@@ -127,6 +167,19 @@
               <div class="event-plat-row">
                 <div class="plat-info">
                   <span class="plat-name">{{ plat.name }}</span>
+                  @if (platChecks().get(plat.key); as check) {
+                    @if (check.conflicts.length) {
+                      <span class="allergy-warning">
+                        ⚠ Contient :
+                        @for (a of check.conflicts; track a.id) {
+                          <strong>{{ a.name }}</strong>{{ $last ? '' : ', ' }}
+                        }
+                      </span>
+                    }
+                    @if (check.unverifiable) {
+                      <span class="allergy-unknown">Sans fiche technique : allergènes à vérifier à la main</span>
+                    }
+                  }
                   @if (mode() === 'menu') {
                     <span class="plat-fiches">
                       @for (ficheId of plat.ficheIds; track ficheId) {
@@ -271,12 +324,36 @@
   </div>
 
   <div class="only-print">
+    @if (groupAllergens().length || allergiesNote().trim()) {
+      <h2 class="sheet-section">Allergies du groupe</h2>
+      <p class="sheet-allergies">
+        @for (a of groupAllergens(); track a.id) {
+          <strong>{{ a.name }}</strong>{{ $last ? '' : ', ' }}
+        }
+        @if (allergiesNote().trim()) {
+          — {{ allergiesNote() }}
+        }
+      </p>
+    }
     @for (section of sections(); track section.key) {
       @if (section.plats.length) {
         <h2 class="sheet-section">{{ section.name }}</h2>
         <ul class="sheet-plats">
           @for (plat of section.plats; track plat.key) {
-            <li><strong>{{ plat.pax }} pax</strong> — {{ plat.name }}</li>
+            <li>
+              <strong>{{ plat.pax }} pax</strong> — {{ plat.name }}
+              @if (platChecks().get(plat.key); as check) {
+                @if (check.conflicts.length) {
+                  — ⚠ contient
+                  @for (a of check.conflicts; track a.id) {
+                    {{ a.name }}{{ $last ? '' : ', ' }}
+                  }
+                }
+                @if (check.unverifiable) {
+                  — ⚠ allergènes à vérifier
+                }
+              }
+            </li>
           }
         </ul>
       }

@@ -14,6 +14,24 @@
 .menu-picker{ display:flex; gap:10px; align-items:center; max-width:520px; margin-bottom:6px; }
 .menu-picker .form-select{ flex:1; }
 
+.allergen-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.allergen-chip{
+  border:1px solid var(--border); background:var(--surface-2); color:var(--text-dim);
+  padding:5px 12px; border-radius:999px; font-size:12.5px; font-weight:600;
+}
+.allergen-chip:hover{ border-color:var(--accent-red); color:var(--text); }
+.allergen-chip.selected{ background:var(--accent-red); border-color:var(--accent-red); color:#fff; }
+.allergies-note{ max-width:640px; }
+
+.allergy-banner{
+  margin:10px 0 0; padding:10px 14px; border-radius:var(--radius);
+  background:color-mix(in srgb, var(--accent-red) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--accent-red) 40%, transparent);
+  color:var(--accent-red); font-size:13px; font-weight:600;
+}
+.allergy-warning{ font-size:12.5px; color:var(--accent-red); }
+.allergy-unknown{ font-size:12px; color:var(--accent-copper); font-style:italic; }
+
 .event-sections{ display:flex; flex-direction:column; gap:16px; margin-top:14px; }
 
 .event-section-card{
@@ -85,6 +103,7 @@
 @media print{
   .sheet-section{ font-size:9pt; margin:8pt 0 3pt; text-transform:uppercase; letter-spacing:.4px; }
   .sheet-plats{ margin:0 0 4pt; padding-left:12pt; font-size:8pt; }
+  .sheet-allergies{ margin:0 0 4pt; font-size:8pt; }
   .merch-category td{ background:none !important; font-size:6pt !important; padding-top:5pt !important; }
 }
 
