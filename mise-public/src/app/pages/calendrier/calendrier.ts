@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 
 import { EventService } from '../../core/services/event.service';
@@ -23,6 +23,8 @@ export class Calendrier implements OnInit {
   private readonly eventService = inject(EventService);
   private readonly ficheTechniqueService = inject(FicheTechniqueService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly weekdayLabels = WEEKDAY_LABELS;
 
@@ -43,7 +45,23 @@ export class Calendrier implements OnInit {
   );
 
   ngOnInit(): void {
-    this.loadEvents();
+    // `?event=ID` (lien du tableau de bord) : on se place sur le mois de l'événement et on ouvre
+    // directement sa fiche.
+    const eventId = Number(this.route.snapshot.queryParamMap.get('event'));
+    if (!eventId) {
+      this.loadEvents();
+      return;
+    }
+    this.eventService.get(eventId).subscribe({
+      next: (event) => {
+        const [year, month] = event.start_date.split('-').map(Number);
+        this.currentYear.set(year);
+        this.currentMonth.set(month);
+        this.loadEvents();
+        this.openDetail(event);
+      },
+      error: () => this.loadEvents(),
+    });
   }
 
   loadEvents(): void {
@@ -140,6 +158,9 @@ export class Calendrier implements OnInit {
 
   closeDetail(): void {
     this.selectedEvent.set(null);
+    if (this.route.snapshot.queryParamMap.has('event')) {
+      this.router.navigate([], { relativeTo: this.route, queryParams: { event: null }, replaceUrl: true });
+    }
   }
 
   printingLabel = signal(false);

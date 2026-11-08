@@ -80,32 +80,34 @@
     } @else {
       <ul class="widget-list">
         @for (event of eventList; track event.id) {
-          <li class="widget-row">
-            <div class="row-date" [class.is-today]="isToday(event)">
-              @if (isToday(event)) {
-                Aujourd'hui
-              } @else {
-                {{ weekday(event.start_date) }} {{ event.start_date | date: 'dd/MM' }}
-                @if (event.end_date !== event.start_date) {
-                  → {{ weekday(event.end_date) }} {{ event.end_date | date: 'dd/MM' }}
+          <li>
+            <a class="widget-row is-link" [routerLink]="['/calendrier', event.id]">
+              <div class="row-date" [class.is-today]="isToday(event)">
+                @if (isToday(event)) {
+                  Aujourd'hui
+                } @else {
+                  {{ weekday(event.start_date) }} {{ event.start_date | date: 'dd/MM' }}
+                  @if (event.end_date !== event.start_date) {
+                    → {{ weekday(event.end_date) }} {{ event.end_date | date: 'dd/MM' }}
+                  }
                 }
+              </div>
+              <div class="row-main">
+                <span class="row-name">{{ event.name }}</span>
+                <span class="row-sub">
+                  {{ eventTypeLabel(event.type) ?? '' }}
+                  @if (event.horaire) {
+                    · {{ event.horaire }}
+                  }
+                  @if (event.menu) {
+                    · {{ event.menu.name }}
+                  }
+                </span>
+              </div>
+              @if (event.couverts) {
+                <span class="row-value">{{ event.couverts }} cvt</span>
               }
-            </div>
-            <div class="row-main">
-              <span class="row-name">{{ event.name }}</span>
-              <span class="row-sub">
-                {{ eventTypeLabel(event.type) ?? '' }}
-                @if (event.horaire) {
-                  · {{ event.horaire }}
-                }
-                @if (event.menu) {
-                  · {{ event.menu.name }}
-                }
-              </span>
-            </div>
-            @if (event.couverts) {
-              <span class="row-value">{{ event.couverts }} cvt</span>
-            }
+            </a>
           </li>
         } @empty {
           <li class="widget-state">Aucun événement prévu.</li>
