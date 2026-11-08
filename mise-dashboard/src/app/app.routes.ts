@@ -256,8 +256,12 @@ export const routes: Routes = [
             loadComponent: () => import('./components/event-form/event-form').then((m) => m.EventForm),
           },
           {
-            path: ':id',
+            path: ':id/modifier',
             loadComponent: () => import('./components/event-form/event-form').then((m) => m.EventForm),
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./components/event-view/event-view').then((m) => m.EventView),
           },
         ],
       },

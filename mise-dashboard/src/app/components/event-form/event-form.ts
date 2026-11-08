@@ -25,7 +25,7 @@ import { Allergen } from '../../core/models/allergen.model';
 import { Ingredient } from '../../core/models/ingredient.model';
 import { IngredientService } from '../../core/services/ingredient.service';
 import { PlatAllergenCheck, checkPlatAllergens } from '../../core/utils/event-allergens';
-import { MerchandiseEntry, MerchandiseLine, merchandiseList } from '../../core/utils/merchandise-list';
+import { eventMerchandiseGroups } from '../../core/utils/event-merchandise';
 import { formatQuantity } from '../../core/utils/format-quantity';
 import { useReportTitle } from '../../core/utils/report-title';
 import { toIsoDate } from '../../core/utils/calendar-grid';
@@ -48,11 +48,6 @@ interface SectionRow {
   key: number;
   name: string;
   plats: PlatRow[];
-}
-
-interface MerchandiseGroup {
-  category: string;
-  lines: MerchandiseLine[];
 }
 
 const DEFAULT_SECTIONS = ['Entrée', 'Plat', 'Dessert'];
@@ -128,6 +123,12 @@ export class EventForm implements OnInit {
   printLabelError = signal<string | null>(null);
 
   isEdit = computed(() => this.editingEvent() !== null);
+
+  /** Retour/Annuler : vers la fiche de l'événement en modification, vers le calendrier sinon. */
+  backLink = computed(() => {
+    const event = this.editingEvent();
+    return event ? ['/calendrier', event.id] : ['/calendrier'];
+  });
 
   groupAllergens = computed(() => this.allergens().filter((a) => this.allergenIds().includes(a.id)));
 
@@ -217,33 +218,13 @@ export class EventForm implements OnInit {
   /** Ingrédients de toutes les fiches de l'événement, chaque fiche mise à l'échelle des pax de
    * son plat — même calcul et même regroupement par famille que la liste de marchandise de la
    * mise en place. */
-  merchandiseGroups = computed<MerchandiseGroup[]>(() => {
-    const fichesById = this.fichesById();
-    const entries: MerchandiseEntry[] = this.sections().flatMap((section) =>
-      section.plats.flatMap((plat) =>
-        plat.ficheIds
-          .map((id) => fichesById.get(id))
-          .filter((fiche): fiche is FicheTechnique => !!fiche && plat.pax > 0)
-          .map((fiche) => ({ fiche, servings: plat.pax })),
-      ),
-    );
-    const categoryNames = new Map(this.ingredientCategories().map((category) => [category.id, category.name]));
-
-    const groups = new Map<string, MerchandiseLine[]>();
-    for (const line of merchandiseList(entries, fichesById)) {
-      const category = categoryNames.get(line.ingredient.ingredient_category_id ?? -1) ?? 'Autres';
-      groups.set(category, [...(groups.get(category) ?? []), line]);
-    }
-
-    return [...groups.entries()]
-      .map(([category, groupLines]) => ({
-        category,
-        lines: groupLines.sort((a, b) => a.ingredient.name.localeCompare(b.ingredient.name, 'fr')),
-      }))
-      .sort((a, b) =>
-        a.category === 'Autres' ? 1 : b.category === 'Autres' ? -1 : a.category.localeCompare(b.category, 'fr'),
-      );
-  });
+  merchandiseGroups = computed(() =>
+    eventMerchandiseGroups(
+      this.sections().flatMap((section) => section.plats),
+      this.fichesById(),
+      this.ingredientCategories(),
+    ),
+  );
 
   ngOnInit(): void {
     this.menuService.list().subscribe((menus) => this.menus.set(menus));
@@ -474,7 +455,7 @@ export class EventForm implements OnInit {
     this.saving.set(true);
     this.errorMessage.set(null);
     request.subscribe({
-      next: () => this.router.navigate(['/calendrier']),
+      next: (event) => this.router.navigate(['/calendrier', event.id]),
       error: () => {
         this.saving.set(false);
         this.errorMessage.set("Une erreur est survenue lors de l'enregistrement.");
@@ -497,7 +478,7 @@ export class EventForm implements OnInit {
           // Un nouvel événement devient un événement existant : la suite de l'édition le met à
           // jour au lieu d'en créer un second, et l'URL suit (sans recharger la page).
           this.editingEvent.set(event);
-          this.location.replaceState(`/calendrier/${event.id}`);
+          this.location.replaceState(`/calendrier/${event.id}/modifier`);
           const deadline = this.effectiveDeadline();
           return this.eventService.generateMiseEnPlace(event.id, {
             deadline: deadline ? deadline.replace('T', ' ') : null,

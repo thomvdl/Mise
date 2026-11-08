@@ -80,3 +80,11 @@
   color: var(--text);
   margin-right: 4px;
 }
+
+/* Plat sans fiche : allergènes inconnus, à ne pas lire comme « sans allergène ». */
+.ag-unverifiable {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-copper);
+}

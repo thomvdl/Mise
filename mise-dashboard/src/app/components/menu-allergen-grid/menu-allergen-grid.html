@@ -37,6 +37,9 @@
                 <td class="ag-plat-name">
                   {{ row.platName }}
                   <span class="ag-section">{{ row.sectionName }}</span>
+                  @if (row.unverifiable) {
+                    <span class="ag-unverifiable">⚠ Sans fiche technique : allergènes à vérifier</span>
+                  }
                 </td>
                 @for (allergen of grid.allergens; track allergen.id) {
                   <td class="ag-cell" [class.ag-present]="hasAllergen(row, allergen.id)">
@@ -60,6 +63,8 @@
           <span class="ag-legend-item"><strong>{{ allergen.code }}</strong> {{ allergen.name }}</span>
         }
       </div>
+    } @else {
+      <p class="report-empty">Chargement des fiches techniques…</p>
     }
   </div>
 

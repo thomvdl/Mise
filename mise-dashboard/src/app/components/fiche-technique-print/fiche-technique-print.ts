@@ -152,9 +152,13 @@ export class FicheTechniquePrint {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
+  /** Sous-recettes comprises : `orderedFiches` (liste complète) sert à descendre au-delà du
+   * premier niveau de composants chargé avec la fiche. */
   allergens = computed(() => {
     const fiche = this.fiche();
-    return fiche ? uniqueAllergens(fiche) : [];
+    if (!fiche) return [];
+    const fichesById = new Map(this.orderedFiches().map((f) => [f.id, f]));
+    return uniqueAllergens(fiche, fichesById, this.ingredientsById());
   });
 
   usedIn = computed(() => this.fiche()?.used_in ?? []);

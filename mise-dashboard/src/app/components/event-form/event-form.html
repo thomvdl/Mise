@@ -1,7 +1,7 @@
 <div class="page-header no-print">
   <h1 class="page-title">{{ isEdit() ? "Modifier l'événement" : 'Nouvel événement' }}</h1>
   <div class="page-actions">
-    <a class="btn btn-ghost" routerLink="/calendrier">Retour au calendrier</a>
+    <a class="btn btn-ghost" [routerLink]="backLink()">{{ isEdit() ? 'Retour à la fiche' : 'Retour au calendrier' }}</a>
   </div>
 </div>
 
@@ -305,7 +305,7 @@
         {{ printingLabel() ? 'Impression…' : "Imprimer l'étiquette" }}
       </button>
     }
-    <a class="btn btn-ghost" routerLink="/calendrier">Annuler</a>
+    <a class="btn btn-ghost" [routerLink]="backLink()">Annuler</a>
     <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
       {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
     </button>

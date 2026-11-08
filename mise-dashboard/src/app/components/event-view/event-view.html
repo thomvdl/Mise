@@ -1,0 +1,271 @@
+<div class="page-header no-print">
+  <h1 class="page-title">Événement</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/calendrier">Retour</a>
+    @if (event(); as event) {
+      <a class="btn btn-ghost" [routerLink]="['/calendrier', event.id, 'modifier']">Modifier</a>
+      <button type="button" class="btn btn-ghost" [disabled]="printingLabel()" (click)="printLabel()">
+        {{ printingLabel() ? 'Impression…' : "Imprimer l'étiquette" }}
+      </button>
+    }
+    <button type="button" class="btn btn-primary" [disabled]="!event()" (click)="print()">Imprimer la fiche</button>
+  </div>
+</div>
+
+@if (printLabelError()) {
+  <p class="form-error no-print">{{ printLabelError() }}</p>
+}
+
+@if (event(); as event) {
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <p class="report-print-meta">Fiche événement — imprimée le {{ generatedAt() }}</p>
+  </div>
+
+  <!-- En-tête -->
+  <div class="report-card ev-header" [attr.data-type]="event.type">
+    <div class="ev-header-main">
+      @if (eventTypeLabel(event.type); as typeLabel) {
+        <span class="ev-type">{{ typeLabel }}</span>
+      }
+      <h2 class="ev-title">{{ event.name }}</h2>
+      <p class="ev-dates">
+        {{ longDate(event.start_date) }}
+        @if (event.end_date !== event.start_date) {
+          → {{ longDate(event.end_date) }}
+        }
+      </p>
+      @if (event.menu; as menu) {
+        <p class="ev-menu">
+          Menu : <a [routerLink]="['/menus', menu.id, 'imprimer']">{{ menu.name }}</a>
+        </p>
+      }
+    </div>
+    @if (event.couverts) {
+      <div class="ev-couverts">
+        <span class="ev-couverts-value">{{ event.couverts }}</span>
+        <span class="ev-couverts-label">couverts</span>
+      </div>
+    }
+  </div>
+
+  @if (event.horaire || event.detail) {
+    <div class="report-card ev-texts">
+      @if (event.horaire) {
+        <div>
+          <div class="ev-label">Horaire</div>
+          <p class="ev-text">{{ event.horaire }}</p>
+        </div>
+      }
+      @if (event.detail) {
+        <div>
+          <div class="ev-label">Détail</div>
+          <p class="ev-text">{{ event.detail }}</p>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Allergies du groupe -->
+  @if (event.allergens.length || event.allergies_note) {
+    <div class="report-card ev-allergies">
+      <div class="ev-label">⚠ Allergies du groupe</div>
+      @if (event.allergens.length) {
+        <div class="ev-allergy-chips">
+          @for (a of event.allergens; track a.id) {
+            <span class="ev-allergy-chip">{{ a.name }}</span>
+          }
+        </div>
+      }
+      @if (event.allergies_note) {
+        <p class="ev-text">{{ event.allergies_note }}</p>
+      }
+      @if (allergyAlerts().conflicts || allergyAlerts().unverifiable) {
+        <p class="ev-alert">
+          @if (allergyAlerts().conflicts) {
+            {{ allergyAlerts().conflicts }} plat(s) contiennent un allergène du groupe.
+          }
+          @if (allergyAlerts().unverifiable) {
+            {{ allergyAlerts().unverifiable }} plat(s) sans fiche technique : à vérifier à la main.
+          }
+        </p>
+      } @else if (event.allergens.length && platChecks()) {
+        <p class="ev-ok">Aucun plat ne contient les allergènes du groupe.</p>
+      }
+    </div>
+  }
+
+  <!-- Plats et pax -->
+  <div class="report-card">
+    <div class="section-title">Plats et pax</div>
+    @for (section of sections(); track $index) {
+      <div class="ev-section">
+        <div class="ev-section-head">
+          <span class="ev-section-name">{{ section.name }}</span>
+          @if (event.couverts) {
+            <span class="ev-section-total" [class.unbalanced]="section.pax !== event.couverts">
+              {{ section.pax }} / {{ event.couverts }} pax
+            </span>
+          }
+        </div>
+        @for (plat of section.plats; track plat.id) {
+          <div class="ev-plat">
+            <span class="ev-pax">{{ plat.pax }}</span>
+            <div class="ev-plat-main">
+              <span class="ev-plat-name">{{ plat.name }}</span>
+              @if (plat.fiche_techniques.length) {
+                <span class="ev-fiches">
+                  @for (fiche of plat.fiche_techniques; track fiche.id) {
+                    <a class="ev-fiche-chip" [routerLink]="['/fiche-techniques', fiche.id, 'imprimer']" [queryParams]="{ portions: plat.pax || null }">{{ fiche.name }}</a>
+                  }
+                </span>
+              }
+              @if (platChecks()?.get(plat.id); as check) {
+                @if (check.conflicts.length) {
+                  <span class="ev-warning">
+                    ⚠ Contient
+                    @for (a of check.conflicts; track a.id) {
+                      <strong>{{ a.name }}</strong>{{ $last ? '' : ', ' }}
+                    }
+                  </span>
+                }
+                @if (check.unverifiable && event.allergens.length) {
+                  <span class="ev-unknown">Sans fiche technique : allergènes à vérifier à la main</span>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @empty {
+      <p class="report-empty">
+        Aucun plat pour cet événement.
+        <a class="no-print" [routerLink]="['/calendrier', event.id, 'modifier']">Composer le menu →</a>
+      </p>
+    }
+  </div>
+
+  <!-- Grille allergènes -->
+  @if (grid(); as grid) {
+    <div class="report-card">
+      <div class="section-title">Grille allergènes</div>
+      <div class="table-wrap">
+        <table class="data-table allergen-grid">
+          <thead>
+            <tr>
+              <th class="ag-plat-col">Plat</th>
+              @for (allergen of grid.allergens; track allergen.id) {
+                <th class="ag-allergen-col" [class.ag-group]="isGroupAllergen(allergen.id)" [title]="allergen.name">{{ allergen.code }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of grid.rows; track row.platId) {
+              <tr>
+                <td class="ag-plat-name">
+                  {{ row.platName }}
+                  <span class="ag-section">{{ row.sectionName }}</span>
+                  @if (row.unverifiable) {
+                    <span class="ag-unverifiable">⚠ Sans fiche technique : allergènes à vérifier</span>
+                  }
+                </td>
+                @for (allergen of grid.allergens; track allergen.id) {
+                  <td
+                    class="ag-cell"
+                    [class.ag-group]="isGroupAllergen(allergen.id)"
+                    [class.ag-present]="hasAllergen(row, allergen.id)"
+                    [class.ag-conflict]="hasAllergen(row, allergen.id) && isGroupAllergen(allergen.id)">
+                    @if (hasAllergen(row, allergen.id)) {
+                      <span aria-hidden="true">●</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="ag-legend">
+        @for (allergen of grid.allergens; track allergen.id) {
+          <span class="ag-legend-item" [class.ag-group]="isGroupAllergen(allergen.id)"><strong>{{ allergen.code }}</strong> {{ allergen.name }}</span>
+        }
+      </div>
+      @if (event.allergens.length) {
+        <p class="ag-hint">Colonnes surlignées : allergènes du groupe.</p>
+      }
+    </div>
+  }
+
+  <!-- Mise en place -->
+  <div class="report-card">
+    <div class="section-title">
+      Mise en place
+      @if (miseEnPlace(); as items) {
+        @if (items.length) {
+          <span class="ev-count">{{ miseEnPlaceDone() }} / {{ items.length }} faite(s)</span>
+        }
+      }
+    </div>
+    @if (miseEnPlace() === null) {
+      <p class="report-empty">Chargement…</p>
+    } @else {
+      <ul class="ev-mep">
+        @for (item of miseEnPlace(); track item.id) {
+          <li [class.done]="item.status === 'done'">
+            <span class="ev-mep-status">{{ item.status === 'done' ? '✓' : '○' }}</span>
+            <span class="ev-mep-name">{{ item.name }}</span>
+            @if (item.servings) {
+              <strong class="ev-mep-servings">{{ item.servings }} portions</strong>
+            }
+            @if (item.deadline) {
+              <span class="ev-mep-deadline">avant {{ item.deadline | date: 'dd/MM HH:mm' }}</span>
+            }
+          </li>
+        } @empty {
+          <li class="report-empty">
+            Aucune tâche de mise en place.
+            <a class="no-print" [routerLink]="['/calendrier', event.id, 'modifier']">Les générer depuis les plats →</a>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- Liste de marchandise -->
+  <div class="report-card ev-merch">
+    <div class="section-title">Liste de marchandise</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ingrédient</th>
+            <th class="col-qty">Quantité</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of merchandiseGroups(); track group.category) {
+            <tr class="merch-category">
+              <td colspan="2">{{ group.category }}</td>
+            </tr>
+            @for (line of group.lines; track line.ingredient.id) {
+              <tr>
+                <td>{{ line.ingredient.name }}</td>
+                <td class="col-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
+              </tr>
+            }
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="2">Aucun ingrédient : les plats n'ont pas de fiche technique ou pas de pax.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="report-print-footer only-print">Généré le {{ generatedAt() }} — MISE</p>
+} @else if (notFound()) {
+  <p class="report-empty">Événement introuvable. <a routerLink="/calendrier">Retour au calendrier</a></p>
+} @else {
+  <p class="report-empty">Chargement…</p>
+}

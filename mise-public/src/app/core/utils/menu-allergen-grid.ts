@@ -2,6 +2,7 @@ import { Allergen } from '../models/allergen.model';
 import { FicheTechnique } from '../models/fiche-technique.model';
 import { Ingredient } from '../models/ingredient.model';
 import { Menu } from '../models/menu.model';
+import { uniqueAllergens } from './enrich-fiche-technique';
 
 export interface AllergenGridRow {
   platId: number;
@@ -9,6 +10,9 @@ export interface AllergenGridRow {
   sectionName: string;
   /** Un plat combine parfois plusieurs fiches techniques — allergènes réunis des deux. */
   allergenIds: Set<number>;
+  /** Aucune fiche liée (ou fiche introuvable) : allergènes inconnus, à vérifier à la main — à ne
+   * surtout pas lire comme « sans allergène ». */
+  unverifiable: boolean;
 }
 
 export interface AllergenGrid {
@@ -19,7 +23,7 @@ export interface AllergenGrid {
 /**
  * Construit la grille plats × allergènes d'un menu : une ligne par plat, une colonne par
  * allergène du référentiel, cochée si un ingrédient d'une des fiches techniques du plat porte
- * cet allergène. Même principe de croisement client que `enrich-fiche-technique.ts` — l'API ne
+ * cet allergène — sous-recettes comprises (voir `uniqueAllergens`). Même principe de croisement client que `enrich-fiche-technique.ts` — l'API ne
  * charge pas `ingredients.allergens` sur une fiche technique. Miroir de
  * mise-dashboard/core/utils/menu-allergen-grid.ts.
  */
@@ -34,14 +38,17 @@ export function buildAllergenGrid(
   for (const section of menu.sections ?? []) {
     for (const plat of section.plats ?? []) {
       const allergenIds = new Set<number>();
+      const platFiches = plat.fiche_techniques ?? [];
+      let unverifiable = platFiches.length === 0;
 
-      for (const platFiche of plat.fiche_techniques ?? []) {
+      for (const platFiche of platFiches) {
         const fiche = fichesById.get(platFiche.id);
-        for (const ingredient of fiche?.ingredients ?? []) {
-          const allergensOfIngredient = ingredientsById.get(ingredient.id)?.allergens ?? ingredient.allergens ?? [];
-          for (const allergen of allergensOfIngredient) {
-            allergenIds.add(allergen.id);
-          }
+        if (!fiche) {
+          unverifiable = true;
+          continue;
+        }
+        for (const allergen of uniqueAllergens(fiche, fichesById, ingredientsById)) {
+          allergenIds.add(allergen.id);
         }
       }
 
@@ -50,6 +57,7 @@ export function buildAllergenGrid(
         platName: plat.name,
         sectionName: section.name,
         allergenIds,
+        unverifiable,
       });
     }
   }

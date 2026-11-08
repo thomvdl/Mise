@@ -1,9 +1,13 @@
 import { Component, DestroyRef, ElementRef, effect, inject, input, signal, computed, untracked, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { FicheTechnique, FicheTechniqueComponent, FicheTechniqueIngredient } from '../../core/models/fiche-technique.model';
 import { FicheTechniqueService } from '../../core/services/fiche-technique.service';
+import { IngredientService } from '../../core/services/ingredient.service';
+import { Ingredient } from '../../core/models/ingredient.model';
 import { LocalPrinterService } from '../../core/services/local-printer.service';
 import { uniqueAllergens } from '../../core/utils/enrich-fiche-technique';
 import { formatQuantity as formatQuantityUtil } from '../../core/utils/format-quantity';
@@ -77,9 +81,21 @@ export class RecipeDetail {
   readonly dialCircumference = DIAL_CIRCUMFERENCE;
   readonly timerCircumference = TIMER_CIRCUMFERENCE;
 
+  /** Fiches et ingrédients complets, pour retrouver les allergènes des sous-recettes (l'API ne
+   * charge qu'un niveau de composants, sans leurs allergènes). */
+  private readonly fichesById = toSignal(
+    this.ficheTechniqueService.list().pipe(map((fiches) => new Map<number, FicheTechnique>(fiches.map((f) => [f.id, f])))),
+    { initialValue: new Map<number, FicheTechnique>() },
+  );
+  private readonly ingredientsById = toSignal(
+    inject(IngredientService).list().pipe(map((items) => new Map<number, Ingredient>(items.map((i) => [i.id, i])))),
+    { initialValue: new Map<number, Ingredient>() },
+  );
+
+  /** Sous-recettes comprises — une béarnaise en composant apporte ses œufs et son beurre. */
   allergens = computed(() => {
     const fiche = this.fiche();
-    return fiche ? uniqueAllergens(fiche) : [];
+    return fiche ? uniqueAllergens(fiche, this.fichesById(), this.ingredientsById()) : [];
   });
 
   usedIn = computed(() => this.fiche()?.used_in ?? []);

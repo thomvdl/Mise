@@ -24,7 +24,8 @@ export class MenuAllergenGrid {
     inject(FicheTechniqueService).list().pipe(
       map((fiches) => new Map<number, FicheTechnique>(fiches.map((f) => [f.id, f]))),
     ),
-    { initialValue: new Map<number, FicheTechnique>() },
+    // Pas de valeur initiale : tant que les fiches ne sont pas chargées, la grille n'est pas
+    // construite — sinon chaque plat s'afficherait un instant « allergènes à vérifier ».
   );
 
   private readonly ingredientsById = toSignal(
@@ -38,7 +39,8 @@ export class MenuAllergenGrid {
 
   grid = computed(() => {
     const menu = this.menu();
-    return menu ? buildAllergenGrid(menu, this.fichesById(), this.ingredientsById(), this.allergens()) : null;
+    const fichesById = this.fichesById();
+    return menu && fichesById ? buildAllergenGrid(menu, fichesById, this.ingredientsById(), this.allergens()) : null;
   });
 
   hasAllergen(row: { allergenIds: Set<number> }, allergenId: number): boolean {

@@ -1,0 +1,125 @@
+.report-empty { color: var(--text-faint); }
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.form-error { color: var(--accent-red); font-size: 13px; }
+
+/* --- En-tête --- */
+.ev-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-left-width: 4px; }
+.ev-header[data-type='brunch'] { border-left-color: var(--accent-copper); }
+.ev-header[data-type='groupe'] { border-left-color: var(--accent-blue); }
+.ev-header[data-type='evenement'] { border-left-color: var(--accent-green); }
+.ev-type {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.ev-title { margin: 4px 0 6px; font-size: 1.4rem; color: var(--text); }
+.ev-dates { margin: 0; color: var(--text-dim); text-transform: capitalize; }
+.ev-menu { margin: 8px 0 0; font-size: 13px; color: var(--text-dim); }
+.ev-menu a { color: var(--accent-blue); }
+.ev-couverts { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.ev-couverts-value { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--text); }
+.ev-couverts-label { font-size: 12px; color: var(--text-faint); }
+
+.ev-texts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.ev-label {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px;
+}
+.ev-text { margin: 0; white-space: pre-line; color: var(--text); font-size: 14px; line-height: 1.5; }
+
+/* --- Allergies --- */
+.ev-allergies {
+  background: color-mix(in srgb, var(--accent-red) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent-red) 40%, transparent);
+}
+.ev-allergies .ev-label { color: var(--accent-red); }
+.ev-allergy-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ev-allergy-chip {
+  font-size: 12.5px; font-weight: 700; padding: 3px 11px; border-radius: 999px;
+  background: var(--accent-red); color: #fff;
+}
+.ev-alert { margin: 10px 0 0; color: var(--accent-red); font-weight: 700; font-size: 13.5px; }
+.ev-ok { margin: 10px 0 0; color: var(--accent-green); font-weight: 600; font-size: 13.5px; }
+
+/* --- Plats --- */
+.ev-section { margin-top: 12px; }
+.ev-section-head { display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.ev-section-name { font-weight: 800; font-size: 14px; }
+.ev-section-total { font-size: 12px; font-weight: 700; color: var(--accent-green); }
+.ev-section-total.unbalanced { color: var(--accent-copper); }
+.ev-plat { display: flex; align-items: flex-start; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.ev-pax { min-width: 54px; text-align: right; font-family: var(--font-mono); font-size: 18px; font-weight: 800; }
+.ev-pax::after { content: ' pax'; font-size: 11px; font-weight: 600; color: var(--text-faint); }
+.ev-plat-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ev-plat-name { font-weight: 700; font-size: 14.5px; }
+.ev-fiches { display: flex; flex-wrap: wrap; gap: 4px; }
+.ev-fiche-chip {
+  font-size: 11.5px; padding: 2px 8px; border-radius: 999px; text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.ev-fiche-chip:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.ev-warning { font-size: 12.5px; color: var(--accent-red); }
+.ev-unknown { font-size: 12px; font-style: italic; color: var(--accent-copper); }
+
+/* --- Grille allergènes (mêmes classes que la grille des menus) --- */
+.table-wrap { overflow-x: auto; }
+.allergen-grid { width: 100%; border-collapse: collapse; }
+.allergen-grid th, .allergen-grid td { padding: 7px 6px; }
+.ag-plat-col { text-align: left; min-width: 200px; }
+.ag-allergen-col { text-align: center; width: 34px; white-space: nowrap; }
+.ag-plat-name { font-weight: 600; }
+.ag-section {
+  display: block; font-family: var(--font-mono); font-size: 10.5px; font-weight: 400;
+  letter-spacing: 0.3px; color: var(--text-faint); text-transform: uppercase;
+}
+.ag-unverifiable { display: block; font-size: 11px; font-weight: 600; color: var(--accent-copper); }
+.ag-cell { text-align: center; color: var(--text-faint); }
+.ag-present { color: var(--text-dim); font-size: 15px; }
+.ag-group { background: color-mix(in srgb, var(--accent-red) 10%, transparent); }
+.ag-conflict { color: var(--accent-red); font-weight: 800; }
+.ag-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.ag-legend-item { font-size: 12px; color: var(--text-dim); padding: 1px 4px; border-radius: 4px; }
+.ag-legend-item strong { font-family: var(--font-mono); color: var(--text); margin-right: 4px; }
+.ag-hint { margin: 8px 0 0; font-size: 12px; color: var(--text-faint); }
+
+/* --- Mise en place --- */
+.ev-count { margin-left: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); text-transform: none; }
+.ev-mep { list-style: none; margin: 0; padding: 0; }
+.ev-mep li { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+.ev-mep li.done .ev-mep-name { text-decoration: line-through; color: var(--text-faint); }
+.ev-mep-status { width: 16px; color: var(--accent-green); font-weight: 800; }
+.ev-mep-name { flex: 1; min-width: 0; }
+.ev-mep-servings { white-space: nowrap; }
+.ev-mep-deadline { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
+/* --- Marchandise --- */
+.merch-category td {
+  background: var(--surface-2); font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; color: var(--text-dim);
+}
+.col-qty { text-align: right; white-space: nowrap; }
+
+.only-print { display: none; }
+
+/* Mise en page d'impression commune dans src/styles/print-report.css. */
+@media print {
+  .ev-header { border-left-width: 1px; }
+  .ev-allergies { background: none; }
+  .ev-allergy-chip { background: none; color: inherit; border: 1px solid currentColor; }
+  .ev-fiche-chip { border: none; padding: 0; }
+  .ag-section { display: inline; }
+  .ag-section::before { content: ' — '; }
+  .merch-category td { background: none !important; }
+}
+
+@media (max-width: 600px) {
+  .ev-header { flex-direction: column; }
+  .ev-pax { min-width: 44px; font-size: 16px; }
+}
