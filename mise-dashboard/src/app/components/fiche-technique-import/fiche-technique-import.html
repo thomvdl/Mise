@@ -1,5 +1,16 @@
 <div class="page-header">
   <h1 class="page-title">Importer des fiches techniques</h1>
+  <div class="page-actions">
+    <input
+      #fileInput
+      type="file"
+      accept=".md,.markdown,.txt,text/markdown,text/plain"
+      multiple
+      hidden
+      (change)="onFilesSelected($event)" />
+    <button type="button" class="btn btn-danger" [disabled]="!markdownText()" (click)="clear()">Effacer</button>
+    <button type="button" class="btn" (click)="fileInput.click()">Importer des fichiers…</button>
+  </div>
 </div>
 
 <p class="form-hint import-tip">
@@ -8,6 +19,10 @@
   autre fiche technique comme composant : remplacez l'unité par « × recette », ex.
   « - Fond brun (fond de veau) — 0.5 × recette » pour une demi-préparation.
 </p>
+
+@if (fileMessage()) {
+  <p class="form-hint import-file-message">{{ fileMessage() }}</p>
+}
 
 <div class="import-layout">
   <div class="form-card">

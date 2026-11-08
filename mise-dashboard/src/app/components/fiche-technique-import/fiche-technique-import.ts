@@ -120,6 +120,8 @@ export class FicheTechniqueImport {
   fiches = signal<FicheTechnique[]>([]);
   saving = signal(false);
   errorMessage = signal<string | null>(null);
+  /** Résultat du dernier chargement de fichiers (noms chargés, fichiers illisibles). */
+  fileMessage = signal<string | null>(null);
 
   constructor() {
     this.categoryService.list().subscribe((items) => this.categories.set(items));
@@ -192,6 +194,47 @@ export class FicheTechniqueImport {
 
   onTextInput(event: Event): void {
     this.markdownText.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  /** Remet la zone de texte à zéro (l'exemple compris) pour coller ou charger d'autres fiches. */
+  clear(): void {
+    this.markdownText.set('');
+    this.fileMessage.set(null);
+    this.errorMessage.set(null);
+  }
+
+  /** Charge un ou plusieurs fichiers .md : leur contenu remplace l'exemple, ou s'ajoute à la suite
+   * du texte déjà saisi. Chaque fiche commençant par son « # Titre », la simple concaténation suffit. */
+  async onFilesSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    // Vidé tout de suite pour pouvoir recharger le même fichier après l'avoir modifié.
+    input.value = '';
+    if (files.length === 0) return;
+
+    const results = await Promise.allSettled(files.map((file) => file.text()));
+    const loaded: string[] = [];
+    const texts: string[] = [];
+    const failed: string[] = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.trim()) {
+        loaded.push(files[index].name);
+        texts.push(result.value.trim());
+      } else {
+        failed.push(files[index].name);
+      }
+    });
+
+    if (texts.length > 0) {
+      const current = this.markdownText().trim();
+      const keepCurrent = current !== '' && current !== EXAMPLE.trim();
+      this.markdownText.set([...(keepCurrent ? [current] : []), ...texts].join('\n\n') + '\n');
+    }
+
+    const parts: string[] = [];
+    if (loaded.length) parts.push(`${loaded.length} fichier(s) chargé(s) : ${loaded.join(', ')}.`);
+    if (failed.length) parts.push(`Fichier(s) vide(s) ou illisible(s) : ${failed.join(', ')}.`);
+    this.fileMessage.set(parts.join(' '));
   }
 
   save(): void {
