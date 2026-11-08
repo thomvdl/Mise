@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\EventPlat;
 use App\Models\Printer;
 use App\Services\ZplLabelBuilder;
 use App\Services\ZplPrinter;
@@ -13,6 +14,8 @@ class EventController extends Controller
 {
     /** Catégories d'événement proposées côté formulaire — pas de table dédiée, juste une chaîne validée. */
     private const TYPES = ['brunch', 'groupe', 'evenement', 'autre'];
+
+    private const RELATIONS = ['menu:id,name', 'plats.ficheTechniques'];
 
     /**
      * Display a listing of the resource.
@@ -49,13 +52,25 @@ class EventController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'menu_id' => ['nullable', Rule::exists('menus', 'id')],
+            ...$this->platRules(),
         ]);
 
         $validated['end_date'] ??= $validated['start_date'];
 
-        $event = Event::create($validated);
+        $event = Event::create(collect($validated)->except('plats')->all());
 
-        return response()->json($event->load('menu:id,name'), 201);
+        $this->replacePlats($event, $validated['plats'] ?? []);
+
+        return response()->json($event->load(self::RELATIONS), 201);
+    }
+
+    /**
+     * Display the specified resource — avec les plats prévus et leurs fiches techniques (page
+     * d'édition d'un événement), contrairement à `index` qui reste léger pour le calendrier.
+     */
+    public function show(Event $event)
+    {
+        return $event->load(self::RELATIONS);
     }
 
     /**
@@ -72,11 +87,16 @@ class EventController extends Controller
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'nullable', 'date', 'after_or_equal:start_date'],
             'menu_id' => ['sometimes', 'nullable', Rule::exists('menus', 'id')],
+            ...$this->platRules(),
         ]);
 
-        $event->update($validated);
+        $event->update(collect($validated)->except('plats')->all());
 
-        return $event->load('menu:id,name');
+        if (array_key_exists('plats', $validated)) {
+            $this->replacePlats($event, $validated['plats']);
+        }
+
+        return $event->load(self::RELATIONS);
     }
 
     /**
@@ -87,6 +107,43 @@ class EventController extends Controller
         $event->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Plats prévus, chacun avec son nombre de pax — `section` est un libellé libre (Entrée, Plat,
+     * Dessert…), comme le nom d'une section de menu.
+     */
+    private function platRules(): array
+    {
+        return [
+            'plats' => ['sometimes', 'array'],
+            'plats.*.section' => ['required', 'string', 'max:100'],
+            'plats.*.name' => ['required', 'string', 'max:255'],
+            'plats.*.pax' => ['required', 'integer', 'min:0'],
+            'plats.*.fiche_technique_ids' => ['sometimes', 'array'],
+            'plats.*.fiche_technique_ids.*' => ['integer', 'exists:fiche_techniques,id'],
+        ];
+    }
+
+    /** Même principe que MenuController::replaceSections : on remplace toute la liste. */
+    private function replacePlats(Event $event, array $plats): void
+    {
+        $event->plats()->delete();
+
+        foreach ($plats as $index => $platData) {
+            /** @var EventPlat $plat */
+            $plat = $event->plats()->create([
+                'section' => $platData['section'],
+                'name' => $platData['name'],
+                'pax' => $platData['pax'],
+                'position' => $index + 1,
+            ]);
+
+            $ficheIds = collect($platData['fiche_technique_ids'] ?? [])->unique()->values();
+            $plat->ficheTechniques()->sync(
+                $ficheIds->mapWithKeys(fn ($id, $i) => [$id => ['position' => $i + 1]])->all(),
+            );
+        }
     }
 
     /**

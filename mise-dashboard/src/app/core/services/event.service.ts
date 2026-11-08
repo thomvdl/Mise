@@ -22,6 +22,10 @@ export class EventService {
     return this.http.get<CalendarEvent[]>(this.baseUrl);
   }
 
+  get(id: number) {
+    return this.http.get<CalendarEvent>(`${this.baseUrl}/${id}`);
+  }
+
   create(payload: CalendarEventPayload) {
     return this.http.post<CalendarEvent>(this.baseUrl, payload);
   }

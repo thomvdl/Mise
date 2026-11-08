@@ -122,7 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Calendrier d'événements — lecture ouverte (vue calendrier côté public), écriture
     // réservée à l'admin (groupe role:admin plus bas).
-    Route::apiResource('events', EventController::class)->only(['index'])
+    Route::apiResource('events', EventController::class)->only(['index', 'show'])
         ->parameters(['events' => 'event']);
     // Imprime une étiquette pour un événement — même niveau d'accès que
     // printed-labels/print-zebra : n'importe qui de connecté peut imprimer, ce n'est pas une

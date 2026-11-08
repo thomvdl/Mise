@@ -113,10 +113,6 @@
   white-space:nowrap;
 }
 
-.event-modal{ max-width:520px; }
-.event-modal .form-field,
-.event-modal .form-grid{ margin-bottom:16px; }
-
 @media (max-width: 700px){
   .day-cell{ min-height:64px; font-size:11px; }
   .event-chip{ font-size:10px; padding:2px 4px; }

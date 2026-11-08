@@ -1,0 +1,287 @@
+<div class="page-header no-print">
+  <h1 class="page-title">{{ isEdit() ? "Modifier l'événement" : 'Nouvel événement' }}</h1>
+  <div class="page-actions">
+    <a class="btn btn-ghost" routerLink="/calendrier">Retour au calendrier</a>
+  </div>
+</div>
+
+<div class="form-card no-print">
+  <div class="section">
+    <div class="section-title">Général</div>
+    <div class="form-grid">
+      <div class="form-field span-2">
+        <label class="form-label" for="event-name">Nom</label>
+        <input id="event-name" class="form-input" type="text" maxlength="100" [(ngModel)]="name" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Date de début</label>
+        <app-datetime-picker [showTime]="false" [fullWidth]="true" placeholder="Choisir une date…" [(ngModel)]="startDate">
+        </app-datetime-picker>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Date de fin</label>
+        <app-datetime-picker [showTime]="false" [fullWidth]="true" placeholder="Choisir une date…" [(ngModel)]="endDate">
+        </app-datetime-picker>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="event-couverts">Nombre de couverts</label>
+        <input id="event-couverts" class="form-input" type="number" min="0" [(ngModel)]="couverts" />
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="event-type">Type d'événement (optionnel)</label>
+        <select id="event-type" class="form-select" [ngModel]="type()" (ngModelChange)="type.set($event)">
+          <option [ngValue]="null">— Aucun —</option>
+          @for (eventType of eventTypes; track eventType.key) {
+            <option [ngValue]="eventType.key">{{ eventType.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="event-horaire">Horaire</label>
+        <textarea id="event-horaire" class="form-textarea" rows="3" [(ngModel)]="horaire"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="event-detail">Détail</label>
+        <textarea id="event-detail" class="form-textarea" rows="3" [(ngModel)]="detail"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Menu de l'événement</div>
+
+    <div class="view-toggle">
+      <button type="button" class="view-tab" [class.active]="mode() === 'menu'" (click)="setMode('menu')">
+        Depuis un menu
+      </button>
+      <button type="button" class="view-tab" [class.active]="mode() === 'fiches'" (click)="setMode('fiches')">
+        Fiches techniques à la carte
+      </button>
+    </div>
+
+    @if (mode() === 'menu') {
+      <div class="menu-picker">
+        <select #menuSelect class="form-select" (change)="onMenuChange(menuSelect.value)">
+          <option value="" [selected]="menuId() === null">— Choisir un menu —</option>
+          @for (menu of menus(); track menu.id) {
+            <option [value]="menu.id" [selected]="menu.id === menuId()">{{ menu.name }}</option>
+          }
+        </select>
+        @if (selectedMenu()) {
+          <button type="button" class="btn btn-ghost btn-sm" (click)="reloadMenu()">Recharger le menu</button>
+        }
+      </div>
+      <p class="form-hint">
+        Les plats sont copiés du menu : indique combien de pax prennent chaque plat. Si tu modifies le
+        menu ensuite, « Recharger le menu » le recopie.
+      </p>
+    } @else {
+      <p class="form-hint">Ajoute les fiches techniques section par section, avec le nombre de pax de chacune.</p>
+    }
+
+    @if (!couverts()) {
+      <p class="form-hint">Renseigne le nombre de couverts pour vérifier la répartition de chaque section.</p>
+    }
+
+    <div class="event-sections">
+      @for (section of sections(); track section.key; let sectionIndex = $index) {
+        <div class="event-section-card">
+          <div class="event-section-header">
+            @if (mode() === 'fiches') {
+              <input
+                class="form-input section-name"
+                type="text"
+                placeholder="Nom de la section (ex. Entrée)"
+                [ngModel]="section.name"
+                (ngModelChange)="renameSection(section.key, $event)" />
+              <div class="order-buttons">
+                <button type="button" class="btn btn-ghost btn-sm" [disabled]="sectionIndex === 0"
+                  (click)="moveSection(sectionIndex, -1)" aria-label="Monter cette section">↑</button>
+                <button type="button" class="btn btn-ghost btn-sm" [disabled]="sectionIndex === sections().length - 1"
+                  (click)="moveSection(sectionIndex, 1)" aria-label="Descendre cette section">↓</button>
+              </div>
+            } @else {
+              <span class="section-name-static">{{ section.name }}</span>
+            }
+
+            @if (couverts()) {
+              <span class="pax-total" [class.balanced]="isBalanced(section)" [class.unbalanced]="!isBalanced(section)">
+                {{ totalPax(section) }} / {{ couverts() }} pax
+              </span>
+              @if (section.plats.length > 1) {
+                <button type="button" class="btn btn-ghost btn-sm" (click)="distribute(section.key)">Répartir</button>
+              }
+            }
+
+            @if (mode() === 'fiches') {
+              <button type="button" class="row-remove" (click)="removeSection(section.key)"
+                aria-label="Supprimer cette section">×</button>
+            }
+          </div>
+
+          <div class="event-plats">
+            @for (plat of section.plats; track plat.key; let platIndex = $index) {
+              <div class="event-plat-row">
+                <div class="plat-info">
+                  <span class="plat-name">{{ plat.name }}</span>
+                  @if (mode() === 'menu') {
+                    <span class="plat-fiches">
+                      @for (ficheId of plat.ficheIds; track ficheId) {
+                        <span class="fiche-chip">{{ ficheName(ficheId) }}</span>
+                      } @empty {
+                        <span class="plat-no-fiche">Aucune fiche technique liée</span>
+                      }
+                    </span>
+                  }
+                </div>
+
+                <label class="pax-field">
+                  <input class="form-input" type="number" min="0" [ngModel]="plat.pax"
+                    (ngModelChange)="setPax(section.key, plat.key, $event)" />
+                  <span>pax</span>
+                </label>
+
+                @if (mode() === 'fiches') {
+                  <div class="order-buttons">
+                    <button type="button" class="btn btn-ghost btn-sm" [disabled]="platIndex === 0"
+                      (click)="movePlat(section.key, platIndex, -1)" aria-label="Monter ce plat">↑</button>
+                    <button type="button" class="btn btn-ghost btn-sm" [disabled]="platIndex === section.plats.length - 1"
+                      (click)="movePlat(section.key, platIndex, 1)" aria-label="Descendre ce plat">↓</button>
+                  </div>
+                  <button type="button" class="row-remove" (click)="removePlat(section.key, plat.key)"
+                    aria-label="Retirer ce plat">×</button>
+                }
+              </div>
+            } @empty {
+              @if (mode() === 'menu') {
+                <p class="form-hint">Aucun plat dans cette section du menu.</p>
+              }
+            }
+
+            @if (mode() === 'fiches') {
+              <div class="add-fiche-row">
+                <app-fiche-technique-search-select
+                  [fiches]="fiches()"
+                  [ngModel]="pendingFiche()[section.key] ?? null"
+                  (ngModelChange)="setPendingFiche(section.key, $event)">
+                </app-fiche-technique-search-select>
+                <button type="button" class="btn btn-ghost btn-sm" [disabled]="!pendingFiche()[section.key]"
+                  (click)="addFiche(section)">+ Ajouter</button>
+              </div>
+            }
+          </div>
+        </div>
+      } @empty {
+        @if (mode() === 'menu') {
+          <p class="form-hint">Choisis un menu pour répartir ses plats.</p>
+        }
+      }
+
+      @if (mode() === 'fiches') {
+        <button type="button" class="btn btn-ghost btn-sm row-add" (click)="addSection()">+ Ajouter une section</button>
+      }
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="form-error">{{ errorMessage() }}</p>
+  }
+  @if (printLabelError()) {
+    <p class="form-error">{{ printLabelError() }}</p>
+  }
+
+  <div class="form-actions">
+    @if (isEdit()) {
+      <button type="button" class="btn btn-danger" (click)="pendingDelete.set(true)">Supprimer</button>
+      <button type="button" class="btn btn-ghost" [disabled]="printingLabel()" (click)="printLabel()">
+        {{ printingLabel() ? 'Impression…' : "Imprimer l'étiquette" }}
+      </button>
+    }
+    <a class="btn btn-ghost" routerLink="/calendrier">Annuler</a>
+    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+    </button>
+  </div>
+</div>
+
+<!-- Version imprimable : répartition des pax + liste de marchandise. -->
+<div class="section event-sheet">
+  <div class="report-print-header only-print">
+    <div class="report-print-brand">MISE.</div>
+    <h1>{{ name() }}</h1>
+    <p class="report-print-subtitle">
+      {{ startDate() }}@if (endDate() && endDate() !== startDate()) { → {{ endDate() }} }
+      @if (couverts()) { · {{ couverts() }} couverts }
+    </p>
+  </div>
+
+  <div class="only-print">
+    @for (section of sections(); track section.key) {
+      @if (section.plats.length) {
+        <h2 class="sheet-section">{{ section.name }}</h2>
+        <ul class="sheet-plats">
+          @for (plat of section.plats; track plat.key) {
+            <li><strong>{{ plat.pax }} pax</strong> — {{ plat.name }}</li>
+          }
+        </ul>
+      }
+    }
+  </div>
+
+  <div class="sheet-title-row no-print">
+    <div class="section-title">Liste de marchandise</div>
+    <button type="button" class="btn btn-primary" [disabled]="!hasPlats()" (click)="printSheet()">Imprimer</button>
+  </div>
+  <p class="form-hint no-print">
+    Ingrédients de toutes les fiches techniques, aux pax prévus pour chaque plat (sous-recettes comprises).
+    Se met à jour en direct quand tu changes la répartition.
+  </p>
+
+  <h2 class="sheet-section only-print">Liste de marchandise</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ingrédient</th>
+          <th class="col-qty">Quantité</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (group of merchandiseGroups(); track group.category) {
+          <tr class="merch-category">
+            <td colspan="2">{{ group.category }}</td>
+          </tr>
+          @for (line of group.lines; track line.ingredient.id) {
+            <tr>
+              <td>{{ line.ingredient.name }}</td>
+              <td class="col-qty">{{ formatQuantity(line.quantity, line.ingredient.unit) }}</td>
+            </tr>
+          }
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="2">Aucun ingrédient : ajoute des plats liés à des fiches techniques, avec des pax.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<app-confirm-dialog
+  [open]="pendingReplace() !== null"
+  title="Remplacer les plats ?"
+  message="Les plats et la répartition des pax déjà saisis seront remplacés."
+  confirmLabel="Remplacer"
+  (confirm)="confirmReplace()"
+  (cancel)="cancelReplace()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [open]="pendingDelete()"
+  [message]="'Supprimer l\'événement « ' + name() + ' » ?'"
+  (confirm)="deleteConfirmed()"
+  (cancel)="pendingDelete.set(false)">
+</app-confirm-dialog>

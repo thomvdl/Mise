@@ -1,0 +1,81 @@
+.view-toggle{
+  display:flex; gap:2px; padding:3px; margin-bottom:12px;
+  background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+  width:fit-content;
+}
+.view-tab{
+  border:none; background:transparent; color:var(--text-dim);
+  padding:6px 14px; border-radius:7px; font-size:12.5px; font-weight:700;
+  transition:all .15s ease;
+}
+.view-tab:hover{ color:var(--text); }
+.view-tab.active{ background:var(--surface); color:var(--text); box-shadow:var(--shadow); }
+
+.menu-picker{ display:flex; gap:10px; align-items:center; max-width:520px; margin-bottom:6px; }
+.menu-picker .form-select{ flex:1; }
+
+.event-sections{ display:flex; flex-direction:column; gap:16px; margin-top:14px; }
+
+.event-section-card{
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px; background:var(--surface-2);
+}
+.event-section-header{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.section-name{ flex:1; min-width:160px; font-weight:600; }
+.section-name-static{ flex:1; font-weight:700; font-size:14px; }
+
+.order-buttons{ display:flex; gap:4px; flex-shrink:0; }
+.order-buttons .btn{ padding:4px 10px; }
+
+.pax-total{
+  font-size:12.5px; font-weight:700; padding:3px 10px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--border); white-space:nowrap;
+}
+.pax-total.balanced{ color:var(--accent-green); border-color:currentColor; }
+.pax-total.unbalanced{ color:var(--accent-copper); border-color:currentColor; }
+
+.event-plats{ display:flex; flex-direction:column; gap:8px; }
+
+.event-plat-row{
+  display:flex; align-items:center; gap:10px;
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:8px 10px; background:var(--surface);
+}
+.plat-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.plat-name{ font-weight:600; }
+.plat-fiches{ display:flex; flex-wrap:wrap; gap:4px; }
+.fiche-chip{
+  font-size:11.5px; padding:2px 8px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim);
+}
+.plat-no-fiche{ font-size:12px; color:var(--text-dim); font-style:italic; }
+
+.pax-field{ display:flex; align-items:center; gap:6px; flex-shrink:0; font-size:13px; color:var(--text-dim); }
+.pax-field .form-input{ width:80px; text-align:right; }
+
+.add-fiche-row{ display:flex; gap:8px; align-items:center; max-width:520px; }
+.add-fiche-row app-fiche-technique-search-select{ flex:1; position:relative; }
+
+.event-sheet{ margin-top:24px; }
+.sheet-title-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+
+.merch-category td{
+  background:var(--surface-2); font-size:11.5px; font-weight:700; letter-spacing:.4px;
+  text-transform:uppercase; color:var(--text-dim);
+}
+.col-qty{ text-align:right; white-space:nowrap; }
+
+.only-print{ display:none; }
+
+/* Mise en page d'impression commune dans src/styles/print-report.css. */
+@media print{
+  .sheet-section{ font-size:9pt; margin:8pt 0 3pt; text-transform:uppercase; letter-spacing:.4px; }
+  .sheet-plats{ margin:0 0 4pt; padding-left:12pt; font-size:8pt; }
+  .merch-category td{ background:none !important; font-size:6pt !important; padding-top:5pt !important; }
+}
+
+@media (max-width: 600px){
+  .event-plat-row{ flex-wrap:wrap; }
+  .plat-info{ flex-basis:100%; }
+  .menu-picker, .add-fiche-row{ flex-direction:column; align-items:stretch; max-width:none; }
+}

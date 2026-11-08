@@ -1,30 +1,24 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { EventService } from '../../core/services/event.service';
-import { MenuService } from '../../core/services/menu.service';
-import { CalendarEvent, EVENT_TYPES } from '../../core/models/calendar-event.model';
-import { Menu } from '../../core/models/menu.model';
+import { CalendarEvent } from '../../core/models/calendar-event.model';
 import { buildMonthGrid, eventsOnDay, toIsoDate } from '../../core/utils/calendar-grid';
-import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
-import { DatetimePicker } from '../datetime-picker/datetime-picker';
 
 const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 @Component({
   selector: 'app-event-calendar',
-  imports: [FormsModule, DatePipe, RouterLink, ConfirmDialog, DatetimePicker],
+  imports: [DatePipe],
   templateUrl: './event-calendar.html',
   styleUrl: './event-calendar.css',
 })
 export class EventCalendar implements OnInit {
   private readonly eventService = inject(EventService);
-  private readonly menuService = inject(MenuService);
+  private readonly router = inject(Router);
 
   readonly weekdayLabels = WEEKDAY_LABELS;
-  readonly eventTypes = EVENT_TYPES;
 
   currentYear = signal(new Date().getFullYear());
   currentMonth = signal(new Date().getMonth() + 1);
@@ -32,7 +26,6 @@ export class EventCalendar implements OnInit {
   viewMode = signal<'calendar' | 'list'>('calendar');
 
   events = signal<CalendarEvent[]>([]);
-  menus = signal<Menu[]>([]);
 
   grid = computed(() => buildMonthGrid(this.currentYear(), this.currentMonth()));
 
@@ -43,25 +36,7 @@ export class EventCalendar implements OnInit {
     }),
   );
 
-  showForm = signal(false);
-  editingEvent = signal<CalendarEvent | null>(null);
-  formName = signal('');
-  formDetail = signal('');
-  formHoraire = signal('');
-  formCouverts = signal<number | null>(null);
-  formType = signal<string | null>(null);
-  formStartDate = signal('');
-  formEndDate = signal('');
-  formMenuId = signal<number | null>(null);
-  formError = signal<string | null>(null);
-
-  pendingDelete = signal<CalendarEvent | null>(null);
-
-  printingLabel = signal(false);
-  printLabelError = signal<string | null>(null);
-
   ngOnInit(): void {
-    this.menuService.list().subscribe((menus) => this.menus.set(menus));
     this.loadEvents();
   }
 
@@ -108,106 +83,12 @@ export class EventCalendar implements OnInit {
   }
 
   openNewEventForm(iso: string): void {
-    this.editingEvent.set(null);
-    this.formName.set('');
-    this.formDetail.set('');
-    this.formHoraire.set('');
-    this.formCouverts.set(null);
-    this.formType.set(null);
-    this.formStartDate.set(iso);
-    this.formEndDate.set(iso);
-    this.formMenuId.set(null);
-    this.formError.set(null);
-    this.showForm.set(true);
+    this.router.navigate(['/calendrier/nouveau'], { queryParams: { date: iso } });
   }
 
   openEditEventForm(event: CalendarEvent, domEvent: Event): void {
     domEvent.stopPropagation();
-    this.editingEvent.set(event);
-    this.formName.set(event.name);
-    this.formDetail.set(event.detail ?? '');
-    this.formHoraire.set(event.horaire ?? '');
-    this.formCouverts.set(event.couverts);
-    this.formType.set(event.type);
-    this.formStartDate.set(event.start_date);
-    this.formEndDate.set(event.end_date);
-    this.formMenuId.set(event.menu_id);
-    this.formError.set(null);
-    this.showForm.set(true);
-  }
-
-  closeForm(): void {
-    this.showForm.set(false);
-  }
-
-  printLabel(): void {
-    const event = this.editingEvent();
-    if (!event) return;
-
-    this.printingLabel.set(true);
-    this.printLabelError.set(null);
-    this.eventService.printLabel(event.id).subscribe({
-      next: () => this.printingLabel.set(false),
-      error: () => {
-        this.printingLabel.set(false);
-        this.printLabelError.set("Impossible d'imprimer l'étiquette.");
-      },
-    });
-  }
-
-  /** Query params du lien "Voir la liste de courses" — `couverts` omis si non renseigné plutôt
-   * que de passer `null` dans l'URL. */
-  shoppingListQueryParams(): Record<string, number> {
-    const couverts = this.formCouverts();
-    return couverts ? { couverts } : {};
-  }
-
-  saveEvent(): void {
-    const name = this.formName().trim();
-    const startDate = this.formStartDate();
-    const endDate = this.formEndDate() || startDate;
-    if (!name || !startDate) return;
-
-    const payload = {
-      name,
-      detail: this.formDetail().trim() || null,
-      horaire: this.formHoraire().trim() || null,
-      couverts: this.formCouverts(),
-      type: this.formType(),
-      start_date: startDate,
-      end_date: endDate,
-      menu_id: this.formMenuId(),
-    };
-    const editing = this.editingEvent();
-    const request = editing ? this.eventService.update(editing.id, payload) : this.eventService.create(payload);
-
-    this.formError.set(null);
-    request.subscribe({
-      next: () => {
-        this.showForm.set(false);
-        this.loadEvents();
-      },
-      error: () => this.formError.set("Une erreur est survenue lors de l'enregistrement."),
-    });
-  }
-
-  confirmDeleteFromForm(): void {
-    this.pendingDelete.set(this.editingEvent());
-  }
-
-  cancelDelete(): void {
-    this.pendingDelete.set(null);
-  }
-
-  deleteConfirmed(): void {
-    const event = this.pendingDelete();
-    if (!event) return;
-
-    this.eventService.delete(event.id).subscribe(() => {
-      this.pendingDelete.set(null);
-      this.showForm.set(false);
-      this.loadEvents();
-    });
+    this.router.navigate(['/calendrier', event.id]);
   }
 
   protected readonly toIsoDate = toIsoDate;

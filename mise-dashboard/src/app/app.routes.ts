@@ -223,7 +223,20 @@ export const routes: Routes = [
 
       {
         path: 'calendrier',
-        loadComponent: () => import('./components/event-calendar/event-calendar').then((m) => m.EventCalendar),
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./components/event-calendar/event-calendar').then((m) => m.EventCalendar),
+          },
+          {
+            path: 'nouveau',
+            loadComponent: () => import('./components/event-form/event-form').then((m) => m.EventForm),
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./components/event-form/event-form').then((m) => m.EventForm),
+          },
+        ],
       },
 
       {

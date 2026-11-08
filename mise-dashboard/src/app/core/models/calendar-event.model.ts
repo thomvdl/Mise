@@ -1,3 +1,5 @@
+import { FicheTechnique } from './fiche-technique.model';
+
 export interface EventType {
   key: string;
   label: string;
@@ -22,6 +24,26 @@ export interface CalendarEvent {
   end_date: string;
   menu_id: number | null;
   menu: { id: number; name: string } | null;
+  /** Chargé seulement par `GET /api/events/:id` (page de l'événement), pas par la liste du calendrier. */
+  plats?: EventPlat[];
+}
+
+/** Un plat prévu pour l'événement et son nombre de pax — copié du menu lié ou composé à partir
+ * des fiches techniques. `section` est un libellé libre (Entrée, Plat, Dessert…). */
+export interface EventPlat {
+  id: number;
+  section: string;
+  name: string;
+  pax: number;
+  position: number;
+  fiche_techniques: FicheTechnique[];
+}
+
+export interface EventPlatPayload {
+  section: string;
+  name: string;
+  pax: number;
+  fiche_technique_ids: number[];
 }
 
 export interface CalendarEventPayload {
@@ -33,4 +55,5 @@ export interface CalendarEventPayload {
   start_date: string;
   end_date: string;
   menu_id: number | null;
+  plats?: EventPlatPayload[];
 }
